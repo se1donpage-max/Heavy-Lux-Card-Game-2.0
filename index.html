@@ -1,1 +1,2720 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
 
+    <meta
+        name="viewport"
+        content="width=device-width,
+                 initial-scale=1,
+                 maximum-scale=1,
+                 user-scalable=no,
+                 viewport-fit=cover"
+    >
+
+    <meta name="theme-color" content="#070707">
+
+    <title>Heavy Lux Card</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #070707;
+            color: #fff;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 760px;
+            min-height: 100vh;
+            margin: 0 auto;
+            padding:
+                max(14px, env(safe-area-inset-top))
+                14px
+                max(90px, env(safe-area-inset-bottom));
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0 18px;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.8px;
+        }
+
+        .brand span {
+            color: #f5c542;
+        }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8b1d1d;
+        }
+
+        .dot.online {
+            background: #38c172;
+            box-shadow: 0 0 10px rgba(56,193,114,.6);
+        }
+
+        .card {
+            background:
+                linear-gradient(
+                    145deg,
+                    #151515,
+                    #0d0d0d
+                );
+            border: 1px solid #242424;
+            border-radius: 22px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow:
+                0 14px 40px rgba(0,0,0,.25);
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .profile-main {
+            min-width: 0;
+        }
+
+        .profile-name {
+            font-size: 19px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-level {
+            margin-top: 5px;
+            color: #8d8d8d;
+            font-size: 12px;
+        }
+
+        .wallet {
+            text-align: right;
+        }
+
+        .wallet-label {
+            color: #777;
+            font-size: 11px;
+        }
+
+        .wallet-value {
+            margin-top: 3px;
+            color: #f5c542;
+            font-size: 21px;
+            font-weight: 900;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+            margin-bottom: 14px;
+        }
+
+        .tab {
+            border: 1px solid #242424;
+            background: #101010;
+            color: #888;
+            border-radius: 13px;
+            padding: 11px 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .tab.active {
+            background: #f5c542;
+            color: #080808;
+            border-color: #f5c542;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+
+        .section-subtitle {
+            color: #777;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stakes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stake {
+            padding: 13px 8px;
+            border-radius: 14px;
+            border: 1px solid #292929;
+            background: #111;
+            color: #ddd;
+            font-weight: 800;
+        }
+
+        .stake.selected {
+            border-color: #f5c542;
+            color: #f5c542;
+            background: #18150a;
+        }
+
+        .primary {
+            width: 100%;
+            margin-top: 12px;
+            border: 0;
+            border-radius: 15px;
+            padding: 15px;
+            background: #f5c542;
+            color: #080808;
+            font-weight: 900;
+            font-size: 15px;
+        }
+
+        .primary:active,
+        .secondary:active,
+        .danger:active,
+        .game-btn:active {
+            transform: scale(.98);
+        }
+
+        .secondary {
+            border: 1px solid #303030;
+            background: #151515;
+            color: #ddd;
+            border-radius: 13px;
+            padding: 11px 14px;
+            font-weight: 800;
+        }
+
+        .danger {
+            border: 1px solid #632020;
+            background: #211010;
+            color: #ff7b7b;
+            border-radius: 13px;
+            padding: 11px 14px;
+            font-weight: 800;
+        }
+
+        .room {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid #202020;
+        }
+
+        .room:last-child {
+            border-bottom: 0;
+        }
+
+        .room-id {
+            font-weight: 900;
+            font-size: 15px;
+        }
+
+        .room-info {
+            color: #777;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .room-status {
+            color: #f5c542;
+        }
+
+        .empty {
+            padding: 30px 10px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 13px;
+            border: 1px solid #292929;
+            outline: none;
+            background: #101010;
+            color: white;
+            margin-bottom: 9px;
+        }
+
+        .input:focus {
+            border-color: #f5c542;
+        }
+
+        .room-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .game-room {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .turn {
+            padding: 7px 10px;
+            border-radius: 10px;
+            background: #151515;
+            color: #aaa;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .turn.yours {
+            color: #080808;
+            background: #f5c542;
+        }
+
+        .opponent {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px;
+            background: #101010;
+            border: 1px solid #222;
+            border-radius: 15px;
+            margin-bottom: 13px;
+        }
+
+        .opponent-name {
+            font-weight: 800;
+        }
+
+        .opponent-cards {
+            color: #777;
+            font-size: 12px;
+        }
+
+        .table {
+            min-height: 170px;
+            border-radius: 20px;
+            border: 1px solid #202020;
+            background:
+                radial-gradient(
+                    circle at center,
+                    #13291b 0,
+                    #09120c 65%,
+                    #080808 100%
+                );
+            padding: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .pair {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mini-card {
+            width: 54px;
+            height: 76px;
+            border-radius: 9px;
+            background: #f8f8f8;
+            color: #111;
+            padding: 6px;
+            font-weight: 900;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 5px 14px rgba(0,0,0,.4);
+        }
+
+        .mini-card.red {
+            color: #d52626;
+        }
+
+        .defense {
+            transform: translateY(9px);
+        }
+
+        .hand {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 0 12px;
+        }
+
+        .playing-card {
+            width: 62px;
+            height: 88px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: #f8f8f8;
+            color: #111;
+            padding: 7px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-weight: 900;
+            box-shadow: 0 8px 18px rgba(0,0,0,.4);
+            transition: .15s;
+        }
+
+        .playing-card.red {
+            color: #d52626;
+        }
+
+        .playing-card.selected {
+            border-color: #f5c542;
+            transform: translateY(-8px);
+        }
+
+        .playing-card.disabled {
+            opacity: .42;
+        }
+
+        .card-rank {
+            font-size: 19px;
+        }
+
+        .card-suit {
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .game-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+        }
+
+        .game-btn {
+            min-height: 48px;
+            border: 1px solid #292929;
+            background: #141414;
+            color: #ddd;
+            border-radius: 13px;
+            font-weight: 900;
+        }
+
+        .game-btn.main {
+            background: #f5c542;
+            border-color: #f5c542;
+            color: #080808;
+        }
+
+        .game-btn:disabled {
+            opacity: .3;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stat {
+            background: #101010;
+            border: 1px solid #222;
+            border-radius: 14px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .stat-label {
+            margin-top: 3px;
+            color: #777;
+            font-size: 10px;
+        }
+
+        .garage-row {
+            padding: 13px;
+            border: 1px solid #222;
+            border-radius: 14px;
+            background: #101010;
+            margin-bottom: 8px;
+        }
+
+        .garage-title {
+            font-weight: 800;
+        }
+
+        .garage-info {
+            margin-top: 5px;
+            color: #777;
+            font-size: 11px;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%) translateY(20px);
+            width: calc(100% - 28px);
+            max-width: 520px;
+            padding: 13px 15px;
+            border-radius: 14px;
+            background: #202020;
+            color: white;
+            border: 1px solid #333;
+            opacity: 0;
+            pointer-events: none;
+            transition: .2s;
+            z-index: 100;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            color: #777;
+            padding: 45px 10px;
+        }
+
+        @media (max-width: 420px) {
+            .tabs {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .playing-card {
+                width: 56px;
+                height: 80px;
+            }
+
+            .mini-card {
+                width: 48px;
+                height: 68px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <div class="topbar">
+        <div class="brand">
+            HEAVY <span>LUX</span>
+        </div>
+
+        <div class="connection">
+            <div id="connectionDot" class="dot"></div>
+            <span id="connectionText">подключение...</span>
+        </div>
+    </div>
+
+    <div id="profileCard" class="card">
+        <div class="loading">Загрузка профиля...</div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="game">
+            ИГРА
+        </button>
+
+        <button class="tab" data-tab="rooms">
+            КОМНАТЫ
+        </button>
+
+        <button class="tab" data-tab="garage">
+            ГАРАЖ
+        </button>
+
+        <button class="tab" data-tab="profile">
+            ПРОФИЛЬ
+        </button>
+    </div>
+
+    <section id="tab-game">
+
+        <div id="lobbyCard" class="card">
+
+            <div class="section-title">
+                Дурак 36
+            </div>
+
+            <div class="section-subtitle">
+                Игра один на один. Только живые игроки.
+            </div>
+
+            <div class="stakes" id="stakes"></div>
+
+            <button
+                id="createRoomBtn"
+                class="primary"
+            >
+                СОЗДАТЬ КОМНАТУ
+            </button>
+
+            <div style="height:8px"></div>
+
+            <div class="room-actions">
+
+                <input
+                    id="roomInput"
+                    class="input"
+                    placeholder="ID комнаты"
+                    style="margin:0"
+                    maxlength="12"
+                >
+
+                <button
+                    id="joinRoomBtn"
+                    class="secondary"
+                >
+                    ВОЙТИ
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="gameCard" class="card hidden">
+
+            <div class="game-header">
+
+                <div>
+                    <div class="section-title">
+                        ДУРАК
+                    </div>
+
+                    <div
+                        id="gameRoom"
+                        class="game-room"
+                    >
+                        Комната
+                    </div>
+                </div>
+
+                <div
+                    id="turnBadge"
+                    class="turn"
+                >
+                    ОЖИДАНИЕ
+                </div>
+
+            </div>
+
+            <div
+                id="opponent"
+                class="opponent"
+            >
+                <div>
+                    <div
+                        id="opponentName"
+                        class="opponent-name"
+                    >
+                        Противник
+                    </div>
+
+                    <div
+                        id="opponentStatus"
+                        class="opponent-cards"
+                    >
+                        ожидание
+                    </div>
+                </div>
+
+                <div
+                    id="opponentCards"
+                    class="opponent-cards"
+                >
+                    0 карт
+                </div>
+            </div>
+
+            <div
+                id="table"
+                class="table"
+            >
+                Ожидание начала игры...
+            </div>
+
+            <div
+                id="hand"
+                class="hand"
+            ></div>
+
+            <div class="game-actions">
+
+                <button
+                    id="takeBtn"
+                    class="game-btn"
+                >
+                    ВЗЯТЬ
+                </button>
+
+                <button
+                    id="bitoBtn"
+                    class="game-btn main"
+                >
+                    БИТО
+                </button>
+
+                <button
+                    id="leaveBtn"
+                    class="game-btn"
+                >
+                    ВЫЙТИ
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section
+        id="tab-rooms"
+        class="hidden"
+    >
+
+        <div class="card">
+
+            <div class="section-title">
+                КОМНАТЫ
+            </div>
+
+            <div class="section-subtitle">
+                Доступные игры
+            </div>
+
+            <div id="roomsList">
+                <div class="loading">
+                    Загрузка...
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section
+        id="tab-garage"
+        class="hidden"
+    >
+
+        <div class="card">
+
+            <div class="section-title">
+                ГАРАЖ
+            </div>
+
+            <div class="section-subtitle">
+                Ваш транспорт
+            </div>
+
+            <div id="garageList">
+                <div class="loading">
+                    Нажмите для загрузки
+                </div>
+            </div>
+
+            <button
+                id="garageBtn"
+                class="primary"
+            >
+                ОБНОВИТЬ ГАРАЖ
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <section
+        id="tab-profile"
+        class="hidden"
+    >
+
+        <div class="card">
+
+            <div class="section-title">
+                ПРОФИЛЬ
+            </div>
+
+            <div
+                id="profileDetails"
+                class="section-subtitle"
+            ></div>
+
+            <div
+                id="stats"
+                class="stats"
+            ></div>
+
+        </div>
+
+        <div class="card">
+
+            <div class="section-title">
+                ГИБДД
+            </div>
+
+            <div
+                id="gibddInfo"
+                class="section-subtitle"
+            >
+                Проверка...
+            </div>
+
+            <button
+                id="gibddBtn"
+                class="secondary"
+            >
+                ПРОВЕРИТЬ ГИБДД
+            </button>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<div id="toast" class="toast"></div>
+
+
+<script>
+"use strict";
+
+
+/*
+=========================================================
+TELEGRAM
+=========================================================
+*/
+
+const tg =
+    window.Telegram &&
+    window.Telegram.WebApp
+        ? window.Telegram.WebApp
+        : null;
+
+if (tg) {
+    tg.ready();
+    tg.expand();
+
+    try {
+        tg.setHeaderColor("#070707");
+        tg.setBackgroundColor("#070707");
+    } catch (_) {}
+}
+
+
+/*
+=========================================================
+STATE
+=========================================================
+*/
+
+const state = {
+    socket: null,
+    profile: null,
+    rooms: [],
+    game: null,
+    selectedStake: null,
+    selectedCardId: null,
+    garage: []
+};
+
+
+/*
+=========================================================
+DOM
+=========================================================
+*/
+
+const $ = id =>
+    document.getElementById(id);
+
+
+/*
+=========================================================
+TOAST
+=========================================================
+*/
+
+let toastTimer = null;
+
+function toast(message) {
+
+    const el = $("toast");
+
+    el.textContent =
+        String(message || "Ошибка");
+
+    el.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer =
+        setTimeout(
+            () => {
+                el.classList.remove("show");
+            },
+            3000
+        );
+}
+
+
+/*
+=========================================================
+CONNECTION
+=========================================================
+*/
+
+function setConnection(
+    online
+) {
+
+    $("connectionDot")
+        .classList.toggle(
+            "online",
+            Boolean(online)
+        );
+
+    $("connectionText")
+        .textContent =
+        online
+            ? "онлайн"
+            : "нет соединения";
+}
+
+
+/*
+=========================================================
+SOCKET
+=========================================================
+*/
+
+function createSocket() {
+
+    if (state.socket) {
+        return state.socket;
+    }
+
+    const auth = {};
+
+    if (tg && tg.initData) {
+        auth.initData =
+            tg.initData;
+    }
+
+    /*
+     * Сервер текущей версии
+     * получает Telegram auth
+     * через Socket.IO middleware.
+     */
+
+    state.socket =
+        io(
+            window.location.origin,
+            {
+                transports: [
+                    "websocket",
+                    "polling"
+                ],
+
+                auth,
+
+                reconnection: true,
+
+                reconnectionAttempts: Infinity,
+
+                reconnectionDelay: 1000,
+
+                timeout: 15000
+            }
+        );
+
+
+    const socket =
+        state.socket;
+
+
+    socket.on(
+        "connect",
+        () => {
+
+            setConnection(true);
+
+            socket.emit(
+                "get_profile"
+            );
+
+            socket.emit(
+                "get_rooms"
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "disconnect",
+        () => {
+
+            setConnection(false);
+
+        }
+    );
+
+
+    socket.on(
+        "connect_error",
+        error => {
+
+            setConnection(false);
+
+            console.error(
+                "Socket error:",
+                error
+            );
+
+            toast(
+                error &&
+                error.message
+                    ? error.message
+                    : "Ошибка подключения"
+            );
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    PROFILE
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "profile",
+        profile => {
+
+            state.profile =
+                profile || null;
+
+            renderProfile();
+
+            renderProfileDetails();
+
+            renderStakes();
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    ROOMS
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "rooms_list",
+        rooms => {
+
+            state.rooms =
+                Array.isArray(rooms)
+                    ? rooms
+                    : [];
+
+            renderRooms();
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    ROOM
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "room_created",
+        data => {
+
+            if (
+                data &&
+                data.room
+            ) {
+
+                const id =
+                    data.room.id;
+
+                toast(
+                    "Комната создана: " +
+                    id
+                );
+
+                $("roomInput")
+                    .value = id;
+
+                openGame();
+
+            }
+
+        }
+    );
+
+
+    socket.on(
+        "room_joined",
+        data => {
+
+            if (
+                data &&
+                data.room
+            ) {
+
+                toast(
+                    "Вы вошли в комнату"
+                );
+
+                openGame();
+
+            }
+
+        }
+    );
+
+
+    socket.on(
+        "left_room",
+        () => {
+
+            state.game = null;
+
+            state.selectedCardId =
+                null;
+
+            $("gameCard")
+                .classList.add(
+                    "hidden"
+                );
+
+            $("lobbyCard")
+                .classList.remove(
+                    "hidden"
+                );
+
+            socket.emit(
+                "get_rooms"
+            );
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    GAME STATE
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "game_state",
+        game => {
+
+            state.game =
+                game || null;
+
+            renderGame();
+
+            if (
+                game &&
+                game.wallet
+            ) {
+
+                /*
+                 * Сервер может отдавать
+                 * актуальный wallet прямо
+                 * внутри game_state.
+                 */
+
+                if (state.profile) {
+
+                    if (
+                        typeof game.wallet.balance ===
+                        "number"
+                    ) {
+
+                        state.profile.wallet =
+                            game.wallet.balance;
+
+                    }
+
+                    if (
+                        typeof game.wallet.available ===
+                        "number"
+                    ) {
+
+                        state.profile.walletAvailable =
+                            game.wallet.available;
+
+                    }
+
+                }
+
+                renderProfile();
+
+            }
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    GARAGE
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "garage",
+        data => {
+
+            state.garage =
+                data &&
+                Array.isArray(
+                    data.vehicles
+                )
+                    ? data.vehicles
+                    : [];
+
+            renderGarage();
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    GIBDD
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "gibdd_state",
+        data => {
+
+            if (!data) {
+                return;
+            }
+
+            $("gibddInfo")
+                .textContent =
+                data.message ||
+                (
+                    "ГИБДД готово. " +
+                    "Цена номера: " +
+                    (
+                        Number(
+                            data.platePrice || 0
+                        )
+                    ).toLocaleString("ru-RU")
+                );
+
+        }
+    );
+
+
+    /*
+    -----------------------------------------------------
+    ERRORS
+    -----------------------------------------------------
+    */
+
+    socket.on(
+        "game_error",
+        message => {
+
+            toast(
+                message ||
+                "Ошибка игры"
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "error_message",
+        data => {
+
+            toast(
+                data &&
+                data.error
+                    ? data.error
+                    : "Ошибка сервера"
+            );
+
+        }
+    );
+
+
+    return socket;
+}
+
+
+/*
+=========================================================
+AUTH WAIT
+=========================================================
+*/
+
+function start() {
+
+    createSocket();
+
+}
+
+
+/*
+=========================================================
+PROFILE
+=========================================================
+*/
+
+function renderProfile() {
+
+    const p =
+        state.profile;
+
+    if (!p) {
+        return;
+    }
+
+    const name =
+        p.name ||
+        "Игрок";
+
+    const level =
+        p.level || {};
+
+    const wallet =
+        Number(
+            p.wallet ??
+            p.balance ??
+            0
+        );
+
+    $("profileCard")
+        .innerHTML = `
+
+            <div class="profile">
+
+                <div class="profile-main">
+
+                    <div class="profile-name">
+                        ${escapeHtml(name)}
+                    </div>
+
+                    <div class="profile-level">
+                        Уровень ${Number(level.level || 1)}
+                        · XP ${Number(p.xp || level.xp || 0)}
+                    </div>
+
+                </div>
+
+                <div class="wallet">
+
+                    <div class="wallet-label">
+                        БАЛАНС
+                    </div>
+
+                    <div class="wallet-value">
+                        ${wallet.toLocaleString("ru-RU")}
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+}
+
+
+function renderProfileDetails() {
+
+    const p =
+        state.profile;
+
+    if (!p) {
+        return;
+    }
+
+    const level =
+        p.level || {};
+
+    $("profileDetails")
+        .innerHTML = `
+            <div style="color:#ddd">
+                ${escapeHtml(p.name || "Игрок")}
+            </div>
+
+            <div style="margin-top:6px">
+                ID: ${escapeHtml(
+                    p.telegramId ||
+                    p.playerId ||
+                    "—"
+                )}
+            </div>
+
+            <div style="margin-top:5px">
+                Уровень:
+                <b style="color:#f5c542">
+                    ${Number(level.level || 1)}
+                </b>
+            </div>
+
+            <div style="margin-top:5px">
+                XP:
+                ${Number(
+                    p.xp ||
+                    level.xp ||
+                    0
+                )}
+            </div>
+        `;
+
+
+    const stats =
+        p.stats || {};
+
+    $("stats")
+        .innerHTML = `
+
+            <div class="stat">
+                <div class="stat-value">
+                    ${Number(
+                        stats.gamesPlayed ??
+                        stats.games ??
+                        0
+                    )}
+                </div>
+                <div class="stat-label">
+                    ИГР
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-value">
+                    ${Number(stats.wins || 0)}
+                </div>
+                <div class="stat-label">
+                    ПОБЕД
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-value">
+                    ${Number(stats.losses || 0)}
+                </div>
+                <div class="stat-label">
+                    ПОРАЖЕНИЙ
+                </div>
+            </div>
+        `;
+}
+
+
+/*
+=========================================================
+STAKES
+=========================================================
+*/
+
+function renderStakes() {
+
+    const container =
+        $("stakes");
+
+    if (!container) {
+        return;
+    }
+
+    const configured =
+        state.profile &&
+        Array.isArray(
+            state.profile.stakes
+        )
+            ? state.profile.stakes
+            : [10, 50, 100];
+
+
+    if (
+        state.selectedStake === null &&
+        configured.length
+    ) {
+
+        state.selectedStake =
+            Number(
+                configured[0]
+            );
+
+    }
+
+
+    container.innerHTML =
+        configured
+            .map(
+                stake => {
+
+                    const n =
+                        Number(stake);
+
+                    return `
+                        <button
+                            class="stake ${
+                                n ===
+                                Number(
+                                    state.selectedStake
+                                )
+                                    ? "selected"
+                                    : ""
+                            }"
+                            data-stake="${n}"
+                        >
+                            ${n.toLocaleString("ru-RU")}
+                        </button>
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            ".stake"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        state.selectedStake =
+                            Number(
+                                button.dataset.stake
+                            );
+
+                        renderStakes();
+
+                    }
+                );
+
+            }
+        );
+}
+
+
+/*
+=========================================================
+ROOMS
+=========================================================
+*/
+
+function renderRooms() {
+
+    const container =
+        $("roomsList");
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!state.rooms.length) {
+
+        container.innerHTML = `
+            <div class="empty">
+                Сейчас нет доступных комнат.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        state.rooms
+            .map(
+                room => {
+
+                    const count =
+                        Number(
+                            room.playersCount ??
+                            room.players ??
+                            0
+                        );
+
+                    const max =
+                        Number(
+                            room.maxPlayers ||
+                            2
+                        );
+
+                    const status =
+                        room.status ===
+                        "playing"
+                            ? "ИГРА ИДЁТ"
+                            : "ОЖИДАНИЕ";
+
+
+                    return `
+                        <div class="room">
+
+                            <div>
+                                <div class="room-id">
+                                    ${escapeHtml(
+                                        room.id ||
+                                        room.roomId ||
+                                        "ROOM"
+                                    )}
+                                </div>
+
+                                <div class="room-info">
+                                    Ставка:
+                                    ${Number(
+                                        room.stake || 0
+                                    ).toLocaleString("ru-RU")}
+
+                                    ·
+
+                                    ${count}/${max}
+
+                                    ·
+
+                                    <span class="room-status">
+                                        ${status}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button
+                                class="secondary"
+                                data-room="${escapeAttr(
+                                    room.id ||
+                                    room.roomId ||
+                                    ""
+                                )}"
+                            >
+                                ВОЙТИ
+                            </button>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            "[data-room]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        joinRoom(
+                            button.dataset.room
+                        );
+
+                    }
+                );
+
+            }
+        );
+}
+
+
+/*
+=========================================================
+GAME
+=========================================================
+*/
+
+function renderGame() {
+
+    const game =
+        state.game;
+
+    if (!game) {
+
+        $("gameCard")
+            .classList.add(
+                "hidden"
+            );
+
+        $("lobbyCard")
+            .classList.remove(
+                "hidden"
+            );
+
+        return;
+
+    }
+
+
+    $("gameCard")
+        .classList.remove(
+            "hidden"
+        );
+
+    $("lobbyCard")
+        .classList.add(
+            "hidden"
+        );
+
+
+    $("gameRoom")
+        .textContent =
+        "Комната " +
+        (
+            game.roomId ||
+            "—"
+        );
+
+
+    const turn =
+        game.turn ||
+        "WAITING";
+
+
+    const turnBadge =
+        $("turnBadge");
+
+    turnBadge
+        .classList.toggle(
+            "yours",
+            turn ===
+            "YOUR_TURN"
+        );
+
+
+    turnBadge
+        .textContent =
+        turn ===
+        "YOUR_TURN"
+            ? "ВАШ ХОД"
+            : turn ===
+              "OPPONENT_TURN"
+                ? "ХОД ПРОТИВНИКА"
+                : "ОЖИДАНИЕ";
+
+
+    const opponent =
+        game.opponent;
+
+
+    $("opponentName")
+        .textContent =
+        opponent &&
+        opponent.name
+            ? opponent.name
+            : "Противник";
+
+
+    $("opponentCards")
+        .textContent =
+        (
+            opponent &&
+            opponent.cardsCount
+        ) ||
+        0;
+
+    $("opponentStatus")
+        .textContent =
+        opponent &&
+        opponent.connected === false
+            ? "соединение потеряно"
+            : "живой игрок";
+
+
+    renderTable(
+        game.table || []
+    );
+
+
+    renderHand(
+        game.hand || [],
+        game
+    );
+
+
+    $("takeBtn")
+        .disabled =
+        !Boolean(
+            game.canTake
+        );
+
+
+    $("bitoBtn")
+        .disabled =
+        !Boolean(
+            game.canBito
+        );
+
+
+    if (
+        game.status ===
+        "finished"
+    ) {
+
+        const winner =
+            game.winnerId;
+
+        const me =
+            state.profile &&
+            state.profile.playerId;
+
+        if (winner && me) {
+
+            toast(
+                winner === me
+                    ? "Вы победили!"
+                    : "Вы проиграли."
+            );
+
+        }
+
+    }
+}
+
+
+/*
+=========================================================
+TABLE
+=========================================================
+*/
+
+function renderTable(
+    table
+) {
+
+    const container =
+        $("table");
+
+
+    if (!Array.isArray(table) ||
+        table.length === 0
+    ) {
+
+        container.innerHTML = `
+            <div style="color:#657267">
+                Стол пуст
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        table
+            .map(
+                pair => {
+
+                    return `
+                        <div class="pair">
+
+                            ${renderMiniCard(
+                                pair.attack
+                            )}
+
+                            ${
+                                pair.defense
+                                    ? renderMiniCard(
+                                        pair.defense,
+                                        true
+                                    )
+                                    : ""
+                            }
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+}
+
+
+/*
+=========================================================
+HAND
+=========================================================
+*/
+
+function renderHand(
+    cards,
+    game
+) {
+
+    const container =
+        $("hand");
+
+
+    if (!Array.isArray(cards) ||
+        cards.length === 0
+    ) {
+
+        container.innerHTML =
+            `<div class="empty">Нет карт</div>`;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        cards
+            .map(
+                card => {
+
+                    const selected =
+                        state.selectedCardId ===
+                        card.id;
+
+
+                    const disabled =
+                        game.canAttack !==
+                        true;
+
+
+                    return `
+                        <button
+                            class="
+                                playing-card
+                                ${
+                                    isRedSuit(
+                                        card.suit
+                                    )
+                                        ? "red"
+                                        : ""
+                                }
+                                ${
+                                    selected
+                                        ? "selected"
+                                        : ""
+                                }
+                                ${
+                                    disabled
+                                        ? "disabled"
+                                        : ""
+                                }
+                            "
+                            data-card="${escapeAttr(
+                                card.id
+                            )}"
+                        >
+
+                            <div class="card-rank">
+                                ${escapeHtml(
+                                    card.rank
+                                )}
+                            </div>
+
+                            <div class="card-suit">
+                                ${suitSymbol(
+                                    card.suit
+                                )}
+                            </div>
+
+                            <div style="text-align:right">
+                                ${escapeHtml(
+                                    card.rank
+                                )}
+                            </div>
+
+                        </button>
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            "[data-card]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        if (
+                            !game.canAttack
+                        ) {
+
+                            return;
+
+                        }
+
+                        state.selectedCardId =
+                            button.dataset.card;
+
+                        renderGame();
+
+                        attackSelected();
+
+                    }
+                );
+
+            }
+        );
+}
+
+
+/*
+=========================================================
+MINI CARD
+=========================================================
+*/
+
+function renderMiniCard(
+    card,
+    defense = false
+) {
+
+    if (!card) {
+        return "";
+    }
+
+
+    return `
+        <div
+            class="
+                mini-card
+                ${
+                    isRedSuit(
+                        card.suit
+                    )
+                        ? "red"
+                        : ""
+                }
+                ${
+                    defense
+                        ? "defense"
+                        : ""
+                }
+            "
+        >
+
+            <div>
+                ${escapeHtml(
+                    card.rank
+                )}
+            </div>
+
+            <div style="text-align:center">
+                ${suitSymbol(
+                    card.suit
+                )}
+            </div>
+
+            <div style="text-align:right">
+                ${escapeHtml(
+                    card.rank
+                )}
+            </div>
+
+        </div>
+    `;
+}
+
+
+/*
+=========================================================
+ATTACK
+=========================================================
+*/
+
+function attackSelected() {
+
+    if (
+        !state.selectedCardId ||
+        !state.socket
+    ) {
+        return;
+    }
+
+
+    const game =
+        state.game;
+
+
+    if (
+        !game ||
+        !game.canAttack
+    ) {
+        return;
+    }
+
+
+    state.socket.emit(
+        "attack_card",
+        {
+            cardId:
+                state.selectedCardId
+        }
+    );
+
+
+    state.selectedCardId =
+        null;
+}
+
+
+/*
+=========================================================
+DEFENSE
+=========================================================
+*/
+
+function defend(
+    attackId,
+    defenseId
+) {
+
+    if (!state.socket) {
+        return;
+    }
+
+
+    state.socket.emit(
+        "defend_card",
+        {
+            attackId,
+            defenseId
+        }
+    );
+
+}
+
+
+/*
+=========================================================
+ROOM ACTIONS
+=========================================================
+*/
+
+function createRoom() {
+
+    if (!state.socket) {
+        toast("Нет соединения");
+        return;
+    }
+
+
+    if (
+        state.selectedStake === null
+    ) {
+
+        toast("Выберите ставку");
+
+        return;
+
+    }
+
+
+    state.socket.emit(
+        "create_room",
+        {
+            stake:
+                Number(
+                    state.selectedStake
+                )
+        }
+    );
+
+}
+
+
+function joinRoom(
+    roomId
+) {
+
+    if (!roomId) {
+        toast("Введите ID комнаты");
+        return;
+    }
+
+
+    state.socket.emit(
+        "join_room",
+        {
+            roomId:
+                String(
+                    roomId
+                ).trim().toUpperCase()
+        }
+    );
+
+}
+
+
+function openGame() {
+
+    switchTab(
+        "game"
+    );
+
+    $("gameCard")
+        .classList.remove(
+            "hidden"
+        );
+
+    $("lobbyCard")
+        .classList.add(
+            "hidden"
+        );
+
+}
+
+
+function leaveRoom() {
+
+    if (
+        state.socket
+    ) {
+
+        state.socket.emit(
+            "leave_room"
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+GARAGE
+=========================================================
+*/
+
+function loadGarage() {
+
+    if (!state.socket) {
+        return;
+    }
+
+    state.socket.emit(
+        "get_garage"
+    );
+
+}
+
+
+function renderGarage() {
+
+    const container =
+        $("garageList");
+
+
+    if (!state.garage.length) {
+
+        container.innerHTML = `
+            <div class="empty">
+                Гараж пока пуст.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        state.garage
+            .map(
+                car => {
+
+                    return `
+                        <div class="garage-row">
+
+                            <div class="garage-title">
+                                ${escapeHtml(
+                                    car.model ||
+                                    "Автомобиль"
+                                )}
+                            </div>
+
+                            <div class="garage-info">
+                                Цвет:
+                                ${escapeHtml(
+                                    car.color ||
+                                    "—"
+                                )}
+
+                                ·
+
+                                Номер:
+                                ${escapeHtml(
+                                    car.plate ||
+                                    "нет"
+                                )}
+
+                                ·
+
+                                Состояние:
+                                ${Number(
+                                    car.condition ??
+                                    100
+                                )}%
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/*
+=========================================================
+GIBDD
+=========================================================
+*/
+
+function loadGibdd() {
+
+    if (!state.socket) {
+        return;
+    }
+
+
+    state.socket.emit(
+        "gibdd_state"
+    );
+
+}
+
+
+/*
+=========================================================
+TABS
+=========================================================
+*/
+
+function switchTab(
+    tab
+) {
+
+    document
+        .querySelectorAll(
+            ".tab"
+        )
+        .forEach(
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.tab ===
+                    tab
+                );
+
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            "[id^='tab-']"
+        )
+        .forEach(
+            section => {
+
+                section.classList.toggle(
+                    "hidden",
+                    section.id !==
+                    "tab-" + tab
+                );
+
+            }
+        );
+
+
+    if (tab === "rooms") {
+
+        state.socket.emit(
+            "get_rooms"
+        );
+
+    }
+
+    if (tab === "garage") {
+
+        loadGarage();
+
+    }
+
+    if (tab === "profile") {
+
+        loadGibdd();
+
+    }
+
+}
+
+
+/*
+=========================================================
+HELPERS
+=========================================================
+*/
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ??
+        ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+function escapeAttr(
+    value
+) {
+
+    return escapeHtml(
+        value
+    );
+
+}
+
+
+function isRedSuit(
+    suit
+) {
+
+    const s =
+        String(
+            suit ||
+            ""
+        ).toLowerCase();
+
+    return (
+        s.includes("heart") ||
+        s.includes("diamond") ||
+        s.includes("черв") ||
+        s.includes("буб") ||
+        s === "♥" ||
+        s === "♦"
+    );
+
+}
+
+
+function suitSymbol(
+    suit
+) {
+
+    const s =
+        String(
+            suit ||
+            ""
+        ).toLowerCase();
+
+
+    if (
+        s.includes("heart") ||
+        s.includes("черв") ||
+        s === "♥"
+    ) {
+        return "♥";
+    }
+
+
+    if (
+        s.includes("diamond") ||
+        s.includes("буб") ||
+        s === "♦"
+    ) {
+        return "♦";
+    }
+
+
+    if (
+        s.includes("club") ||
+        s.includes("крест") ||
+        s === "♣"
+    ) {
+        return "♣";
+    }
+
+
+    if (
+        s.includes("spade") ||
+        s.includes("пик") ||
+        s === "♠"
+    ) {
+        return "♠";
+    }
+
+
+    return String(
+        suit ||
+        ""
+    );
+}
+
+
+/*
+=========================================================
+EVENTS
+=========================================================
+*/
+
+document
+    .querySelectorAll(
+        ".tab"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    switchTab(
+                        button.dataset.tab
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+$("createRoomBtn")
+    .addEventListener(
+        "click",
+        createRoom
+    );
+
+
+$("joinRoomBtn")
+    .addEventListener(
+        "click",
+        () => {
+
+            joinRoom(
+                $("roomInput").value
+            );
+
+        }
+    );
+
+
+$("roomInput")
+    .addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Enter"
+            ) {
+
+                joinRoom(
+                    event.target.value
+                );
+
+            }
+
+        }
+    );
+
+
+$("takeBtn")
+    .addEventListener(
+        "click",
+        () => {
+
+            state.socket.emit(
+                "take_cards"
+            );
+
+        }
+    );
+
+
+$("bitoBtn")
+    .addEventListener(
+        "click",
+        () => {
+
+            state.socket.emit(
+                "bito"
+            );
+
+        }
+    );
+
+
+$("leaveBtn")
+    .addEventListener(
+        "click",
+        leaveRoom
+    );
+
+
+$("garageBtn")
+    .addEventListener(
+        "click",
+        loadGarage
+    );
+
+
+$("gibddBtn")
+    .addEventListener(
+        "click",
+        loadGibdd
+    );
+
+
+/*
+=========================================================
+START
+=========================================================
+*/
+
+renderStakes();
+
+start();
+
+</script>
+
+</body>
+</html>
