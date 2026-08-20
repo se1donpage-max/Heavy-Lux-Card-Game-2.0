@@ -6,59 +6,58 @@ HEAVY LUX CARD
 SERVER
 =========================================================
 
-Express
-HTTP
-Socket.IO
-Авторизация
-Профиль
-Лобби
-Игровые комнаты
-Классический подкидной Дурак
+ONLINE SERVER + SOCKET.IO + LOBBY
 
-36 карт
-2–3 игрока
-Без перевода
+Отвечает за:
 
-Авторитетная игровая логика находится в:
+- HTTP server
+- Express
+- Socket.IO
+- онлайн-лобби
+- комнаты
+- подключение игроков
+- переподключение
+- готовность
+- старт игры
+- игровые действия
+- синхронизацию состояния
 
-src/game/game.js
-src/game/rules.js
-src/game/cards.js
-src/game/deck.js
+Игровая механика находится в:
 
-SERVER НЕ доверяет клиенту.
+./game.js
+
+Комнаты и лобби находятся в:
+
+./rooms.js
+
 =========================================================
 */
 
-const path = require("path");
 const express = require("express");
 const http = require("http");
-const crypto = require("crypto");
+const cors = require("cors");
 const { Server } = require("socket.io");
 
-
-/*
-=========================================================
-GAME ENGINE
-=========================================================
-*/
+const {
+    rooms,
+    ROOM_STATUS
+} = require("./rooms");
 
 const {
-    createGame,
-    startGame,
+    GAME_STATUS,
+    PHASE,
+
     getPlayer,
     getGameState,
+    getPossibleAttacks,
+    getPossibleDefenses,
+
     playFirstAttackCard,
     addAttackCard,
     defend,
     takeCards,
     endAttack
-} = require("./src/game/game");
-
-
-const {
-    GAME_STATUS
-} = require("./src/game/game");
+} = require("./game");
 
 
 /*
@@ -71,33 +70,9 @@ const PORT =
     Number(process.env.PORT) ||
     10000;
 
-const HOST =
-    "0.0.0.0";
-
-const PUBLIC_DIR =
-    path.join(
-        __dirname,
-        "public"
-    );
-
-const INDEX_FILE =
-    path.join(
-        PUBLIC_DIR,
-        "index.html"
-    );
-
-
-const MIN_PLAYERS = 2;
-
-const MAX_PLAYERS = 3;
-
-const STARTING_BALANCE = 20000;
-
-const DEFAULT_RATING = 1000;
-
-const DEFAULT_LEVEL = 1;
-
-const DEFAULT_XP = 0;
+const CLIENT_ORIGIN =
+    process.env.CLIENT_ORIGIN ||
+    "*";
 
 
 /*
@@ -109,23 +84,16 @@ EXPRESS
 const app =
     express();
 
-
-app.disable(
-    "x-powered-by"
-);
-
-
 app.use(
-    express.json({
-        limit: "1mb"
+    cors({
+        origin: CLIENT_ORIGIN === "*"
+            ? true
+            : CLIENT_ORIGIN
     })
 );
 
-
 app.use(
-    express.urlencoded({
-        extended: false
-    })
+    express.json()
 );
 
 
@@ -135,7 +103,7 @@ HTTP SERVER
 =========================================================
 */
 
-const server =
+const httpServer =
     http.createServer(
         app
     );
@@ -149,352 +117,201 @@ SOCKET.IO
 
 const io =
     new Server(
-        server,
+        httpServer,
         {
             cors: {
-                origin: true,
-                credentials: true
+
+                origin:
+                    CLIENT_ORIGIN === "*"
+                        ? "*"
+                        : CLIENT_ORIGIN,
+
+                methods: [
+                    "GET",
+                    "POST"
+                ],
+
+                credentials:
+                    CLIENT_ORIGIN !== "*"
+
             },
 
             transports: [
                 "websocket",
                 "polling"
-            ],
+            ]
 
-            connectionStateRecovery: {
-                maxDisconnectionDuration:
-                    2 * 60 * 1000,
-
-                skipMiddlewares:
-                    true
-            }
         }
     );
 
 
 /*
 =========================================================
-IN-MEMORY DATA
-=========================================================
-
-На данном этапе данные живут
-в памяти процесса.
-
-Для production позже можно
-перенести это в PostgreSQL/Redis.
+BASIC HTTP ROUTES
 =========================================================
 */
 
+app.get(
+    "/",
+    (req, res) => {
 
-const players =
-    new Map();
+        res.json({
+
+            ok: true,
+
+            service:
+                "Heavy Lux Card",
+
+            status:
+                "online",
+
+            socket:
+                "ready",
+
+            rooms:
+                rooms.getRoomCount(),
+
+            online:
+                rooms.getOnlinePlayerCount()
+
+        });
+
+    }
+);
 
 
-const sockets =
-    new Map();
+app.get(
+    "/health",
+    (req, res) => {
 
+        res.json({
 
-const lobbies =
-    new Map();
+            ok: true,
 
+            status:
+                "healthy",
 
-const games =
-    new Map();
+            rooms:
+                rooms.getRoomCount(),
+
+            online:
+                rooms.getOnlinePlayerCount(),
+
+            timestamp:
+                Date.now()
+
+        });
+
+    }
+);
 
 
 /*
 =========================================================
-UTILS
+UTILITY
 =========================================================
 */
-
-function createId(
-    prefix
-) {
-
-    return (
-        prefix +
-        "_" +
-        crypto
-            .randomBytes(8)
-            .toString("hex")
-    );
-
-}
 
 
 function normalizeString(
     value,
-    fallback = ""
+    maxLength = 100
 ) {
 
     if (
-        typeof value !==
-        "string"
+        typeof value !== "string"
     ) {
-        return fallback;
+        return null;
     }
 
     const result =
         value.trim();
 
-    return result ||
-        fallback;
-
-}
-
-
-function toNumber(
-    value,
-    fallback = 0
-) {
-
-    const number =
-        Number(value);
-
     if (
-        !Number.isFinite(number)
+        result.length === 0
     ) {
-        return fallback;
+        return null;
     }
 
-    return number;
-
-}
-
-
-function getLevelFromXP(
-    xp
-) {
-
-    const value =
-        Math.max(
-            0,
-            Number(xp) || 0
-        );
-
-    return (
-        Math.floor(
-            value / 1000
-        ) + 1
+    return result.slice(
+        0,
+        maxLength
     );
 
 }
 
 
-function getRankName(
-    rating
+function requirePlayerId(
+    socket
 ) {
 
-    const value =
-        Number(rating) || 0;
-
     if (
-        value >= 1800
+        typeof socket.data.playerId !==
+        "string" ||
+        socket.data.playerId.length === 0
     ) {
-        return "ЭЛИТА";
-    }
-
-    if (
-        value >= 1600
-    ) {
-        return "МАСТЕР";
-    }
-
-    if (
-        value >= 1400
-    ) {
-        return "ВЕТЕРАН";
-    }
-
-    if (
-        value >= 1200
-    ) {
-        return "ОПЫТНЫЙ";
-    }
-
-    return "НОВИЧОК";
-
-}
-
-
-/*
-=========================================================
-CREATE PLAYER PROFILE
-=========================================================
-*/
-
-function createProfile({
-    playerId,
-    telegramId = null,
-    name = "Игрок",
-    username = ""
-}) {
-
-    return {
-
-        playerId,
-
-        telegramId,
-
-        name:
-            name ||
-            "Игрок",
-
-        username:
-            username ||
-            "",
-
-        balance:
-            STARTING_BALANCE,
-
-        xp:
-            DEFAULT_XP,
-
-        level:
-            DEFAULT_LEVEL,
-
-        rating:
-            DEFAULT_RATING,
-
-        stats: {
-
-            wins: 0,
-
-            losses: 0,
-
-            games: 0
-
-        },
-
-        cars: [],
-
-        plates: [],
-
-        property: [],
-
-        businesses: [],
-
-        activeCarId: null,
-
-        activePlateId: null,
-
-        createdAt:
-            Date.now(),
-
-        updatedAt:
-            Date.now()
-
-    };
-
-}
-
-
-/*
-=========================================================
-GET / CREATE PLAYER
-=========================================================
-*/
-
-function getOrCreatePlayer({
-    playerId,
-    telegramId,
-    name,
-    username
-}) {
-
-    const id =
-        normalizeString(
-            playerId
-        );
-
-    if (!id) {
 
         throw new Error(
-            "playerId is required"
+            "Player is not authenticated"
         );
 
     }
 
+    return socket.data.playerId;
 
-    let player =
-        players.get(id);
-
-
-    if (!player) {
-
-        player =
-            createProfile({
-                playerId:
-                    id,
-
-                telegramId:
-                    telegramId ??
-                    null,
-
-                name:
-                    name ||
-                    "Игрок",
-
-                username:
-                    username ||
-                    ""
-            });
+}
 
 
-        players.set(
-            id,
-            player
-        );
+function sendError(
+    socket,
+    code,
+    message
+) {
 
-        return player;
+    socket.emit(
+        "error_message",
+        {
 
+            code,
+
+            message
+
+        }
+    );
+
+}
+
+
+function getSocketRoom(
+    socket
+) {
+
+    const roomId =
+        socket.data.roomId;
+
+    if (!roomId) {
+        return null;
     }
 
-
-    if (
-        telegramId !== undefined &&
-        telegramId !== null
-    ) {
-
-        player.telegramId =
-            telegramId;
-
-    }
-
-
-    if (name) {
-
-        player.name =
-            name;
-
-    }
-
-
-    if (username) {
-
-        player.username =
-            username;
-
-    }
-
-
-    player.updatedAt =
-        Date.now();
-
-
-    return player;
+    return rooms.getRoom(
+        roomId
+    );
 
 }
 
 
 /*
 =========================================================
-SAFE PROFILE
+PLAYER VIEW
+=========================================================
+
+Никогда не отправляем клиенту
+внутренний объект player.
+
 =========================================================
 */
 
-function getSafeProfile(
+function getPlayerView(
     player
 ) {
 
@@ -502,14 +319,10 @@ function getSafeProfile(
         return null;
     }
 
-
     return {
 
         playerId:
             player.playerId,
-
-        telegramId:
-            player.telegramId,
 
         name:
             player.name,
@@ -517,60 +330,11 @@ function getSafeProfile(
         username:
             player.username,
 
-        balance:
-            player.balance,
+        connected:
+            player.connected,
 
-        xp:
-            player.xp,
-
-        level: {
-
-            level:
-                player.level,
-
-            xp:
-                player.xp
-
-        },
-
-        rating:
-            player.rating,
-
-        stats: {
-
-            wins:
-                player.stats.wins,
-
-            losses:
-                player.stats.losses,
-
-            games:
-                player.stats.games
-
-        },
-
-        rank:
-            getRankName(
-                player.rating
-            ),
-
-        cars:
-            player.cars,
-
-        plates:
-            player.plates,
-
-        property:
-            player.property,
-
-        businesses:
-            player.businesses,
-
-        activeCarId:
-            player.activeCarId,
-
-        activePlateId:
-            player.activePlateId
+        ready:
+            player.ready
 
     };
 
@@ -579,158 +343,47 @@ function getSafeProfile(
 
 /*
 =========================================================
-HEALTH
+LOBBY STATE
 =========================================================
 */
 
-app.get(
-    "/health",
-    (_req, res) => {
-
-        res.status(
-            200
-        ).json({
-
-            ok: true,
-
-            service:
-                "heavy-lux-card",
-
-            version:
-                "2.0.2",
-
-            socket:
-                true,
-
-            players:
-                players.size,
-
-            lobbies:
-                lobbies.size,
-
-            games:
-                games.size
-
-        });
-
-    }
-);
-
-
-/*
-=========================================================
-FRONTEND
-=========================================================
-*/
-
-app.use(
-    express.static(
-        PUBLIC_DIR,
-        {
-            index:
-                "index.html",
-
-            fallthrough:
-                true,
-
-            maxAge:
-                process.env.NODE_ENV ===
-                "production"
-                    ? "1h"
-                    : 0
-        }
-    )
-);
-
-
-/*
-=========================================================
-SPA FALLBACK
-=========================================================
-*/
-
-app.get(
-    /^(?!\/socket\.io)(?!\/health).*/,
-    (_req, res) => {
-
-        res.sendFile(
-            INDEX_FILE
-        );
-
-    }
-);
-
-
-/*
-=========================================================
-LOBBY SERIALIZATION
-=========================================================
-*/
-
-function serializeLobby(
-    lobby
+function getLobbyState(
+    room
 ) {
+
+    if (!room) {
+        return null;
+    }
 
     return {
 
-        id:
-            lobby.id,
-
-        lobbyId:
-            lobby.id,
-
-        name:
-            lobby.name,
-
-        mode:
-            lobby.mode,
-
-        deckSize:
-            36,
-
-        bet:
-            lobby.bet,
-
-        maxPlayers:
-            lobby.maxPlayers,
-
-        playersCount:
-            lobby.playerIds.length,
-
-        currentPlayers:
-            lobby.playerIds.length,
-
-        players:
-            lobby.playerIds.map(
-                playerId => {
-
-                    const player =
-                        players.get(
-                            playerId
-                        );
-
-                    return {
-
-                        playerId,
-
-                        name:
-                            player?.name ||
-                            "Игрок",
-
-                        username:
-                            player?.username ||
-                            ""
-
-                    };
-
-                }
-            ),
+        roomId:
+            room.roomId,
 
         status:
-            lobby.status,
+            room.status,
 
-        createdAt:
-            lobby.createdAt
+        hostPlayerId:
+            room.hostPlayerId,
+
+        playerCount:
+            room.players.length,
+
+        minPlayers:
+            2,
+
+        maxPlayers:
+            3,
+
+        players:
+            room.players.map(
+                getPlayerView
+            ),
+
+        canStart:
+            rooms.canStartRoom(
+                room
+            )
 
     };
 
@@ -739,312 +392,217 @@ function serializeLobby(
 
 /*
 =========================================================
-GET LOBBIES
+PLAYER GAME STATE
+=========================================================
+
+Очень важно:
+
+getGameState() не содержит
+чужие руки.
+
+Но конкретному игроку
+мы отдельно отправляем
+его собственную руку.
+
 =========================================================
 */
 
-function getPublicLobbies() {
-
-    return Array
-        .from(
-            lobbies.values()
-        )
-        .filter(
-            lobby =>
-                lobby.status ===
-                "waiting"
-        )
-        .map(
-            serializeLobby
-        );
-
-}
-
-
-/*
-=========================================================
-BROADCAST LOBBIES
-=========================================================
-*/
-
-function broadcastLobbies() {
-
-    io.emit(
-        "lobbies",
-        getPublicLobbies()
-    );
-
-}
-
-
-/*
-=========================================================
-PLAYER ROOM
-=========================================================
-*/
-
-function getPlayerLobby(
+function getPrivateGameState(
+    room,
     playerId
 ) {
 
-    for (
-        const lobby of
-        lobbies.values()
+    if (
+        !room ||
+        !room.game
     ) {
-
-        if (
-            lobby.playerIds.includes(
-                playerId
-            )
-        ) {
-
-            return lobby;
-
-        }
-
+        return null;
     }
 
-    return null;
+    const game =
+        room.game;
 
-}
-
-
-/*
-=========================================================
-PLAYER GAME
-=========================================================
-*/
-
-function getPlayerGame(
-    playerId
-) {
-
-    for (
-        const game of
-        games.values()
-    ) {
-
-        if (
-            game.players.some(
-                player =>
-                    player.playerId ===
-                    playerId
-            )
-        ) {
-
-            return game;
-
-        }
-
-    }
-
-    return null;
-
-}
-
-
-/*
-=========================================================
-GAME SOCKET ROOM
-=========================================================
-*/
-
-function getGameSocketRoom(
-    gameId
-) {
-
-    return `game:${gameId}`;
-
-}
-
-
-/*
-=========================================================
-PUBLIC GAME STATE
-=========================================================
-*/
-
-function serializeGameForPlayer(
-    game,
-    playerId
-) {
-
-    const ownPlayer =
+    const player =
         getPlayer(
             game,
             playerId
         );
 
-
-    if (!ownPlayer) {
+    if (!player) {
         return null;
     }
 
-
-    const lobby =
-        lobbies.get(
-            game.gameId
+    const state =
+        getGameState(
+            game
         );
 
+    state.myPlayerId =
+        playerId;
 
-    const playersState =
-        game.players.map(
-            player => ({
+    state.myHand =
+        player.hand;
 
-                playerId:
-                    player.playerId,
+    state.myHandSize =
+        player.hand.length;
 
-                name:
-                    players.get(
-                        player.playerId
-                    )?.name ||
-                    "Игрок",
-
-                username:
-                    players.get(
-                        player.playerId
-                    )?.username ||
-                    "",
-
-                handSize:
-                    player.hand.length,
-
-                cardsCount:
-                    player.hand.length,
-
-                connected:
-                    player.connected,
-
-                eliminated:
-                    player.eliminated
-
-            })
+    state.possibleAttacks =
+        getPossibleAttacks(
+            game,
+            playerId
         );
 
+    state.possibleDefenses =
+        getPossibleDefenses(
+            game,
+            playerId
+        );
 
     /*
-    Никогда не отправляем
-    чужие карты.
+    Может ли игрок взять карты.
     */
 
-    return {
+    state.canTake =
+        game.phase === PHASE.DEFENSE &&
+        game.defenderId === playerId &&
+        game.turnPlayerId === playerId;
 
-        gameId:
-            game.gameId,
+    /*
+    Может ли игрок закончить атаку.
+    */
 
-        roomId:
-            game.gameId,
+    state.canEndAttack =
+        game.phase === PHASE.DEFENSE &&
+        game.defenderId !== playerId &&
+        game.turnPlayerId === playerId &&
+        game.currentAttackPlayerId === playerId;
 
-        lobbyId:
-            game.gameId,
-
-        roomName:
-            lobby?.name ||
-            "HEAVY ROOM",
-
-        bet:
-            lobby?.bet ||
-            0,
-
-        status:
-            game.status,
-
-        phase:
-            game.phase,
-
-        round:
-            game.round,
-
-        trumpSuit:
-            game.trumpSuit,
-
-        trump:
-            game.trumpSuit,
-
-        deckSize:
-            game.deck.length,
-
-        players:
-            playersState,
-
-        hand:
-            ownPlayer.hand,
-
-        playerHand:
-            ownPlayer.hand,
-
-        table:
-            game.table,
-
-        tableCards:
-            game.table,
-
-        attackerId:
-            game.attackerId,
-
-        defenderId:
-            game.defenderId,
-
-        turnPlayerId:
-            game.turnPlayerId,
-
-        attackLimit:
-            game.attackLimit,
-
-        winnerId:
-            game.winnerId,
-
-        loserId:
-            game.loserId
-
-    };
+    return state;
 
 }
 
 
 /*
 =========================================================
-EMIT GAME STATE
+JOIN SOCKET ROOM
 =========================================================
 */
 
-function emitGameState(
-    game
+function joinSocketRoom(
+    socket,
+    room
 ) {
 
-    for (
-        const player of
-        game.players
+    if (!room) {
+        return;
+    }
+
+    /*
+    Если socket уже находится
+    в другой socket-комнате —
+    выходим из неё.
+    */
+
+    const oldRoomId =
+        socket.data.roomId;
+
+    if (
+        oldRoomId &&
+        oldRoomId !== room.roomId
     ) {
 
-        const socketId =
-            sockets.get(
+        socket.leave(
+            oldRoomId
+        );
+
+    }
+
+    socket.join(
+        room.roomId
+    );
+
+    socket.data.roomId =
+        room.roomId;
+
+}
+
+
+/*
+=========================================================
+EMIT LOBBY STATE
+=========================================================
+*/
+
+function emitLobbyState(
+    room
+) {
+
+    if (!room) {
+        return;
+    }
+
+    const state =
+        getLobbyState(
+            room
+        );
+
+    io.to(
+        room.roomId
+    ).emit(
+        "lobby_state",
+        state
+    );
+
+}
+
+
+/*
+=========================================================
+EMIT GAME STATES
+=========================================================
+
+Каждому игроку отправляется
+его собственная рука.
+
+=========================================================
+*/
+
+function emitGameStates(
+    room
+) {
+
+    if (
+        !room ||
+        !room.game
+    ) {
+        return;
+    }
+
+    for (
+        const player of room.players
+    ) {
+
+        const state =
+            getPrivateGameState(
+                room,
                 player.playerId
             );
 
-
-        if (!socketId) {
+        if (!state) {
             continue;
         }
 
+        io.to(
+            room.roomId
+        )
+        .emit(
+            "game_state",
+            {
+                targetPlayerId:
+                    player.playerId,
 
-        const socket =
-            io.sockets.sockets.get(
-                socketId
-            );
-
-
-        if (!socket) {
-            continue;
-        }
-
-
-        socket.emit(
-            "gameState",
-            serializeGameForPlayer(
-                game,
-                player.playerId
-            )
+                state
+            }
         );
 
     }
@@ -1054,1312 +612,234 @@ function emitGameState(
 
 /*
 =========================================================
-EMIT PROFILE
+EMIT PERSONAL GAME STATE
 =========================================================
 */
 
-function emitProfile(
-    socket,
+function emitPersonalGameState(
+    playerId
+) {
+
+    const room =
+        rooms.getPlayerRoom(
+            playerId
+        );
+
+    if (
+        !room ||
+        !room.game
+    ) {
+        return;
+    }
+
+    const state =
+        getPrivateGameState(
+            room,
+            playerId
+        );
+
+    if (!state) {
+        return;
+    }
+
+    /*
+    Находим все sockets
+    данного playerId.
+
+    Это позволяет поддержать
+    переподключение.
+    */
+
+    for (
+        const socket of io.sockets.sockets.values()
+    ) {
+
+        if (
+            socket.data.playerId ===
+            playerId
+        ) {
+
+            socket.emit(
+                "game_state",
+                {
+                    targetPlayerId:
+                        playerId,
+
+                    state
+                }
+            );
+
+        }
+
+    }
+
+}
+
+
+/*
+=========================================================
+EMIT ALL PERSONAL GAME STATES
+=========================================================
+*/
+
+function emitAllGameStates(
+    room
+) {
+
+    if (!room) {
+        return;
+    }
+
+    for (
+        const player of room.players
+    ) {
+
+        emitPersonalGameState(
+            player.playerId
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+EMIT ROOM STATE
+=========================================================
+*/
+
+function emitRoomState(
+    room
+) {
+
+    if (!room) {
+        return;
+    }
+
+    if (
+        room.status ===
+        ROOM_STATUS.LOBBY
+    ) {
+
+        emitLobbyState(
+            room
+        );
+
+        return;
+
+    }
+
+    if (
+        room.status ===
+        ROOM_STATUS.PLAYING ||
+        room.status ===
+        ROOM_STATUS.FINISHED
+    ) {
+
+        io.to(
+            room.roomId
+        ).emit(
+            "room_state",
+            {
+                roomId:
+                    room.roomId,
+
+                status:
+                    room.status,
+
+                hostPlayerId:
+                    room.hostPlayerId,
+
+                players:
+                    room.players.map(
+                        getPlayerView
+                    )
+            }
+        );
+
+        emitAllGameStates(
+            room
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+PUBLIC ROOMS
+=========================================================
+*/
+
+function emitPublicRooms() {
+
+    io.emit(
+        "rooms_list",
+        rooms.getPublicRooms()
+    );
+
+}
+
+
+/*
+=========================================================
+JOIN ROOM NOTIFICATION
+=========================================================
+*/
+
+function emitPlayerJoined(
+    room,
     player
 ) {
 
-    socket.emit(
-        "profile",
-        getSafeProfile(
-            player
-        )
-    );
-
-}
-
-
-/*
-=========================================================
-AUTH
-=========================================================
-*/
-
-function authenticate(
-    socket,
-    payload = {}
-) {
-
-    const telegramUser =
-        payload.user ||
-        null;
-
-
-    let playerId =
-        normalizeString(
-            payload.playerId
-        );
-
-
-    let telegramId =
-        payload.telegramId ??
-        telegramUser?.id ??
-        null;
-
-
-    /*
-    Telegram user.
-    */
-
-    if (
-        telegramId !== null &&
-        telegramId !== undefined
-    ) {
-
-        playerId =
-            String(
-                telegramId
-            );
-
+    if (!room || !player) {
+        return;
     }
 
-
-    /*
-    Browser guest.
-    */
-
-    if (!playerId) {
-
-        playerId =
-            createId(
-                "guest"
-            );
-
-    }
-
-
-    const name =
-        normalizeString(
-            telegramUser?.first_name ||
-            telegramUser?.username ||
-            payload.name,
-            "Игрок"
-        );
-
-
-    const username =
-        normalizeString(
-            telegramUser?.username ||
-            payload.username
-        );
-
-
-    const player =
-        getOrCreatePlayer({
-
-            playerId,
-
-            telegramId,
-
-            name,
-
-            username
-
-        });
-
-
-    socket.data.playerId =
-        player.playerId;
-
-    socket.data.authenticated =
-        true;
-
-
-    sockets.set(
-        player.playerId,
-        socket.id
-    );
-
-
-    emitProfile(
-        socket,
-        player
-    );
-
-
-    socket.emit(
-        "authSuccess",
+    io.to(
+        room.roomId
+    ).emit(
+        "player_joined",
         {
 
-            ok: true,
-
             player:
-                getSafeProfile(
+                getPlayerView(
                     player
                 )
 
         }
     );
 
-
-    socket.emit(
-        "authenticated",
-        {
-
-            ok: true,
-
-            playerId:
-                player.playerId
-
-        }
-    );
-
-
-    return player;
-
 }
 
 
 /*
 =========================================================
-REQUIRE AUTH
+PLAYER LEFT NOTIFICATION
 =========================================================
 */
 
-function requirePlayer(
-    socket
+function emitPlayerLeft(
+    room,
+    playerId
 ) {
 
-    const playerId =
-        socket.data.playerId;
-
-
-    if (!playerId) {
-
-        throw new Error(
-            "Игрок не авторизован"
-        );
-
+    if (!room) {
+        return;
     }
-
-
-    const player =
-        players.get(
-            playerId
-        );
-
-
-    if (!player) {
-
-        throw new Error(
-            "Игрок не найден"
-        );
-
-    }
-
-
-    return player;
-
-}
-
-
-/*
-=========================================================
-ERROR MESSAGE
-=========================================================
-*/
-
-function normalizeErrorMessage(
-    error
-) {
-
-    if (
-        error instanceof Error
-    ) {
-
-        return error.message;
-
-    }
-
-
-    if (
-        typeof error ===
-        "string"
-    ) {
-
-        return error;
-
-    }
-
-
-    return "Неизвестная ошибка";
-
-}
-
-
-/*
-=========================================================
-SERVER ERROR
-=========================================================
-*/
-
-function sendActionError(
-    socket,
-    error
-) {
-
-    const message =
-        normalizeErrorMessage(
-            error
-        );
-
-
-    console.error(
-        `[ACTION ERROR] ${message}`
-    );
-
-
-    socket.emit(
-        "actionError",
-        message
-    );
-
-}
-
-
-/*
-=========================================================
-CREATE LOBBY
-=========================================================
-*/
-
-function createLobby(
-    socket,
-    payload = {}
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const existingLobby =
-        getPlayerLobby(
-            player.playerId
-        );
-
-
-    if (existingLobby) {
-
-        throw new Error(
-            "Вы уже находитесь в комнате"
-        );
-
-    }
-
-
-    const playerCount =
-        Math.min(
-            MAX_PLAYERS,
-            Math.max(
-                MIN_PLAYERS,
-                parseInt(
-                    payload.players,
-                    10
-                ) || 2
-            )
-        );
-
-
-    const bet =
-        Math.max(
-            0,
-            Math.floor(
-                toNumber(
-                    payload.bet,
-                    100
-                )
-            )
-        );
-
-
-    if (
-        player.balance <
-        bet
-    ) {
-
-        throw new Error(
-            "Недостаточно HC для ставки"
-        );
-
-    }
-
-
-    const lobbyId =
-        createId(
-            "room"
-        );
-
-
-    const lobby = {
-
-        id:
-            lobbyId,
-
-        name:
-            "Heavy Room",
-
-        mode:
-            "ПОДКИДНОЙ",
-
-        bet,
-
-        maxPlayers:
-            playerCount,
-
-        playerIds: [
-            player.playerId
-        ],
-
-        status:
-            "waiting",
-
-        createdAt:
-            Date.now(),
-
-        gameId:
-            null
-
-    };
-
-
-    lobbies.set(
-        lobbyId,
-        lobby
-    );
-
-
-    socket.join(
-        `lobby:${lobbyId}`
-    );
-
-
-    socket.emit(
-        "lobbyCreated",
-        serializeLobby(
-            lobby
-        )
-    );
-
-
-    socket.emit(
-        "roomState",
-        {
-
-            roomId:
-                lobby.id,
-
-            lobbyId:
-                lobby.id,
-
-            status:
-                lobby.status,
-
-            players:
-                lobby.playerIds,
-
-            maxPlayers:
-                lobby.maxPlayers,
-
-            bet:
-                lobby.bet
-
-        }
-    );
-
-
-    broadcastLobbies();
-
-
-    return lobby;
-
-}
-
-
-/*
-=========================================================
-JOIN LOBBY
-=========================================================
-*/
-
-function joinLobby(
-    socket,
-    payload = {}
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const lobbyId =
-        normalizeString(
-            payload.lobbyId ||
-            payload.id
-        );
-
-
-    if (!lobbyId) {
-
-        throw new Error(
-            "Не указан ID комнаты"
-        );
-
-    }
-
-
-    const lobby =
-        lobbies.get(
-            lobbyId
-        );
-
-
-    if (!lobby) {
-
-        throw new Error(
-            "Комната не найдена"
-        );
-
-    }
-
-
-    if (
-        lobby.status !==
-        "waiting"
-    ) {
-
-        throw new Error(
-            "Игра уже началась"
-        );
-
-    }
-
-
-    if (
-        lobby.playerIds.includes(
-            player.playerId
-        )
-    ) {
-
-        socket.join(
-            `lobby:${lobby.id}`
-        );
-
-        return lobby;
-
-    }
-
-
-    if (
-        lobby.playerIds.length >=
-        lobby.maxPlayers
-    ) {
-
-        throw new Error(
-            "Комната заполнена"
-        );
-
-    }
-
-
-    if (
-        player.balance <
-        lobby.bet
-    ) {
-
-        throw new Error(
-            "Недостаточно HC для ставки"
-        );
-
-    }
-
-
-    const existingLobby =
-        getPlayerLobby(
-            player.playerId
-        );
-
-
-    if (existingLobby) {
-
-        throw new Error(
-            "Вы уже находитесь в другой комнате"
-        );
-
-    }
-
-
-    lobby.playerIds.push(
-        player.playerId
-    );
-
-
-    socket.join(
-        `lobby:${lobby.id}`
-    );
-
 
     io.to(
-        `lobby:${lobby.id}`
+        room.roomId
     ).emit(
-        "roomState",
+        "player_left",
         {
 
-            roomId:
-                lobby.id,
-
-            lobbyId:
-                lobby.id,
-
-            status:
-                lobby.status,
-
-            players:
-                lobby.playerIds,
-
-            maxPlayers:
-                lobby.maxPlayers,
-
-            bet:
-                lobby.bet
+            playerId
 
         }
     );
-
-
-    socket.emit(
-        "lobbyJoined",
-        serializeLobby(
-            lobby
-        )
-    );
-
-
-    broadcastLobbies();
-
-
-    if (
-        lobby.playerIds.length >=
-        lobby.maxPlayers
-    ) {
-
-        startLobbyGame(
-            lobby
-        );
-
-    }
-
-
-    return lobby;
-
-}
-
-
-/*
-=========================================================
-QUICK MATCH
-=========================================================
-*/
-
-function quickMatch(
-    socket,
-    payload = {}
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const requestedPlayers =
-        Math.min(
-            MAX_PLAYERS,
-            Math.max(
-                MIN_PLAYERS,
-                parseInt(
-                    payload.players,
-                    10
-                ) || 2
-            )
-        );
-
-
-    const requestedBet =
-        Math.max(
-            0,
-            Math.floor(
-                toNumber(
-                    payload.bet,
-                    100
-                )
-            )
-        );
-
-
-    const available =
-        Array
-            .from(
-                lobbies.values()
-            )
-            .find(
-                lobby =>
-                    lobby.status ===
-                        "waiting" &&
-
-                    lobby.maxPlayers ===
-                        requestedPlayers &&
-
-                    lobby.bet ===
-                        requestedBet &&
-
-                    lobby.playerIds.length <
-                        lobby.maxPlayers
-            );
-
-
-    if (available) {
-
-        return joinLobby(
-            socket,
-            {
-                lobbyId:
-                    available.id
-            }
-        );
-
-    }
-
-
-    return createLobby(
-        socket,
-        {
-
-            players:
-                requestedPlayers,
-
-            bet:
-                requestedBet
-
-        }
-    );
-
-}
-
-
-/*
-=========================================================
-START LOBBY GAME
-=========================================================
-*/
-
-function startLobbyGame(
-    lobby
-) {
-
-    if (
-        !lobby
-    ) {
-        return;
-    }
-
-
-    if (
-        lobby.status !==
-        "waiting"
-    ) {
-        return;
-    }
-
-
-    if (
-        lobby.playerIds.length <
-        MIN_PLAYERS
-    ) {
-        return;
-    }
-
-
-    lobby.status =
-        "playing";
-
-
-    const game =
-        createGame({
-
-            gameId:
-                lobby.id,
-
-            playerIds:
-                lobby.playerIds
-
-        });
-
-
-    startGame(
-        game
-    );
-
-
-    lobby.gameId =
-        game.gameId;
-
-
-    games.set(
-        game.gameId,
-        game
-    );
-
-
-    for (
-        const playerId of
-        lobby.playerIds
-    ) {
-
-        const socketId =
-            sockets.get(
-                playerId
-            );
-
-
-        if (!socketId) {
-            continue;
-        }
-
-
-        const playerSocket =
-            io.sockets.sockets.get(
-                socketId
-            );
-
-
-        if (!playerSocket) {
-            continue;
-        }
-
-
-        playerSocket.join(
-            getGameSocketRoom(
-                game.gameId
-            )
-        );
-
-
-        playerSocket.emit(
-            "gameStarted",
-            {
-
-                gameStarted:
-                    true,
-
-                roomId:
-                    game.gameId,
-
-                lobbyId:
-                    game.gameId
-
-            }
-        );
-
-    }
-
-
-    emitGameState(
-        game
-    );
-
-
-    broadcastLobbies();
-
-
-    console.log(
-        `[GAME] started ${game.gameId}`
-    );
-
-}
-
-
-/*
-=========================================================
-UPDATE PLAYER STATS
-=========================================================
-*/
-
-function finalizeGameProfiles(
-    game
-) {
-
-    if (
-        !game ||
-        game.status !==
-        GAME_STATUS.FINISHED
-    ) {
-
-        return;
-
-    }
-
-
-    for (
-        const gamePlayer of
-        game.players
-    ) {
-
-        const profile =
-            players.get(
-                gamePlayer.playerId
-            );
-
-
-        if (!profile) {
-            continue;
-        }
-
-
-        profile.stats.games +=
-            1;
-
-
-        if (
-            game.winnerId ===
-            profile.playerId
-        ) {
-
-            profile.stats.wins +=
-                1;
-
-            profile.xp +=
-                100;
-
-            profile.rating +=
-                25;
-
-        }
-        else if (
-            game.loserId ===
-            profile.playerId
-        ) {
-
-            profile.stats.losses +=
-                1;
-
-            profile.xp +=
-                25;
-
-            profile.rating =
-                Math.max(
-                    0,
-                    profile.rating -
-                        20
-                );
-
-        }
-
-
-        profile.level =
-            getLevelFromXP(
-                profile.xp
-            );
-
-
-        profile.updatedAt =
-            Date.now();
-
-
-        const socketId =
-            sockets.get(
-                profile.playerId
-            );
-
-
-        if (socketId) {
-
-            const socket =
-                io.sockets.sockets.get(
-                    socketId
-                );
-
-
-            if (socket) {
-
-                emitProfile(
-                    socket,
-                    profile
-                );
-
-            }
-
-        }
-
-    }
-
-}
-
-
-/*
-=========================================================
-PROCESS GAME RESULT
-=========================================================
-*/
-
-function processGameFinished(
-    game
-) {
-
-    if (
-        !game
-    ) {
-        return;
-    }
-
-
-    if (
-        game.status !==
-        GAME_STATUS.FINISHED
-    ) {
-
-        return;
-
-    }
-
-
-    finalizeGameProfiles(
-        game
-    );
-
-
-    const lobby =
-        lobbies.get(
-            game.gameId
-        );
-
-
-    if (lobby) {
-
-        lobby.status =
-            "finished";
-
-    }
-
-
-    emitGameState(
-        game
-    );
-
-}
-
-
-/*
-=========================================================
-PLAY CARD
-=========================================================
-*/
-
-function handlePlayCard(
-    socket,
-    payload = {}
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const game =
-        getPlayerGame(
-            player.playerId
-        );
-
-
-    if (!game) {
-
-        throw new Error(
-            "Вы не находитесь в игре"
-        );
-
-    }
-
-
-    const cardId =
-        normalizeString(
-            payload.cardId ||
-            payload.card
-        );
-
-
-    if (!cardId) {
-
-        throw new Error(
-            "Карта не указана"
-        );
-
-    }
-
-
-    /*
-    Первый заход.
-    */
-
-    if (
-        game.table.length === 0 &&
-        game.phase === "ATTACK"
-    ) {
-
-        playFirstAttackCard(
-            game,
-            player.playerId,
-            cardId
-        );
-
-    }
-    else if (
-        game.phase === "DEFENSE" &&
-        game.defenderId ===
-            player.playerId
-    ) {
-
-        /*
-        Защитник.
-        */
-
-        defend(
-            game,
-            player.playerId,
-            cardId
-        );
-
-    }
-    else {
-
-        /*
-        Подкидывание.
-        */
-
-        addAttackCard(
-            game,
-            player.playerId,
-            cardId
-        );
-
-    }
-
-
-    emitGameState(
-        game
-    );
-
-
-    if (
-        game.status ===
-        GAME_STATUS.FINISHED
-    ) {
-
-        processGameFinished(
-            game
-        );
-
-    }
-
-}
-
-
-/*
-=========================================================
-TAKE CARDS
-=========================================================
-*/
-
-function handleTakeCards(
-    socket
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const game =
-        getPlayerGame(
-            player.playerId
-        );
-
-
-    if (!game) {
-
-        throw new Error(
-            "Вы не находитесь в игре"
-        );
-
-    }
-
-
-    takeCards(
-        game,
-        player.playerId
-    );
-
-
-    emitGameState(
-        game
-    );
-
-
-    if (
-        game.status ===
-        GAME_STATUS.FINISHED
-    ) {
-
-        processGameFinished(
-            game
-        );
-
-    }
-
-}
-
-
-/*
-=========================================================
-END ATTACK
-=========================================================
-*/
-
-function handleEndAttack(
-    socket
-) {
-
-    const player =
-        requirePlayer(
-            socket
-        );
-
-
-    const game =
-        getPlayerGame(
-            player.playerId
-        );
-
-
-    if (!game) {
-
-        throw new Error(
-            "Вы не находитесь в игре"
-        );
-
-    }
-
-
-    endAttack(
-        game,
-        player.playerId
-    );
-
-
-    emitGameState(
-        game
-    );
-
-
-    if (
-        game.status ===
-        GAME_STATUS.FINISHED
-    ) {
-
-        processGameFinished(
-            game
-        );
-
-    }
-
-}
-
-
-/*
-=========================================================
-GARAGE
-=========================================================
-*/
-
-function getGarage(
-    player
-) {
-
-    return {
-
-        cars:
-            player.cars,
-
-        plates:
-            player.plates,
-
-        activeCarId:
-            player.activeCarId,
-
-        activePlateId:
-            player.activePlateId
-
-    };
-
-}
-
-
-/*
-=========================================================
-MARKET
-=========================================================
-*/
-
-function getMarket() {
-
-    return [
-
-        {
-
-            id:
-                "market_bmw_m5",
-
-            type:
-                "car",
-
-            name:
-                "BMW M5",
-
-            plate:
-                "А777АА77",
-
-            price:
-                1950000
-
-        },
-
-        {
-
-            id:
-                "market_mercedes_e63",
-
-            type:
-                "car",
-
-            name:
-                "Mercedes E63",
-
-            plate:
-                "У429РО77",
-
-            price:
-                2350000
-
-        }
-
-    ];
 
 }
 
@@ -2375,20 +855,7 @@ io.on(
     socket => {
 
         console.log(
-            `[Socket.IO] connected: ${socket.id}`
-        );
-
-
-        socket.emit(
-            "connectionReady",
-            {
-
-                ok: true,
-
-                socketId:
-                    socket.id
-
-            }
+            `[SOCKET] Connected: ${socket.id}`
         );
 
 
@@ -2400,62 +867,182 @@ io.on(
 
         socket.on(
             "auth",
-            (
-                payload,
-                callback
-            ) => {
+            data => {
 
                 try {
 
-                    const player =
-                        authenticate(
-                            socket,
-                            payload
-                        );
-
-
                     if (
-                        typeof callback ===
-                        "function"
+                        socket.data.playerId
                     ) {
 
-                        callback({
-                            ok: true,
-
-                            player:
-                                getSafeProfile(
-                                    player
-                                )
-                        });
+                        throw new Error(
+                            "Player is already authenticated"
+                        );
 
                     }
 
-                }
-                catch (error) {
+                    if (!data) {
 
-                    sendActionError(
-                        socket,
+                        throw new Error(
+                            "Auth data is required"
+                        );
+
+                    }
+
+                    const playerId =
+                        normalizeString(
+                            data.playerId,
+                            100
+                        );
+
+                    if (!playerId) {
+
+                        throw new Error(
+                            "playerId is required"
+                        );
+
+                    }
+
+                    const name =
+                        normalizeString(
+                            data.name,
+                            100
+                        );
+
+                    const username =
+                        normalizeString(
+                            data.username,
+                            100
+                        );
+
+                    const telegramId =
+                        normalizeString(
+                            data.telegramId,
+                            100
+                        );
+
+                    socket.data.playerId =
+                        playerId;
+
+                    socket.data.name =
+                        name;
+
+                    socket.data.username =
+                        username;
+
+                    socket.data.telegramId =
+                        telegramId;
+
+                    /*
+                    Проверяем существующую
+                    комнату игрока.
+
+                    Это важно для
+                    переподключения.
+                    */
+
+                    const existingRoom =
+                        rooms.getPlayerRoom(
+                            playerId
+                        );
+
+                    if (existingRoom) {
+
+                        const player =
+                            getPlayer(
+                                existingRoom.game ||
+                                {
+                                    players:
+                                        []
+                                },
+                                playerId
+                            );
+
+                        /*
+                        Если это комната
+                        лобби — просто сообщаем,
+                        что игрок уже числится
+                        в ней.
+
+                        Если игра идёт —
+                        тоже позволяем
+                        восстановиться.
+                        */
+
+                        const roomPlayer =
+                            existingRoom.players.find(
+                                p =>
+                                    p.playerId ===
+                                    playerId
+                            );
+
+                        if (
+                            roomPlayer
+                        ) {
+
+                            roomPlayer.connected =
+                                true;
+
+                            roomPlayer.lastSeenAt =
+                                Date.now();
+
+                            joinSocketRoom(
+                                socket,
+                                existingRoom
+                            );
+
+                            socket.emit(
+                                "auth_success",
+                                {
+
+                                    playerId,
+
+                                    roomId:
+                                        existingRoom.roomId,
+
+                                    reconnected:
+                                        true
+
+                                }
+                            );
+
+                            emitRoomState(
+                                existingRoom
+                            );
+
+                            return;
+
+                        }
+
+                    }
+
+                    socket.emit(
+                        "auth_success",
+                        {
+
+                            playerId,
+
+                            roomId:
+                                null,
+
+                            reconnected:
+                                false
+
+                        }
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[AUTH ERROR]",
                         error
                     );
 
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
+                    sendError(
+                        socket,
+                        "AUTH_ERROR",
+                        error.message
+                    );
 
                 }
 
@@ -2465,33 +1052,231 @@ io.on(
 
         /*
         =================================================
-        GET PROFILE
+        GET ROOMS
         =================================================
         */
 
         socket.on(
-            "getProfile",
+            "rooms_list",
+            () => {
+
+                socket.emit(
+                    "rooms_list",
+                    rooms.getPublicRooms()
+                );
+
+            }
+        );
+
+
+        /*
+        =================================================
+        CREATE ROOM
+        =================================================
+        */
+
+        socket.on(
+            "create_room",
             () => {
 
                 try {
 
-                    const player =
-                        requirePlayer(
+                    const playerId =
+                        requirePlayerId(
                             socket
                         );
 
+                    /*
+                    Нельзя создать
+                    вторую комнату.
+                    */
 
-                    emitProfile(
+                    if (
+                        rooms.hasPlayer(
+                            playerId
+                        )
+                    ) {
+
+                        throw new Error(
+                            "Player is already in a room"
+                        );
+
+                    }
+
+                    const room =
+                        rooms.createRoom({
+
+                            playerId,
+
+                            name:
+                                socket.data.name,
+
+                            username:
+                                socket.data.username,
+
+                            telegramId:
+                                socket.data.telegramId
+
+                        });
+
+                    joinSocketRoom(
                         socket,
+                        room
+                    );
+
+                    socket.emit(
+                        "room_created",
+                        {
+
+                            roomId:
+                                room.roomId,
+
+                            hostPlayerId:
+                                room.hostPlayerId
+
+                        }
+                    );
+
+                    emitRoomState(
+                        room
+                    );
+
+                    emitPublicRooms();
+
+                    console.log(
+                        `[ROOM] Created ${room.roomId} by ${playerId}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[CREATE ROOM ERROR]",
+                        error
+                    );
+
+                    sendError(
+                        socket,
+                        "CREATE_ROOM_ERROR",
+                        error.message
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+        =================================================
+        JOIN ROOM
+        =================================================
+        */
+
+        socket.on(
+            "join_room",
+            data => {
+
+                try {
+
+                    const playerId =
+                        requirePlayerId(
+                            socket
+                        );
+
+                    if (!data) {
+
+                        throw new Error(
+                            "Room data is required"
+                        );
+
+                    }
+
+                    const roomId =
+                        normalizeString(
+                            data.roomId,
+                            100
+                        );
+
+                    if (!roomId) {
+
+                        throw new Error(
+                            "roomId is required"
+                        );
+
+                    }
+
+                    const room =
+                        rooms.joinRoom(
+                            roomId,
+                            {
+
+                                playerId,
+
+                                name:
+                                    socket.data.name,
+
+                                username:
+                                    socket.data.username,
+
+                                telegramId:
+                                    socket.data.telegramId
+
+                            }
+                        );
+
+                    joinSocketRoom(
+                        socket,
+                        room
+                    );
+
+                    const player =
+                        room.players.find(
+                            p =>
+                                p.playerId ===
+                                playerId
+                        );
+
+                    socket.emit(
+                        "room_joined",
+                        {
+
+                            roomId:
+                                room.roomId,
+
+                            playerId,
+
+                            hostPlayerId:
+                                room.hostPlayerId
+
+                        }
+                    );
+
+                    emitPlayerJoined(
+                        room,
                         player
                     );
 
-                }
-                catch (error) {
+                    emitRoomState(
+                        room
+                    );
 
-                    sendActionError(
-                        socket,
+                    emitPublicRooms();
+
+                    console.log(
+                        `[ROOM] ${playerId} joined ${room.roomId}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[JOIN ROOM ERROR]",
                         error
+                    );
+
+                    sendError(
+                        socket,
+                        "JOIN_ROOM_ERROR",
+                        error.message
                     );
 
                 }
@@ -2502,241 +1287,128 @@ io.on(
 
         /*
         =================================================
-        CREATE LOBBY
+        LEAVE ROOM
         =================================================
         */
 
         socket.on(
-            "createLobby",
-            (
-                payload,
-                callback
-            ) => {
-
-                try {
-
-                    const lobby =
-                        createLobby(
-                            socket,
-                            payload
-                        );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: true,
-
-                            lobby:
-                                serializeLobby(
-                                    lobby
-                                )
-
-                        });
-
-                    }
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
-
-                }
-
-            }
-        );
-
-
-        /*
-        =================================================
-        GET LOBBIES
-        =================================================
-        */
-
-        socket.on(
-            "getLobbies",
+            "leave_room",
             () => {
 
-                socket.emit(
-                    "lobbies",
-                    getPublicLobbies()
-                );
-
-
-                socket.emit(
-                    "lobbyList",
-                    getPublicLobbies()
-                );
-
-            }
-        );
-
-
-        /*
-        =================================================
-        JOIN LOBBY
-        =================================================
-        */
-
-        socket.on(
-            "joinLobby",
-            (
-                payload,
-                callback
-            ) => {
-
                 try {
 
-                    const lobby =
-                        joinLobby(
-                            socket,
-                            payload
+                    const playerId =
+                        requirePlayerId(
+                            socket
                         );
 
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: true,
-
-                            lobby:
-                                serializeLobby(
-                                    lobby
-                                )
-
-                        });
-
-                    }
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
-
-                }
-
-            }
-        );
-
-
-        /*
-        =================================================
-        QUICK MATCH
-        =================================================
-        */
-
-        socket.on(
-            "quickMatch",
-            (
-                payload,
-                callback
-            ) => {
-
-                try {
-
-                    const lobby =
-                        quickMatch(
-                            socket,
-                            payload
+                    const room =
+                        rooms.getPlayerRoom(
+                            playerId
                         );
 
+                    if (!room) {
 
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
+                        socket.emit(
+                            "room_left",
+                            {
 
-                        callback({
+                                roomId:
+                                    null
 
-                            ok: true,
+                            }
+                        );
 
-                            lobby:
-                                serializeLobby(
-                                    lobby
-                                )
-
-                        });
+                        return;
 
                     }
 
-                }
-                catch (error) {
+                    const roomId =
+                        room.roomId;
 
-                    sendActionError(
-                        socket,
+                    /*
+                    Нельзя просто выйти
+                    из активной игры.
+
+                    Здесь оставляем
+                    игрока в комнате,
+                    чтобы game.js сохранил
+                    авторитетное состояние.
+
+                    Для полного выхода
+                    во время игры потребуется
+                    отдельная политика
+                    surrender/disconnect.
+                    */
+
+                    if (
+                        room.status ===
+                        ROOM_STATUS.PLAYING
+                    ) {
+
+                        throw new Error(
+                            "Cannot leave an active game"
+                        );
+
+                    }
+
+                    rooms.leaveRoom(
+                        playerId
+                    );
+
+                    socket.leave(
+                        roomId
+                    );
+
+                    socket.data.roomId =
+                        null;
+
+                    socket.emit(
+                        "room_left",
+                        {
+
+                            roomId
+
+                        }
+                    );
+
+                    emitPlayerLeft(
+                        room,
+                        playerId
+                    );
+
+                    if (
+                        rooms.getRoom(
+                            roomId
+                        )
+                    ) {
+
+                        emitRoomState(
+                            rooms.getRoom(
+                                roomId
+                            )
+                        );
+
+                    }
+
+                    emitPublicRooms();
+
+                    console.log(
+                        `[ROOM] ${playerId} left ${roomId}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[LEAVE ROOM ERROR]",
                         error
                     );
 
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
+                    sendError(
+                        socket,
+                        "LEAVE_ROOM_ERROR",
+                        error.message
+                    );
 
                 }
 
@@ -2746,64 +1418,320 @@ io.on(
 
         /*
         =================================================
-        GAME PLAY
+        READY
         =================================================
         */
 
         socket.on(
-            "playCard",
-            (
-                payload,
-                callback
-            ) => {
+            "ready",
+            data => {
 
                 try {
 
-                    handlePlayCard(
-                        socket,
-                        payload
-                    );
+                    const playerId =
+                        requirePlayerId(
+                            socket
+                        );
 
+                    const room =
+                        getSocketRoom(
+                            socket
+                        );
 
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
+                    if (!room) {
 
-                        callback({
-                            ok: true
-                        });
+                        throw new Error(
+                            "Player is not in a room"
+                        );
 
                     }
 
-                }
-                catch (error) {
+                    if (
+                        room.status !==
+                        ROOM_STATUS.LOBBY
+                    ) {
 
-                    sendActionError(
-                        socket,
+                        throw new Error(
+                            "Room is not in lobby"
+                        );
+
+                    }
+
+                    const ready =
+                        data &&
+                        typeof data.ready ===
+                        "boolean"
+                            ? data.ready
+                            : true;
+
+                    rooms.setReady(
+                        room.roomId,
+                        playerId,
+                        ready
+                    );
+
+                    emitRoomState(
+                        room
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[READY ERROR]",
                         error
                     );
 
+                    sendError(
+                        socket,
+                        "READY_ERROR",
+                        error.message
+                    );
 
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
+                }
 
-                        callback({
+            }
+        );
 
-                            ok: false,
 
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
+        /*
+        =================================================
+        TOGGLE READY
+        =================================================
+        */
 
-                        });
+        socket.on(
+            "toggle_ready",
+            () => {
+
+                try {
+
+                    const playerId =
+                        requirePlayerId(
+                            socket
+                        );
+
+                    const room =
+                        getSocketRoom(
+                            socket
+                        );
+
+                    if (!room) {
+
+                        throw new Error(
+                            "Player is not in a room"
+                        );
 
                     }
 
+                    rooms.toggleReady(
+                        room.roomId,
+                        playerId
+                    );
+
+                    emitRoomState(
+                        room
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[TOGGLE READY ERROR]",
+                        error
+                    );
+
+                    sendError(
+                        socket,
+                        "TOGGLE_READY_ERROR",
+                        error.message
+                    );
+
                 }
+
+            }
+        );
+
+
+        /*
+        =================================================
+        START GAME
+        =================================================
+        */
+
+        socket.on(
+            "start_game",
+            () => {
+
+                try {
+
+                    const playerId =
+                        requirePlayerId(
+                            socket
+                        );
+
+                    const room =
+                        getSocketRoom(
+                            socket
+                        );
+
+                    if (!room) {
+
+                        throw new Error(
+                            "Player is not in a room"
+                        );
+
+                    }
+
+                    const startedRoom =
+                        rooms.startRoom(
+                            room.roomId,
+                            playerId
+                        );
+
+                    /*
+                    Сначала сообщаем всем,
+                    что лобби закончено.
+                    */
+
+                    io.to(
+                        startedRoom.roomId
+                    ).emit(
+                        "game_started",
+                        {
+
+                            roomId:
+                                startedRoom.roomId
+
+                        }
+                    );
+
+                    /*
+                    Теперь отправляем
+                    игровые состояния.
+                    */
+
+                    emitRoomState(
+                        startedRoom
+                    );
+
+                    emitPublicRooms();
+
+                    console.log(
+                        `[GAME] Started ${startedRoom.roomId}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[START GAME ERROR]",
+                        error
+                    );
+
+                    sendError(
+                        socket,
+                        "START_GAME_ERROR",
+                        error.message
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+        =================================================
+        PLAY FIRST ATTACK CARD
+        =================================================
+        */
+
+        socket.on(
+            "play_first_attack",
+            data => {
+
+                handleGameAction(
+                    socket,
+                    data,
+                    "play_first_attack",
+                    (
+                        game,
+                        playerId,
+                        cardId
+                    ) => {
+
+                        playFirstAttackCard(
+                            game,
+                            playerId,
+                            cardId
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+        =================================================
+        ADD ATTACK CARD
+        =================================================
+        */
+
+        socket.on(
+            "add_attack",
+            data => {
+
+                handleGameAction(
+                    socket,
+                    data,
+                    "add_attack",
+                    (
+                        game,
+                        playerId,
+                        cardId
+                    ) => {
+
+                        addAttackCard(
+                            game,
+                            playerId,
+                            cardId
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+        =================================================
+        DEFEND
+        =================================================
+        */
+
+        socket.on(
+            "defend",
+            data => {
+
+                handleGameAction(
+                    socket,
+                    data,
+                    "defend",
+                    (
+                        game,
+                        playerId,
+                        cardId
+                    ) => {
+
+                        defend(
+                            game,
+                            playerId,
+                            cardId
+                        );
+
+                    }
+                );
 
             }
         );
@@ -2816,58 +1744,25 @@ io.on(
         */
 
         socket.on(
-            "takeCards",
-            (
-                _payload,
-                callback
-            ) => {
+            "take_cards",
+            () => {
 
-                try {
+                handleGameAction(
+                    socket,
+                    {},
+                    "take_cards",
+                    (
+                        game,
+                        playerId
+                    ) => {
 
-                    handleTakeCards(
-                        socket
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-                            ok: true
-                        });
+                        takeCards(
+                            game,
+                            playerId
+                        );
 
                     }
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
-
-                }
+                );
 
             }
         );
@@ -2880,115 +1775,24 @@ io.on(
         */
 
         socket.on(
-            "endAttack",
-            (
-                _payload,
-                callback
-            ) => {
-
-                try {
-
-                    handleEndAttack(
-                        socket
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-                            ok: true
-                        });
-
-                    }
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-
-                    if (
-                        typeof callback ===
-                        "function"
-                    ) {
-
-                        callback({
-
-                            ok: false,
-
-                            message:
-                                normalizeErrorMessage(
-                                    error
-                                )
-
-                        });
-
-                    }
-
-                }
-
-            }
-        );
-
-
-        /*
-        =================================================
-        GET GARAGE
-        =================================================
-        */
-
-        socket.on(
-            "getGarage",
+            "end_attack",
             () => {
 
-                try {
+                handleGameAction(
+                    socket,
+                    {},
+                    "end_attack",
+                    (
+                        game,
+                        playerId
+                    ) => {
 
-                    const player =
-                        requirePlayer(
-                            socket
+                        endAttack(
+                            game,
+                            playerId
                         );
 
-
-                    socket.emit(
-                        "garage",
-                        getGarage(
-                            player
-                        )
-                    );
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-                }
-
-            }
-        );
-
-
-        /*
-        =================================================
-        GET MARKET
-        =================================================
-        */
-
-        socket.on(
-            "getMarket",
-            () => {
-
-                socket.emit(
-                    "market",
-                    getMarket()
+                    }
                 );
 
             }
@@ -2997,174 +1801,53 @@ io.on(
 
         /*
         =================================================
-        PLAYER INFO
+        GET CURRENT ROOM
         =================================================
         */
 
         socket.on(
-            "getPlayerInfo",
-            payload => {
+            "get_room_state",
+            () => {
 
                 try {
 
-                    requirePlayer(
-                        socket
-                    );
-
-
-                    const targetId =
-                        normalizeString(
-                            payload?.playerId
-                        );
-
-
-                    if (!targetId) {
-
-                        throw new Error(
-                            "Игрок не указан"
-                        );
-
-                    }
-
-
-                    const target =
-                        players.get(
-                            targetId
-                        );
-
-
-                    if (!target) {
-
-                        throw new Error(
-                            "Игрок не найден"
-                        );
-
-                    }
-
-
-                    socket.emit(
-                        "playerInfo",
-                        {
-
-                            playerId:
-                                target.playerId,
-
-                            name:
-                                target.name,
-
-                            username:
-                                target.username,
-
-                            level:
-                                target.level,
-
-                            rating:
-                                target.rating,
-
-                            stats:
-                                target.stats,
-
-                            carsCount:
-                                target.cars.length
-
-                        }
-                    );
-
-                }
-                catch (error) {
-
-                    sendActionError(
-                        socket,
-                        error
-                    );
-
-                }
-
-            }
-        );
-
-
-        /*
-        =================================================
-        QUICK MESSAGE
-        =================================================
-        */
-
-        socket.on(
-            "quickMessage",
-            payload => {
-
-                try {
-
-                    const player =
-                        requirePlayer(
+                    const playerId =
+                        requirePlayerId(
                             socket
                         );
 
-
-                    const game =
-                        getPlayerGame(
-                            player.playerId
+                    const room =
+                        rooms.getPlayerRoom(
+                            playerId
                         );
 
+                    if (!room) {
 
-                    if (!game) {
-                        return;
-                    }
-
-
-                    const allowed = [
-
-                        "Спасибо за игру!",
-
-                        "Хорошей игры!",
-
-                        "Охх…",
-
-                        "Скорее!"
-
-                    ];
-
-
-                    const text =
-                        normalizeString(
-                            payload?.text
+                        socket.emit(
+                            "room_state",
+                            null
                         );
-
-
-                    if (
-                        !allowed.includes(
-                            text
-                        )
-                    ) {
 
                         return;
 
                     }
 
-
-                    io.to(
-                        getGameSocketRoom(
-                            game.gameId
-                        )
-                    ).emit(
-                        "quickMessage",
-                        {
-
-                            playerId:
-                                player.playerId,
-
-                            text
-
-                        }
+                    joinSocketRoom(
+                        socket,
+                        room
                     );
 
-                }
-                catch (error) {
-
-                    sendActionError(
+                    emitPersonalStateToSocket(
                         socket,
-                        error
+                        room
+                    );
+
+                } catch (error) {
+
+                    sendError(
+                        socket,
+                        "ROOM_STATE_ERROR",
+                        error.message
                     );
 
                 }
@@ -3183,73 +1866,82 @@ io.on(
             "disconnect",
             reason => {
 
-                const playerId =
-                    socket.data.playerId;
+                try {
 
+                    const playerId =
+                        socket.data.playerId;
 
-                if (playerId) {
+                    if (!playerId) {
 
-                    const player =
-                        players.get(
+                        console.log(
+                            `[SOCKET] Disconnected ${socket.id}: ${reason}`
+                        );
+
+                        return;
+
+                    }
+
+                    const room =
+                        rooms.getPlayerRoom(
                             playerId
                         );
 
+                    if (!room) {
 
-                    if (player) {
+                        console.log(
+                            `[SOCKET] ${playerId} disconnected: ${reason}`
+                        );
 
-                        const game =
-                            getPlayerGame(
-                                playerId
-                            );
+                        return;
 
+                    }
 
-                        if (game) {
+                    /*
+                    Помечаем игрока
+                    disconnected.
 
-                            const gamePlayer =
-                                getPlayer(
-                                    game,
-                                    playerId
-                                );
+                    НЕ удаляем его
+                    моментально.
+                    */
 
+                    rooms.disconnectPlayer(
+                        playerId
+                    );
 
-                            if (
-                                gamePlayer
-                            ) {
+                    /*
+                    Уведомляем комнату.
+                    */
 
-                                gamePlayer.connected =
-                                    false;
+                    io.to(
+                        room.roomId
+                    ).emit(
+                        "player_connection",
+                        {
 
-                            }
+                            playerId,
 
-
-                            emitGameState(
-                                game
-                            );
+                            connected:
+                                false
 
                         }
+                    );
 
-                    }
+                    emitRoomState(
+                        room
+                    );
 
+                    console.log(
+                        `[SOCKET] ${playerId} disconnected from ${room.roomId}: ${reason}`
+                    );
 
-                    if (
-                        sockets.get(
-                            playerId
-                        ) ===
-                        socket.id
-                    ) {
+                } catch (error) {
 
-                        sockets.delete(
-                            playerId
-                        );
-
-                    }
+                    console.error(
+                        "[DISCONNECT ERROR]",
+                        error
+                    );
 
                 }
-
-
-                console.log(
-                    `[Socket.IO] disconnected: ${socket.id} (${reason})`
-                );
 
             }
         );
@@ -3260,7 +1952,369 @@ io.on(
 
 /*
 =========================================================
-PROCESS ERRORS
+GAME ACTION HANDLER
+=========================================================
+
+Единая точка входа для игровых
+действий.
+
+Все проверки выполняет game.js.
+
+server.js не решает:
+
+- можно ли ходить;
+- можно ли бить;
+- можно ли подкидывать;
+- можно ли брать.
+
+Это решает game.js.
+
+=========================================================
+*/
+
+function handleGameAction(
+    socket,
+    data,
+    actionName,
+    action
+) {
+
+    try {
+
+        const playerId =
+            requirePlayerId(
+                socket
+            );
+
+        const room =
+            getSocketRoom(
+                socket
+            );
+
+        if (!room) {
+
+            throw new Error(
+                "Player is not in a room"
+            );
+
+        }
+
+        if (
+            room.status !==
+            ROOM_STATUS.PLAYING
+        ) {
+
+            throw new Error(
+                "Game is not active"
+            );
+
+        }
+
+        if (!room.game) {
+
+            throw new Error(
+                "Game state not found"
+            );
+
+        }
+
+        /*
+        Никогда не принимаем
+        playerId из клиента.
+
+        Используем только
+        socket.data.playerId.
+        */
+
+        const cardId =
+            data &&
+            typeof data.cardId ===
+            "string"
+                ? data.cardId
+                : null;
+
+        action(
+            room.game,
+            playerId,
+            cardId
+        );
+
+        /*
+        После действия обновляем
+        статус комнаты.
+
+        Это важно для окончания игры.
+        */
+
+        rooms.updateRoomStatus(
+            room
+        );
+
+        /*
+        Отправляем подтверждение
+        конкретного действия.
+        */
+
+        socket.emit(
+            "action_success",
+            {
+
+                action:
+                    actionName
+
+            }
+        );
+
+        /*
+        Отправляем новое состояние.
+        */
+
+        emitRoomState(
+            room
+        );
+
+        /*
+        Если игра завершилась —
+        отдельное событие.
+        */
+
+        if (
+            room.game.status ===
+            GAME_STATUS.FINISHED
+        ) {
+
+            io.to(
+                room.roomId
+            ).emit(
+                "game_finished",
+                {
+
+                    roomId:
+                        room.roomId,
+
+                    winnerId:
+                        room.game.winnerId,
+
+                    loserId:
+                        room.game.loserId,
+
+                    finishOrder:
+                        room.game.finishOrder
+
+                }
+            );
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            `[GAME ACTION ERROR] ${actionName}`,
+            error
+        );
+
+        sendError(
+            socket,
+            "GAME_ACTION_ERROR",
+            error.message
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+SEND STATE TO SINGLE SOCKET
+=========================================================
+*/
+
+function emitPersonalStateToSocket(
+    socket,
+    room
+) {
+
+    if (!room) {
+        return;
+    }
+
+    if (
+        room.status ===
+        ROOM_STATUS.LOBBY
+    ) {
+
+        socket.emit(
+            "lobby_state",
+            getLobbyState(
+                room
+            )
+        );
+
+        return;
+
+    }
+
+    socket.emit(
+        "room_state",
+        {
+
+            roomId:
+                room.roomId,
+
+            status:
+                room.status,
+
+            hostPlayerId:
+                room.hostPlayerId,
+
+            players:
+                room.players.map(
+                    getPlayerView
+                )
+
+        }
+    );
+
+    if (room.game) {
+
+        const playerId =
+            socket.data.playerId;
+
+        const state =
+            getPrivateGameState(
+                room,
+                playerId
+            );
+
+        if (state) {
+
+            socket.emit(
+                "game_state",
+                {
+
+                    targetPlayerId:
+                        playerId,
+
+                    state
+
+                }
+            );
+
+        }
+
+    }
+
+}
+
+
+/*
+=========================================================
+CLEANUP
+=========================================================
+
+Периодически удаляем только
+реально пустые комнаты.
+
+Отключённых игроков намеренно
+не удаляем автоматически здесь,
+потому что они могут
+переподключиться.
+
+=========================================================
+*/
+
+setInterval(
+    () => {
+
+        try {
+
+            const deleted =
+                rooms.cleanupEmptyRooms();
+
+            if (
+                deleted.length > 0
+            ) {
+
+                console.log(
+                    `[ROOM CLEANUP] Deleted: ${deleted.join(", ")}`
+                );
+
+                emitPublicRooms();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[ROOM CLEANUP ERROR]",
+                error
+            );
+
+        }
+
+    },
+    60 * 1000
+);
+
+
+/*
+=========================================================
+SERVER START
+=========================================================
+*/
+
+httpServer.listen(
+    PORT,
+    () => {
+
+        console.log(
+            "================================================="
+        );
+
+        console.log(
+            "HEAVY LUX CARD"
+        );
+
+        console.log(
+            "ONLINE SERVER"
+        );
+
+        console.log(
+            "================================================="
+        );
+
+        console.log(
+            `Server started on port ${PORT}`
+        );
+
+        console.log(
+            "Socket.IO: ready"
+        );
+
+        console.log(
+            "Lobby: ready"
+        );
+
+        console.log(
+            "Rooms: ready"
+        );
+
+        console.log(
+            "Game engine: ready"
+        );
+
+        console.log(
+            "================================================="
+        );
+
+    }
+);
+
+
+/*
+=========================================================
+PROCESS ERROR HANDLERS
 =========================================================
 */
 
@@ -3269,7 +2323,7 @@ process.on(
     error => {
 
         console.error(
-            "[uncaughtException]",
+            "[UNCAUGHT EXCEPTION]",
             error
         );
 
@@ -3282,7 +2336,7 @@ process.on(
     error => {
 
         console.error(
-            "[unhandledRejection]",
+            "[UNHANDLED REJECTION]",
             error
         );
 
@@ -3292,149 +2346,18 @@ process.on(
 
 /*
 =========================================================
-START SERVER
+EXPORTS
 =========================================================
 */
 
-server.listen(
-    PORT,
-    HOST,
-    () => {
+module.exports = {
 
-        console.log(
-            "================================================="
-        );
+    app,
 
-        console.log(
-            "HEAVY LUX CARD"
-        );
+    httpServer,
 
-        console.log(
-            "================================================="
-        );
+    io,
 
-        console.log(
-            `Server started on ${HOST}:${PORT}`
-        );
+    rooms
 
-        console.log(
-            `Frontend directory: ${PUBLIC_DIR}`
-        );
-
-        console.log(
-            `Index file: ${INDEX_FILE}`
-        );
-
-        console.log(
-            "Socket.IO: ready"
-        );
-
-        console.log(
-            "Game Engine: ready"
-        );
-
-        console.log(
-            "36 cards: ready"
-        );
-
-        console.log(
-            "Players: 2-3"
-        );
-
-        console.log(
-            "Mode: Подкидной"
-        );
-
-        console.log(
-            "================================================="
-        );
-
-    }
-);
-
-
-/*
-=========================================================
-GRACEFUL SHUTDOWN
-=========================================================
-*/
-
-let shuttingDown =
-    false;
-
-
-function shutdown(
-    signal
-) {
-
-    if (
-        shuttingDown
-    ) {
-
-        return;
-
-    }
-
-
-    shuttingDown =
-        true;
-
-
-    console.log(
-        `Received ${signal}. Shutting down...`
-    );
-
-
-    io.close(
-        () => {
-
-            server.close(
-                () => {
-
-                    process.exit(
-                        0
-                    );
-
-                }
-            );
-
-        }
-    );
-
-
-    setTimeout(
-        () => {
-
-            process.exit(
-                0
-            );
-
-        },
-        10000
-    ).unref();
-
-}
-
-
-process.on(
-    "SIGTERM",
-    () => {
-
-        shutdown(
-            "SIGTERM"
-        );
-
-    }
-);
-
-
-process.on(
-    "SIGINT",
-    () => {
-
-        shutdown(
-            "SIGINT"
-        );
-
-    }
-);
+};
