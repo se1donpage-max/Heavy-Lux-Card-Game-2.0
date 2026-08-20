@@ -86,9 +86,10 @@ const app =
 
 app.use(
     cors({
-        origin: CLIENT_ORIGIN === "*"
-            ? true
-            : CLIENT_ORIGIN
+        origin:
+            CLIENT_ORIGIN === "*"
+                ? true
+                : CLIENT_ORIGIN
     })
 );
 
@@ -140,14 +141,13 @@ const io =
                 "websocket",
                 "polling"
             ]
-
         }
     );
 
 
 /*
 =========================================================
-BASIC HTTP ROUTES
+HTTP ROUTES
 =========================================================
 */
 
@@ -212,7 +212,6 @@ UTILITY
 =========================================================
 */
 
-
 function normalizeString(
     value,
     maxLength = 100
@@ -246,8 +245,7 @@ function requirePlayerId(
 ) {
 
     if (
-        typeof socket.data.playerId !==
-        "string" ||
+        typeof socket.data.playerId !== "string" ||
         socket.data.playerId.length === 0
     ) {
 
@@ -274,7 +272,10 @@ function sendError(
 
             code,
 
-            message
+            message:
+                typeof message === "string"
+                    ? message
+                    : "Unknown error"
 
         }
     );
@@ -392,17 +393,16 @@ function getLobbyState(
 
 /*
 =========================================================
-PLAYER GAME STATE
+PRIVATE GAME STATE
 =========================================================
 
-Очень важно:
+Каждый игрок получает:
 
-getGameState() не содержит
-чужие руки.
+- только свою руку;
+- общую игровую информацию;
+- возможные свои действия.
 
-Но конкретному игроку
-мы отдельно отправляем
-его собственную руку.
+Чужие руки никогда не отправляются.
 
 =========================================================
 */
@@ -432,50 +432,57 @@ function getPrivateGameState(
         return null;
     }
 
-    const state =
+    const baseState =
         getGameState(
             game
         );
 
-    state.myPlayerId =
-        playerId;
-
-    state.myHand =
-        player.hand;
-
-    state.myHandSize =
-        player.hand.length;
-
-    state.possibleAttacks =
-        getPossibleAttacks(
-            game,
-            playerId
-        );
-
-    state.possibleDefenses =
-        getPossibleDefenses(
-            game,
-            playerId
-        );
-
     /*
-    Может ли игрок взять карты.
+    Не изменяем объект,
+    который вернул game.js.
     */
 
-    state.canTake =
-        game.phase === PHASE.DEFENSE &&
-        game.defenderId === playerId &&
-        game.turnPlayerId === playerId;
+    const state = {
 
-    /*
-    Может ли игрок закончить атаку.
-    */
+        ...baseState,
 
-    state.canEndAttack =
-        game.phase === PHASE.DEFENSE &&
-        game.defenderId !== playerId &&
-        game.turnPlayerId === playerId &&
-        game.currentAttackPlayerId === playerId;
+        myPlayerId:
+            playerId,
+
+        myHand:
+            Array.isArray(player.hand)
+                ? [...player.hand]
+                : [],
+
+        myHandSize:
+            Array.isArray(player.hand)
+                ? player.hand.length
+                : 0,
+
+        possibleAttacks:
+            getPossibleAttacks(
+                game,
+                playerId
+            ),
+
+        possibleDefenses:
+            getPossibleDefenses(
+                game,
+                playerId
+            ),
+
+        canTake:
+            game.phase === PHASE.DEFENSE &&
+            game.defenderId === playerId &&
+            game.turnPlayerId === playerId,
+
+        canEndAttack:
+            game.phase === PHASE.DEFENSE &&
+            game.defenderId !== playerId &&
+            game.turnPlayerId === playerId &&
+            game.currentAttackPlayerId === playerId
+
+    };
 
     return state;
 
@@ -496,12 +503,6 @@ function joinSocketRoom(
     if (!room) {
         return;
     }
-
-    /*
-    Если socket уже находится
-    в другой socket-комнате —
-    выходим из неё.
-    */
 
     const oldRoomId =
         socket.data.roomId;
@@ -541,71 +542,14 @@ function emitLobbyState(
         return;
     }
 
-    const state =
-        getLobbyState(
-            room
-        );
-
     io.to(
         room.roomId
     ).emit(
         "lobby_state",
-        state
-    );
-
-}
-
-
-/*
-=========================================================
-EMIT GAME STATES
-=========================================================
-
-Каждому игроку отправляется
-его собственная рука.
-
-=========================================================
-*/
-
-function emitGameStates(
-    room
-) {
-
-    if (
-        !room ||
-        !room.game
-    ) {
-        return;
-    }
-
-    for (
-        const player of room.players
-    ) {
-
-        const state =
-            getPrivateGameState(
-                room,
-                player.playerId
-            );
-
-        if (!state) {
-            continue;
-        }
-
-        io.to(
-            room.roomId
+        getLobbyState(
+            room
         )
-        .emit(
-            "game_state",
-            {
-                targetPlayerId:
-                    player.playerId,
-
-                state
-            }
-        );
-
-    }
+    );
 
 }
 
@@ -643,11 +587,9 @@ function emitPersonalGameState(
     }
 
     /*
-    Находим все sockets
-    данного playerId.
-
-    Это позволяет поддержать
-    переподключение.
+    Отправляем состояние
+    только socket-соединениям
+    этого игрока.
     */
 
     for (
@@ -655,21 +597,23 @@ function emitPersonalGameState(
     ) {
 
         if (
-            socket.data.playerId ===
+            socket.data.playerId !==
             playerId
         ) {
-
-            socket.emit(
-                "game_state",
-                {
-                    targetPlayerId:
-                        playerId,
-
-                    state
-                }
-            );
-
+            continue;
         }
+
+        socket.emit(
+            "game_state",
+            {
+
+                targetPlayerId:
+                    playerId,
+
+                state
+
+            }
+        );
 
     }
 
@@ -686,7 +630,10 @@ function emitAllGameStates(
     room
 ) {
 
-    if (!room) {
+    if (
+        !room ||
+        !room.game
+    ) {
         return;
     }
 
@@ -717,6 +664,10 @@ function emitRoomState(
         return;
     }
 
+    /*
+    ЛОББИ
+    */
+
     if (
         room.status ===
         ROOM_STATUS.LOBBY
@@ -730,11 +681,14 @@ function emitRoomState(
 
     }
 
+
+    /*
+    ИГРА / ЗАВЕРШЕННАЯ ИГРА
+    */
+
     if (
-        room.status ===
-        ROOM_STATUS.PLAYING ||
-        room.status ===
-        ROOM_STATUS.FINISHED
+        room.status === ROOM_STATUS.PLAYING ||
+        room.status === ROOM_STATUS.FINISHED
     ) {
 
         io.to(
@@ -742,6 +696,7 @@ function emitRoomState(
         ).emit(
             "room_state",
             {
+
                 roomId:
                     room.roomId,
 
@@ -755,8 +710,15 @@ function emitRoomState(
                     room.players.map(
                         getPlayerView
                     )
+
             }
         );
+
+        /*
+        ВАЖНО:
+        здесь каждый игрок получает
+        своё персональное состояние.
+        */
 
         emitAllGameStates(
             room
@@ -785,7 +747,7 @@ function emitPublicRooms() {
 
 /*
 =========================================================
-JOIN ROOM NOTIFICATION
+PLAYER JOINED
 =========================================================
 */
 
@@ -794,7 +756,10 @@ function emitPlayerJoined(
     player
 ) {
 
-    if (!room || !player) {
+    if (
+        !room ||
+        !player
+    ) {
         return;
     }
 
@@ -817,7 +782,7 @@ function emitPlayerJoined(
 
 /*
 =========================================================
-PLAYER LEFT NOTIFICATION
+PLAYER LEFT
 =========================================================
 */
 
@@ -846,7 +811,7 @@ function emitPlayerLeft(
 
 /*
 =========================================================
-SOCKET CONNECTION
+AUTH
 =========================================================
 */
 
@@ -858,12 +823,6 @@ io.on(
             `[SOCKET] Connected: ${socket.id}`
         );
 
-
-        /*
-        =================================================
-        AUTH
-        =================================================
-        */
 
         socket.on(
             "auth",
@@ -921,6 +880,7 @@ io.on(
                             100
                         );
 
+
                     socket.data.playerId =
                         playerId;
 
@@ -933,12 +893,11 @@ io.on(
                     socket.data.telegramId =
                         telegramId;
 
-                    /*
-                    Проверяем существующую
-                    комнату игрока.
 
-                    Это важно для
-                    переподключения.
+                    /*
+                    Проверяем,
+                    есть ли игрок
+                    в существующей комнате.
                     */
 
                     const existingRoom =
@@ -946,45 +905,41 @@ io.on(
                             playerId
                         );
 
+
                     if (existingRoom) {
-
-                        const player =
-                            getPlayer(
-                                existingRoom.game ||
-                                {
-                                    players:
-                                        []
-                                },
-                                playerId
-                            );
-
-                        /*
-                        Если это комната
-                        лобби — просто сообщаем,
-                        что игрок уже числится
-                        в ней.
-
-                        Если игра идёт —
-                        тоже позволяем
-                        восстановиться.
-                        */
 
                         const roomPlayer =
                             existingRoom.players.find(
-                                p =>
-                                    p.playerId ===
+                                player =>
+                                    player.playerId ===
                                     playerId
                             );
 
-                        if (
-                            roomPlayer
-                        ) {
+                        if (roomPlayer) {
 
-                            roomPlayer.connected =
-                                true;
+                            rooms.reconnectPlayer(
+                                playerId
+                            );
 
-                            roomPlayer.lastSeenAt =
-                                Date.now();
+                            /*
+                            Обновляем данные
+                            профиля при reconnect.
+                            */
+
+                            if (name) {
+                                roomPlayer.name =
+                                    name;
+                            }
+
+                            if (username !== null) {
+                                roomPlayer.username =
+                                    username;
+                            }
+
+                            if (telegramId !== null) {
+                                roomPlayer.telegramId =
+                                    telegramId;
+                            }
 
                             joinSocketRoom(
                                 socket,
@@ -1010,11 +965,14 @@ io.on(
                                 existingRoom
                             );
 
+                            emitPublicRooms();
+
                             return;
 
                         }
 
                     }
+
 
                     socket.emit(
                         "auth_success",
@@ -1052,7 +1010,7 @@ io.on(
 
         /*
         =================================================
-        GET ROOMS
+        ROOMS LIST
         =================================================
         */
 
@@ -1085,11 +1043,6 @@ io.on(
                         requirePlayerId(
                             socket
                         );
-
-                    /*
-                    Нельзя создать
-                    вторую комнату.
-                    */
 
                     if (
                         rooms.hasPlayer(
@@ -1205,6 +1158,28 @@ io.on(
 
                     }
 
+                    /*
+                    Если игрок уже находится
+                    в комнате — не разрешаем
+                    вторую комнату.
+                    */
+
+                    const currentRoom =
+                        rooms.getPlayerRoom(
+                            playerId
+                        );
+
+                    if (
+                        currentRoom &&
+                        currentRoom.roomId !== roomId
+                    ) {
+
+                        throw new Error(
+                            "Player is already in a room"
+                        );
+
+                    }
+
                     const room =
                         rooms.joinRoom(
                             roomId,
@@ -1312,10 +1287,8 @@ io.on(
                         socket.emit(
                             "room_left",
                             {
-
                                 roomId:
                                     null
-
                             }
                         );
 
@@ -1325,21 +1298,6 @@ io.on(
 
                     const roomId =
                         room.roomId;
-
-                    /*
-                    Нельзя просто выйти
-                    из активной игры.
-
-                    Здесь оставляем
-                    игрока в комнате,
-                    чтобы game.js сохранил
-                    авторитетное состояние.
-
-                    Для полного выхода
-                    во время игры потребуется
-                    отдельная политика
-                    surrender/disconnect.
-                    */
 
                     if (
                         room.status ===
@@ -1372,21 +1330,25 @@ io.on(
                         }
                     );
 
-                    emitPlayerLeft(
-                        room,
-                        playerId
-                    );
+                    /*
+                    Комната могла быть
+                    полностью удалена.
+                    */
 
-                    if (
+                    const remainingRoom =
                         rooms.getRoom(
                             roomId
-                        )
-                    ) {
+                        );
+
+                    if (remainingRoom) {
+
+                        emitPlayerLeft(
+                            remainingRoom,
+                            playerId
+                        );
 
                         emitRoomState(
-                            rooms.getRoom(
-                                roomId
-                            )
+                            remainingRoom
                         );
 
                     }
@@ -1459,8 +1421,7 @@ io.on(
 
                     const ready =
                         data &&
-                        typeof data.ready ===
-                        "boolean"
+                        typeof data.ready === "boolean"
                             ? data.ready
                             : true;
 
@@ -1587,11 +1548,6 @@ io.on(
                             playerId
                         );
 
-                    /*
-                    Сначала сообщаем всем,
-                    что лобби закончено.
-                    */
-
                     io.to(
                         startedRoom.roomId
                     ).emit(
@@ -1603,11 +1559,6 @@ io.on(
 
                         }
                     );
-
-                    /*
-                    Теперь отправляем
-                    игровые состояния.
-                    */
 
                     emitRoomState(
                         startedRoom
@@ -1640,7 +1591,7 @@ io.on(
 
         /*
         =================================================
-        PLAY FIRST ATTACK CARD
+        GAME ACTIONS
         =================================================
         */
 
@@ -1671,12 +1622,6 @@ io.on(
         );
 
 
-        /*
-        =================================================
-        ADD ATTACK CARD
-        =================================================
-        */
-
         socket.on(
             "add_attack",
             data => {
@@ -1703,12 +1648,6 @@ io.on(
             }
         );
 
-
-        /*
-        =================================================
-        DEFEND
-        =================================================
-        */
 
         socket.on(
             "defend",
@@ -1737,12 +1676,6 @@ io.on(
         );
 
 
-        /*
-        =================================================
-        TAKE
-        =================================================
-        */
-
         socket.on(
             "take_cards",
             () => {
@@ -1767,12 +1700,6 @@ io.on(
             }
         );
 
-
-        /*
-        =================================================
-        END ATTACK
-        =================================================
-        */
 
         socket.on(
             "end_attack",
@@ -1801,7 +1728,7 @@ io.on(
 
         /*
         =================================================
-        GET CURRENT ROOM
+        GET ROOM STATE
         =================================================
         */
 
@@ -1881,6 +1808,53 @@ io.on(
 
                     }
 
+                    /*
+                    Если у этого игрока
+                    осталось другое Socket.IO
+                    соединение — игрок всё ещё
+                    считается подключённым.
+                    */
+
+                    let anotherConnection =
+                        false;
+
+                    for (
+                        const otherSocket of io.sockets.sockets.values()
+                    ) {
+
+                        if (
+                            otherSocket.id ===
+                            socket.id
+                        ) {
+                            continue;
+                        }
+
+                        if (
+                            otherSocket.data.playerId ===
+                            playerId
+                        ) {
+
+                            anotherConnection =
+                                true;
+
+                            break;
+
+                        }
+
+                    }
+
+                    if (
+                        anotherConnection
+                    ) {
+
+                        console.log(
+                            `[SOCKET] ${playerId} disconnected one socket, another connection remains`
+                        );
+
+                        return;
+
+                    }
+
                     const room =
                         rooms.getPlayerRoom(
                             playerId
@@ -1896,21 +1870,9 @@ io.on(
 
                     }
 
-                    /*
-                    Помечаем игрока
-                    disconnected.
-
-                    НЕ удаляем его
-                    моментально.
-                    */
-
                     rooms.disconnectPlayer(
                         playerId
                     );
-
-                    /*
-                    Уведомляем комнату.
-                    */
 
                     io.to(
                         room.roomId
@@ -1929,6 +1891,8 @@ io.on(
                     emitRoomState(
                         room
                     );
+
+                    emitPublicRooms();
 
                     console.log(
                         `[SOCKET] ${playerId} disconnected from ${room.roomId}: ${reason}`
@@ -1953,22 +1917,6 @@ io.on(
 /*
 =========================================================
 GAME ACTION HANDLER
-=========================================================
-
-Единая точка входа для игровых
-действий.
-
-Все проверки выполняет game.js.
-
-server.js не решает:
-
-- можно ли ходить;
-- можно ли бить;
-- можно ли подкидывать;
-- можно ли брать.
-
-Это решает game.js.
-
 =========================================================
 */
 
@@ -2019,18 +1967,14 @@ function handleGameAction(
         }
 
         /*
-        Никогда не принимаем
-        playerId из клиента.
-
-        Используем только
-        socket.data.playerId.
+        playerId никогда
+        не принимается от клиента.
         */
 
         const cardId =
             data &&
-            typeof data.cardId ===
-            "string"
-                ? data.cardId
+            typeof data.cardId === "string"
+                ? data.cardId.trim()
                 : null;
 
         action(
@@ -2039,21 +1983,9 @@ function handleGameAction(
             cardId
         );
 
-        /*
-        После действия обновляем
-        статус комнаты.
-
-        Это важно для окончания игры.
-        */
-
         rooms.updateRoomStatus(
             room
         );
-
-        /*
-        Отправляем подтверждение
-        конкретного действия.
-        */
 
         socket.emit(
             "action_success",
@@ -2065,18 +1997,9 @@ function handleGameAction(
             }
         );
 
-        /*
-        Отправляем новое состояние.
-        */
-
         emitRoomState(
             room
         );
-
-        /*
-        Если игра завершилась —
-        отдельное событие.
-        */
 
         if (
             room.game.status ===
@@ -2155,6 +2078,7 @@ function emitPersonalStateToSocket(
 
     }
 
+
     socket.emit(
         "room_state",
         {
@@ -2175,6 +2099,7 @@ function emitPersonalStateToSocket(
 
         }
     );
+
 
     if (room.game) {
 
@@ -2211,16 +2136,6 @@ function emitPersonalStateToSocket(
 /*
 =========================================================
 CLEANUP
-=========================================================
-
-Периодически удаляем только
-реально пустые комнаты.
-
-Отключённых игроков намеренно
-не удаляем автоматически здесь,
-потому что они могут
-переподключиться.
-
 =========================================================
 */
 
