@@ -1,0 +1,14 @@
+{
+  "name": "heavy-lux-card",
+  "version": "1.0.0",
+  "description": "Heavy Lux Card - online Durak card game",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
