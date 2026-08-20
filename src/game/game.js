@@ -110,9 +110,18 @@ function createPlayer(playerId) {
 
         connected: true,
 
-        eliminated: false
+        eliminated: false,
+
+        /*
+        Порядковый номер выхода из игры.
+
+        null = ещё не выбыл.
+        */
+
+        finishPosition: null
 
     };
+
 }
 
 
@@ -195,19 +204,33 @@ function createGame({
 
         discard: [],
 
+        /*
+        Основной атакующий текущего захода.
+
+        Для 2 игроков это единственный атакующий.
+
+        Для 3 игроков это первый игрок,
+        но подкидывать могут и остальные.
+        */
+
         attackerId: null,
 
+        /*
+        Игрок, который сейчас защищается.
+        */
+
         defenderId: null,
+
+        /*
+        Кто сейчас должен сделать действие.
+        */
 
         turnPlayerId: null,
 
         /*
-        Лимит карт текущего захода.
+        Фиксированный лимит карт текущего захода.
 
-        Фиксируется в момент начала
-        атаки и НЕ меняется после
-        того, как защитник получает
-        карты.
+        НЕ меняется после начала захода.
         */
 
         attackLimit: 0,
@@ -218,6 +241,21 @@ function createGame({
 
         loserId: null,
 
+        /*
+        Защищённый флаг.
+        Server сможет безопасно вызвать
+        processGameFinished повторно,
+        не изменяя игровой результат.
+        */
+
+        resultProcessed: false,
+
+        /*
+        Порядок выбывания.
+        */
+
+        finishOrder: [],
+
         createdAt:
             Date.now(),
 
@@ -225,6 +263,7 @@ function createGame({
             null
 
     };
+
 }
 
 
@@ -239,12 +278,17 @@ function getPlayer(
     playerId
 ) {
 
+    if (!game) {
+        return null;
+    }
+
     return (
         game.players.find(
             player =>
                 player.playerId === playerId
         ) || null
     );
+
 }
 
 
@@ -256,10 +300,15 @@ GET ACTIVE PLAYERS
 
 function getActivePlayers(game) {
 
+    if (!game) {
+        return [];
+    }
+
     return game.players.filter(
         player =>
             !player.eliminated
     );
+
 }
 
 
@@ -299,6 +348,106 @@ function getNextActivePlayer(
             activePlayers.length
         ]
     );
+
+}
+
+
+/*
+=========================================================
+GET NEXT ATTACKER
+=========================================================
+
+Ищет следующего активного игрока,
+который НЕ является защитником.
+
+Это важно для 3 игроков.
+
+Например:
+
+A = атакующий
+B = защитник
+C = третий игрок
+
+После защиты B:
+
+C получает право подкинуть.
+
+После защиты C:
+
+A получает право подкинуть.
+
+=========================================================
+*/
+
+function getNextAttacker(
+    game,
+    playerId
+) {
+
+    const activePlayers =
+        getActivePlayers(game);
+
+    if (
+        activePlayers.length < 2
+    ) {
+        return null;
+    }
+
+    const startIndex =
+        activePlayers.findIndex(
+            player =>
+                player.playerId === playerId
+        );
+
+    let start =
+        startIndex >= 0
+            ? startIndex
+            : 0;
+
+    for (
+        let offset = 1;
+        offset <= activePlayers.length;
+        offset++
+    ) {
+
+        const candidate =
+            activePlayers[
+                (start + offset) %
+                activePlayers.length
+            ];
+
+        if (
+            candidate.playerId !==
+            game.defenderId
+        ) {
+            return candidate;
+        }
+
+    }
+
+    return null;
+
+}
+
+
+/*
+=========================================================
+GET ATTACKERS
+=========================================================
+*/
+
+function getAttackers(game) {
+
+    if (!game) {
+        return [];
+    }
+
+    return getActivePlayers(game).filter(
+        player =>
+            player.playerId !==
+            game.defenderId
+    );
+
 }
 
 
@@ -313,12 +462,17 @@ function findCardInHand(
     cardId
 ) {
 
+    if (!player) {
+        return null;
+    }
+
     return (
         player.hand.find(
             card =>
                 card.id === cardId
         ) || null
     );
+
 }
 
 
@@ -332,6 +486,10 @@ function removeCardFromHand(
     player,
     cardId
 ) {
+
+    if (!player) {
+        return null;
+    }
 
     const index =
         player.hand.findIndex(
@@ -347,6 +505,7 @@ function removeCardFromHand(
         index,
         1
     )[0];
+
 }
 
 
@@ -373,6 +532,29 @@ function getTableCards(game) {
     }
 
     return cards;
+
+}
+
+
+/*
+=========================================================
+GET ATTACK CARDS
+=========================================================
+*/
+
+function getAttackCards(game) {
+
+    return game.table
+        .filter(
+            pair =>
+                pair &&
+                pair.attack
+        )
+        .map(
+            pair =>
+                pair.attack
+        );
+
 }
 
 
@@ -404,6 +586,7 @@ function getCurrentAttackPair(game) {
     }
 
     return null;
+
 }
 
 
@@ -423,8 +606,11 @@ function isAttackFullyDefended(game) {
 
     return game.table.every(
         pair =>
-            pair.defense !== null
+            pair &&
+            pair.attack &&
+            pair.defense
     );
+
 }
 
 
@@ -434,6 +620,9 @@ FIND FIRST ATTACKER
 =========================================================
 
 Игрок с младшим козырем.
+
+Если козырей ни у кого нет —
+первый игрок.
 =========================================================
 */
 
@@ -444,6 +633,12 @@ function findFirstAttacker(game) {
     for (const player of game.players) {
 
         for (const card of player.hand) {
+
+            if (
+                !isCard(card)
+            ) {
+                continue;
+            }
 
             if (
                 card.suit !==
@@ -475,6 +670,7 @@ function findFirstAttacker(game) {
     return result
         ? result.player
         : null;
+
 }
 
 
@@ -517,6 +713,15 @@ function startGame(game) {
     game.deck =
         createShuffledDeck();
 
+    if (
+        !Array.isArray(game.deck) ||
+        game.deck.length !== 36
+    ) {
+        throw new Error(
+            "Invalid 36-card deck"
+        );
+    }
+
     game.table = [];
 
     game.discard = [];
@@ -527,8 +732,12 @@ function startGame(game) {
 
     game.round = 1;
 
+    game.resultProcessed = false;
+
+    game.finishOrder = [];
+
     /*
-    Раздаём по 6 карт.
+    Раздача по 6 карт.
     */
 
     for (const player of game.players) {
@@ -536,6 +745,10 @@ function startGame(game) {
         player.hand = [];
 
         player.eliminated = false;
+
+        player.finishPosition = null;
+
+        player.connected = true;
 
         for (
             let i = 0;
@@ -562,7 +775,7 @@ function startGame(game) {
     Верхняя карта оставшейся колоды
     определяет козырь.
 
-    Она остаётся в колоде.
+    Карта остаётся в колоде.
     */
 
     game.trumpCard =
@@ -575,36 +788,23 @@ function startGame(game) {
             game.trumpCard
         );
 
+    if (!game.trumpSuit) {
+        throw new Error(
+            "Unable to determine trump suit"
+        );
+    }
+
     /*
-    Ищем первого атакующего.
+    Первый атакующий.
     */
 
     let firstAttacker =
         findFirstAttacker(game);
 
-    /*
-    Теоретически козырей может
-    не оказаться в руках.
-
-    Тогда первым становится
-    первый игрок.
-    */
-
     if (!firstAttacker) {
-
         firstAttacker =
             game.players[0];
-
     }
-
-    game.status =
-        GAME_STATUS.PLAYING;
-
-    game.phase =
-        PHASE.ATTACK;
-
-    game.attackerId =
-        firstAttacker.playerId;
 
     const defender =
         getNextActivePlayer(
@@ -618,26 +818,55 @@ function startGame(game) {
         );
     }
 
+    game.status =
+        GAME_STATUS.PLAYING;
+
+    game.phase =
+        PHASE.ATTACK;
+
+    game.attackerId =
+        firstAttacker.playerId;
+
     game.defenderId =
         defender.playerId;
 
     game.turnPlayerId =
         firstAttacker.playerId;
 
-    game.attackLimit =
-        0;
+    /*
+    До первого захода лимит
+    ещё не зафиксирован.
+    */
+
+    game.attackLimit = 0;
 
     return game;
+
 }
 
 
 /*
 =========================================================
-START NEW ATTACK
+PREPARE NEW ATTACK
 =========================================================
 */
 
 function prepareNewAttack(game) {
+
+    if (
+        game.status !==
+        GAME_STATUS.PLAYING
+    ) {
+        throw new Error(
+            "Game is not active"
+        );
+    }
+
+    const attacker =
+        getPlayer(
+            game,
+            game.attackerId
+        );
 
     const defender =
         getPlayer(
@@ -645,18 +874,41 @@ function prepareNewAttack(game) {
             game.defenderId
         );
 
+    if (!attacker) {
+        throw new Error(
+            "Attacker not found"
+        );
+    }
+
     if (!defender) {
         throw new Error(
             "Defender not found"
         );
     }
 
+    if (
+        attacker.eliminated
+    ) {
+        throw new Error(
+            "Attacker is eliminated"
+        );
+    }
+
+    if (
+        defender.eliminated
+    ) {
+        throw new Error(
+            "Defender is eliminated"
+        );
+    }
+
     game.table = [];
 
     /*
-    Ключевой момент:
+    Лимит фиксируется один раз —
+    в начале захода.
 
-    лимит фиксируется ДО атаки.
+    После этого он НЕ меняется.
     */
 
     game.attackLimit =
@@ -677,6 +929,9 @@ function prepareNewAttack(game) {
 
     game.turnPlayerId =
         game.attackerId;
+
+    return game;
+
 }
 
 
@@ -711,8 +966,17 @@ function playFirstAttackCard(
     }
 
     if (
-        game.attackerId !== playerId ||
-        game.turnPlayerId !== playerId
+        game.attackerId !==
+        playerId
+    ) {
+        throw new Error(
+            "Player is not the main attacker"
+        );
+    }
+
+    if (
+        game.turnPlayerId !==
+        playerId
     ) {
         throw new Error(
             "Player cannot attack now"
@@ -770,6 +1034,10 @@ function playFirstAttackCard(
 
     });
 
+    /*
+    Теперь ход защитника.
+    */
+
     game.phase =
         PHASE.DEFENSE;
 
@@ -777,6 +1045,7 @@ function playFirstAttackCard(
         game.defenderId;
 
     return game;
+
 }
 
 
@@ -811,8 +1080,17 @@ function defend(
     }
 
     if (
-        game.defenderId !== playerId ||
-        game.turnPlayerId !== playerId
+        game.defenderId !==
+        playerId
+    ) {
+        throw new Error(
+            "Player is not defender"
+        );
+    }
+
+    if (
+        game.turnPlayerId !==
+        playerId
     ) {
         throw new Error(
             "Player cannot defend now"
@@ -873,16 +1151,64 @@ function defend(
         card;
 
     /*
-    После отбоя игрок остаётся
-    защитником текущего захода.
+    Если есть ещё непобитая карта,
+    защитник продолжает защищаться.
 
-    Теперь атакующие могут подкинуть.
+    Это важно:
+    нельзя передавать ход атакующим,
+    пока последний атакующий не побит.
     */
 
+    if (
+        getCurrentAttackPair(game)
+    ) {
+
+        game.phase =
+            PHASE.DEFENSE;
+
+        game.turnPlayerId =
+            game.defenderId;
+
+        return game;
+
+    }
+
+    /*
+    Всё побито.
+
+    Теперь право подкинуть получает
+    следующий атакующий.
+
+    Для 2 игроков это снова
+    первоначальный атакующий.
+
+    Для 3 игроков это будет
+    третий игрок, затем первый.
+    */
+
+    const nextAttacker =
+        getNextAttacker(
+            game,
+            game.defenderId
+        );
+
+    if (!nextAttacker) {
+
+        game.turnPlayerId =
+            game.attackerId;
+
+        return game;
+
+    }
+
+    game.phase =
+        PHASE.DEFENSE;
+
     game.turnPlayerId =
-        game.attackerId;
+        nextAttacker.playerId;
 
     return game;
+
 }
 
 
@@ -917,7 +1243,8 @@ function addAttackCard(
     }
 
     /*
-    Защитник не может подкидывать.
+    Защитник никогда не атакует
+    в рамках текущего захода.
     */
 
     if (
@@ -930,11 +1257,8 @@ function addAttackCard(
     }
 
     /*
-    Подкинуть можно только
-    когда предыдущая карта уже отбита.
-
-    Если есть непобитая карта —
-    ход защитника.
+    Если предыдущая карта ещё
+    не отбита — атаковать нельзя.
     */
 
     if (
@@ -942,6 +1266,20 @@ function addAttackCard(
     ) {
         throw new Error(
             "Current attack must be defended first"
+        );
+    }
+
+    /*
+    Только игрок, которому сейчас
+    передано право подкидывать.
+    */
+
+    if (
+        game.turnPlayerId !==
+        playerId
+    ) {
+        throw new Error(
+            "It is not this player's attack turn"
         );
     }
 
@@ -957,33 +1295,25 @@ function addAttackCard(
         );
     }
 
-    const defender =
-        getPlayer(
-            game,
-            game.defenderId
-        );
-
-    if (!defender) {
+    if (
+        player.eliminated
+    ) {
         throw new Error(
-            "Defender not found"
+            "Eliminated player cannot attack"
         );
     }
 
     /*
-    В классическом подкидном
-    подкидывать могут атакующий
-    и другие игроки, кроме защитника.
-
-    Но в нашей модели сначала
-    даём право основному атакующему.
+    На первом заходе подкинуть
+    может только основной атакующий.
     */
 
     if (
-        playerId !==
-        game.attackerId
+        game.table.length === 0 &&
+        playerId !== game.attackerId
     ) {
         throw new Error(
-            "Only attacker can add attack cards"
+            "Only main attacker can start attack"
         );
     }
 
@@ -1005,7 +1335,7 @@ function addAttackCard(
     if (
         !canAddAttackCard(
             card,
-            tableCards,
+            game.table,
             game.attackLimit
         )
     ) {
@@ -1013,6 +1343,11 @@ function addAttackCard(
             "Card cannot be added to attack"
         );
     }
+
+    /*
+    Удаляем карту только после
+    полной проверки.
+    */
 
     removeCardFromHand(
         player,
@@ -1027,10 +1362,19 @@ function addAttackCard(
 
     });
 
+    /*
+    После подкидывания снова
+    защищается тот же игрок.
+    */
+
+    game.phase =
+        PHASE.DEFENSE;
+
     game.turnPlayerId =
         game.defenderId;
 
     return game;
+
 }
 
 
@@ -1064,8 +1408,17 @@ function takeCards(
     }
 
     if (
-        game.defenderId !== playerId ||
-        game.turnPlayerId !== playerId
+        game.defenderId !==
+        playerId
+    ) {
+        throw new Error(
+            "Player is not defender"
+        );
+    }
+
+    if (
+        game.turnPlayerId !==
+        playerId
     ) {
         throw new Error(
             "Player cannot take cards now"
@@ -1084,6 +1437,11 @@ function takeCards(
         );
     }
 
+    /*
+    В rules.js canTake должен запрещать
+    взятие полностью отбитого стола.
+    */
+
     if (
         !canTake(
             game.table,
@@ -1096,16 +1454,18 @@ function takeCards(
     }
 
     /*
-    Защитник забирает ВСЕ карты
-    со стола — и атакующие,
-    и уже побитые.
+    Защитник забирает ВСЕ карты.
     */
 
     for (const pair of game.table) {
 
-        defender.hand.push(
-            pair.attack
-        );
+        if (pair.attack) {
+
+            defender.hand.push(
+                pair.attack
+            );
+
+        }
 
         if (pair.defense) {
 
@@ -1120,11 +1480,11 @@ function takeCards(
     game.table = [];
 
     /*
-    После взятия защитник НЕ становится
-    следующим атакующим.
+    После взятия текущий защитник
+    НЕ становится атакующим.
 
-    Атакующим становится игрок
-    слева от защитника.
+    Следующим атакует игрок слева
+    от защитника.
     */
 
     const nextAttacker =
@@ -1139,13 +1499,15 @@ function takeCards(
         );
     }
 
-    game.attackerId =
-        nextAttacker.playerId;
+    /*
+    Новый защитник — игрок слева
+    от нового атакующего.
+    */
 
     const nextDefender =
         getNextActivePlayer(
             game,
-            game.attackerId
+            nextAttacker.playerId
         );
 
     if (!nextDefender) {
@@ -1154,17 +1516,23 @@ function takeCards(
         );
     }
 
+    game.attackerId =
+        nextAttacker.playerId;
+
     game.defenderId =
         nextDefender.playerId;
 
     game.round += 1;
 
     /*
-    Добор происходит после
-    завершения захода.
+    Сначала добор.
     */
 
     drawCardsForRound(game);
+
+    /*
+    Проверяем, кто выбыл.
+    */
 
     updateEliminatedPlayers(game);
 
@@ -1174,9 +1542,17 @@ function takeCards(
         return game;
     }
 
+    /*
+    Удаляем выбывших из возможных
+    участников и выбираем новый заход.
+    */
+
+    normalizeTurnPlayers(game);
+
     prepareNewAttack(game);
 
     return game;
+
 }
 
 
@@ -1209,18 +1585,34 @@ function endAttack(
         );
     }
 
+    /*
+    Завершить атаку может любой
+    активный атакующий.
+
+    Но только тот, чей сейчас ход.
+    */
+
     if (
-        playerId !==
-        game.attackerId
+        playerId ===
+        game.defenderId
     ) {
         throw new Error(
-            "Player is not attacker"
+            "Defender cannot end attack"
+        );
+    }
+
+    if (
+        game.turnPlayerId !==
+        playerId
+    ) {
+        throw new Error(
+            "It is not this player's turn"
         );
     }
 
     /*
-    Нельзя закончить атаку,
-    если осталась непобитая карта.
+    Нельзя закончить заход,
+    пока есть непобитая карта.
     */
 
     if (
@@ -1243,15 +1635,18 @@ function endAttack(
     }
 
     /*
-    Все карты отправляются
-    в сброс.
+    Все карты идут в сброс.
     */
 
     for (const pair of game.table) {
 
-        game.discard.push(
-            pair.attack
-        );
+        if (pair.attack) {
+
+            game.discard.push(
+                pair.attack
+            );
+
+        }
 
         if (pair.defense) {
 
@@ -1282,13 +1677,10 @@ function endAttack(
         );
     }
 
-    game.attackerId =
-        nextAttacker.playerId;
-
     const nextDefender =
         getNextActivePlayer(
             game,
-            game.attackerId
+            nextAttacker.playerId
         );
 
     if (!nextDefender) {
@@ -1297,13 +1689,16 @@ function endAttack(
         );
     }
 
+    game.attackerId =
+        nextAttacker.playerId;
+
     game.defenderId =
         nextDefender.playerId;
 
     game.round += 1;
 
     /*
-    Добор после успешной защиты.
+    Добор после отбоя.
     */
 
     drawCardsForRound(game);
@@ -1316,9 +1711,12 @@ function endAttack(
         return game;
     }
 
+    normalizeTurnPlayers(game);
+
     prepareNewAttack(game);
 
     return game;
+
 }
 
 
@@ -1327,13 +1725,16 @@ function endAttack(
 DRAW CARDS
 =========================================================
 
-Порядок:
+Порядок добора:
 
-1. атакующий
-2. следующий игрок
-3. следующий игрок
+1. атакующий;
+2. остальные активные игроки
+   по кругу.
 
 Каждый добирает до 6.
+
+Добор происходит только из
+фактически оставшейся колоды.
 =========================================================
 */
 
@@ -1345,30 +1746,52 @@ function drawCardsForRound(game) {
         return;
     }
 
+    const activePlayers =
+        getActivePlayers(game);
+
+    if (
+        activePlayers.length === 0
+    ) {
+        return;
+    }
+
     const order = [];
 
-    let current =
+    /*
+    Первый — текущий атакующий.
+    */
+
+    const attacker =
         getPlayer(
             game,
             game.attackerId
         );
 
+    if (
+        attacker &&
+        !attacker.eliminated
+    ) {
+        order.push(attacker);
+    }
+
+    /*
+    Затем остальные игроки
+    по кругу.
+    */
+
+    let current =
+        attacker;
+
     if (!current) {
-        return;
+        current =
+            activePlayers[0];
     }
 
     for (
         let i = 0;
-        i < game.players.length;
+        i < activePlayers.length;
         i++
     ) {
-
-        if (
-            current &&
-            !current.eliminated
-        ) {
-            order.push(current);
-        }
 
         current =
             getNextActivePlayer(
@@ -1380,7 +1803,23 @@ function drawCardsForRound(game) {
             break;
         }
 
+        if (
+            order.some(
+                player =>
+                    player.playerId ===
+                    current.playerId
+            )
+        ) {
+            break;
+        }
+
+        order.push(current);
+
     }
+
+    /*
+    Добор каждого игрока до 6.
+    */
 
     for (const player of order) {
 
@@ -1401,6 +1840,7 @@ function drawCardsForRound(game) {
         }
 
     }
+
 }
 
 
@@ -1409,12 +1849,15 @@ function drawCardsForRound(game) {
 UPDATE ELIMINATED PLAYERS
 =========================================================
 
-Пока колода не пуста,
-игрок с 0 картами ещё не считается
-окончательно вышедшим.
+Игрок с 0 картами считается
+выбывшим только после того,
+как закончилась колода.
 
-Когда колода закончилась,
-игрок с 0 картами выходит.
+Это важно.
+
+Пока в колоде ещё есть карты,
+нулевая рука не означает окончательный
+проигрыш.
 =========================================================
 */
 
@@ -1429,15 +1872,110 @@ function updateEliminatedPlayers(game) {
     for (const player of game.players) {
 
         if (
-            !player.eliminated &&
+            player.eliminated
+        ) {
+            continue;
+        }
+
+        if (
             player.hand.length === 0
         ) {
 
             player.eliminated = true;
 
+            player.finishPosition =
+                game.finishOrder.length + 1;
+
+            game.finishOrder.push(
+                player.playerId
+            );
+
         }
 
     }
+
+}
+
+
+/*
+=========================================================
+NORMALIZE TURN PLAYERS
+=========================================================
+*/
+
+function normalizeTurnPlayers(game) {
+
+    const activePlayers =
+        getActivePlayers(game);
+
+    if (
+        activePlayers.length === 0
+    ) {
+        game.attackerId = null;
+        game.defenderId = null;
+        game.turnPlayerId = null;
+        return;
+    }
+
+    /*
+    Если текущий атакующий выбыл,
+    выбираем следующего.
+    */
+
+    const attacker =
+        getPlayer(
+            game,
+            game.attackerId
+        );
+
+    if (
+        !attacker ||
+        attacker.eliminated
+    ) {
+
+        const next =
+            getNextActivePlayer(
+                game,
+                game.defenderId
+            );
+
+        game.attackerId =
+            next
+                ? next.playerId
+                : activePlayers[0].playerId;
+
+    }
+
+    /*
+    Защитник не может совпадать
+    с атакующим.
+    */
+
+    let defender =
+        getPlayer(
+            game,
+            game.defenderId
+        );
+
+    if (
+        !defender ||
+        defender.eliminated ||
+        defender.playerId === game.attackerId
+    ) {
+
+        defender =
+            getNextActivePlayer(
+                game,
+                game.attackerId
+            );
+
+        game.defenderId =
+            defender
+                ? defender.playerId
+                : null;
+
+    }
+
 }
 
 
@@ -1457,9 +1995,16 @@ function checkGameFinished(game) {
     }
 
     /*
-    При закончившейся колоде
-    определяем игроков без карт.
+    Пока колода не закончилась,
+    окончательная классификация
+    невозможна.
     */
+
+    if (
+        game.deck.length > 0
+    ) {
+        return false;
+    }
 
     updateEliminatedPlayers(game);
 
@@ -1467,8 +2012,7 @@ function checkGameFinished(game) {
         getActivePlayers(game);
 
     /*
-    В игре должен остаться
-    максимум один игрок с картами.
+    Все кроме одного выбыли.
     */
 
     if (
@@ -1476,18 +2020,49 @@ function checkGameFinished(game) {
     ) {
 
         const loser =
-            activePlayers[0] || null;
-
-        const winners =
-            game.players.filter(
-                player =>
-                    player.eliminated
-            );
-
-        const winner =
-            winners.length > 0
-                ? winners[winners.length - 1]
+            activePlayers.length === 1
+                ? activePlayers[0]
                 : null;
+
+        /*
+        Последний оставшийся игрок —
+        проигравший.
+
+        Игроки, которые вышли раньше,
+        являются победителями/занявшими места.
+        Для текущего API winnerId оставляем
+        последнего выбывшего победителя.
+        */
+
+        let winnerId = null;
+
+        if (
+            game.finishOrder.length > 0
+        ) {
+
+            winnerId =
+                game.finishOrder[
+                    game.finishOrder.length - 1
+                ];
+
+        }
+
+        /*
+        Если по какой-либо причине
+        победитель не определён,
+        берём первого выбывшего.
+        */
+
+        if (!winnerId) {
+
+            winnerId =
+                game.players.find(
+                    player =>
+                        player.eliminated
+                )?.playerId ||
+                null;
+
+        }
 
         game.status =
             GAME_STATUS.FINISHED;
@@ -1496,9 +2071,7 @@ function checkGameFinished(game) {
             PHASE.FINISHED;
 
         game.winnerId =
-            winner
-                ? winner.playerId
-                : null;
+            winnerId;
 
         game.loserId =
             loser
@@ -1508,10 +2081,15 @@ function checkGameFinished(game) {
         game.finishedAt =
             Date.now();
 
+        game.turnPlayerId =
+            null;
+
         return true;
+
     }
 
     return false;
+
 }
 
 
@@ -1528,6 +2106,7 @@ function finishGameAfterRound(game) {
     checkGameFinished(game);
 
     return game;
+
 }
 
 
@@ -1550,7 +2129,21 @@ function getPossibleDefenses(
     }
 
     if (
+        game.phase !==
+        PHASE.DEFENSE
+    ) {
+        return [];
+    }
+
+    if (
         game.defenderId !==
+        playerId
+    ) {
+        return [];
+    }
+
+    if (
+        game.turnPlayerId !==
         playerId
     ) {
         return [];
@@ -1578,6 +2171,7 @@ function getPossibleDefenses(
         pair.attack,
         game.trumpSuit
     );
+
 }
 
 
@@ -1600,7 +2194,23 @@ function getPossibleAttacks(
     }
 
     if (
-        game.attackerId !==
+        game.phase !==
+        PHASE.ATTACK &&
+        game.phase !==
+        PHASE.DEFENSE
+    ) {
+        return [];
+    }
+
+    if (
+        playerId ===
+        game.defenderId
+    ) {
+        return [];
+    }
+
+    if (
+        game.turnPlayerId !==
         playerId
     ) {
         return [];
@@ -1617,12 +2227,19 @@ function getPossibleAttacks(
     }
 
     /*
-    Первая атака.
+    Первый заход.
     */
 
     if (
         game.table.length === 0
     ) {
+
+        if (
+            playerId !==
+            game.attackerId
+        ) {
+            return [];
+        }
 
         return player.hand.filter(
             card =>
@@ -1632,8 +2249,8 @@ function getPossibleAttacks(
     }
 
     /*
-    Если есть непобитая карта,
-    подкинуть нельзя.
+    Непобитая карта блокирует
+    подкидывание.
     */
 
     if (
@@ -1646,23 +2263,17 @@ function getPossibleAttacks(
         card =>
             canAddAttackCard(
                 card,
-                getTableCards(game),
+                game.table,
                 game.attackLimit
             )
     );
+
 }
 
 
 /*
 =========================================================
 GET GAME STATE
-=========================================================
-
-Внутреннее состояние.
-
-Позже server.js создаст
-безопасную персональную версию
-для каждого клиента.
 =========================================================
 */
 
@@ -1693,7 +2304,10 @@ function getGameState(game) {
                         player.connected,
 
                     eliminated:
-                        player.eliminated
+                        player.eliminated,
+
+                    finishPosition:
+                        player.finishPosition
 
                 })
             ),
@@ -1726,9 +2340,13 @@ function getGameState(game) {
             game.winnerId,
 
         loserId:
-            game.loserId
+            game.loserId,
+
+        finishOrder:
+            [...game.finishOrder]
 
     };
+
 }
 
 
@@ -1756,6 +2374,10 @@ module.exports = {
 
     getNextActivePlayer,
 
+    getNextAttacker,
+
+    getAttackers,
+
     playFirstAttackCard,
 
     addAttackCard,
@@ -1769,6 +2391,10 @@ module.exports = {
     getCurrentAttackPair,
 
     getTableCards,
+
+    getAttackCards,
+
+    isAttackFullyDefended,
 
     getPossibleDefenses,
 
