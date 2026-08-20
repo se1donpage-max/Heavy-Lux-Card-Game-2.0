@@ -15,6 +15,7 @@ ROOM MANAGER
 - disconnect
 - поиск комнат
 - хранение комнат
+- подключение game engine к комнате
 
 Игровая механика находится в:
 src/game/engine.js
@@ -36,7 +37,12 @@ const {
     createRoomPlayer,
     startGame,
     finishByForfeit,
-    roomPlayerById
+    roomPlayerById,
+    attackCard,
+    defendCard,
+    takeCards,
+    bito,
+    getPublicGameState
 } = require("../game/engine");
 
 
@@ -235,6 +241,154 @@ function getOtherPlayer(
 
 /*
 =========================================================
+ATTACH GAME ENGINE
+=========================================================
+*/
+
+function attachRoomEngine(
+    room
+) {
+
+    if (!room) {
+
+        return null;
+
+    }
+
+
+    room.engine = {
+
+        /*
+        -------------------------------------------------
+        ATTACK
+        -------------------------------------------------
+        */
+
+        attackCard(
+            playerId,
+            cardId
+        ) {
+
+            return attackCard(
+                room,
+                playerId,
+                cardId
+            );
+
+        },
+
+
+        /*
+        -------------------------------------------------
+        DEFEND
+        -------------------------------------------------
+        */
+
+        defendCard(
+            playerId,
+            attackId,
+            defenseId
+        ) {
+
+            return defendCard(
+                room,
+                playerId,
+                attackId,
+                defenseId
+            );
+
+        },
+
+
+        /*
+        -------------------------------------------------
+        TAKE
+        -------------------------------------------------
+        */
+
+        takeCards(
+            playerId
+        ) {
+
+            return takeCards(
+                room,
+                playerId
+            );
+
+        },
+
+
+        /*
+        -------------------------------------------------
+        BITO
+        -------------------------------------------------
+        */
+
+        bito(
+            playerId
+        ) {
+
+            return bito(
+                room,
+                playerId
+            );
+
+        },
+
+
+        /*
+        -------------------------------------------------
+        PUBLIC STATE
+        -------------------------------------------------
+        */
+
+        getPublicState(
+            playerId
+        ) {
+
+            return getPublicGameState(
+                room,
+                playerId
+            );
+
+        }
+
+    };
+
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+GET PUBLIC STATE
+=========================================================
+*/
+
+function getPublicState(
+    room,
+    playerId
+) {
+
+    if (!room) {
+
+        return null;
+
+    }
+
+
+    return getPublicGameState(
+        room,
+        playerId
+    );
+
+}
+
+
+/*
+=========================================================
 CREATE ROOM
 =========================================================
 */
@@ -313,6 +467,23 @@ function createRoom(
         });
 
 
+    /*
+    -----------------------------------------------------
+    ATTACH ENGINE
+    -----------------------------------------------------
+    */
+
+    attachRoomEngine(
+        room
+    );
+
+
+    /*
+    -----------------------------------------------------
+    CREATE FIRST PLAYER
+    -----------------------------------------------------
+    */
+
     const roomPlayer =
         createRoomPlayer({
 
@@ -336,6 +507,12 @@ function createRoom(
         roomPlayer
     );
 
+
+    /*
+    -----------------------------------------------------
+    SAVE ROOM
+    -----------------------------------------------------
+    */
 
     rooms.set(
         roomId,
@@ -509,16 +686,6 @@ function joinRoom(
     -----------------------------------------------------
     START GAME
     -----------------------------------------------------
-
-    ВАЖНО:
-
-    Здесь пока НЕ резервируем деньги.
-
-    Экономика будет подключена
-    отдельным settlement/wallet layer.
-
-    Engine отвечает только за игру.
-    -----------------------------------------------------
     */
 
     const started =
@@ -538,6 +705,17 @@ function joinRoom(
         return started;
 
     }
+
+
+    /*
+    -----------------------------------------------------
+    ENGINE ALREADY ATTACHED
+    -----------------------------------------------------
+    */
+
+    attachRoomEngine(
+        room
+    );
 
 
     return {
@@ -877,6 +1055,17 @@ function reconnectPlayer(
         null;
 
 
+    /*
+    -----------------------------------------------------
+    RESTORE ENGINE
+    -----------------------------------------------------
+    */
+
+    attachRoomEngine(
+        room
+    );
+
+
     return {
 
         ok: true,
@@ -965,10 +1154,6 @@ function cleanupRooms() {
         of rooms.values()
     ) {
 
-        /*
-        Пустые комнаты удаляем.
-        */
-
         if (
             room.players.length === 0
         ) {
@@ -987,6 +1172,19 @@ function cleanupRooms() {
 
 
     return removed;
+
+}
+
+
+/*
+=========================================================
+ROOM COUNT
+=========================================================
+*/
+
+function roomCount() {
+
+    return rooms.size;
 
 }
 
@@ -1136,8 +1334,14 @@ module.exports = {
 
     clearRooms,
 
+    roomCount,
+
     createRoomId,
 
-    normalizeRoomId
+    normalizeRoomId,
+
+    attachRoomEngine,
+
+    getPublicState
 
 };
