@@ -6,27 +6,30 @@ HEAVY LUX CARD
 SERVER.JS
 =========================================================
 
-Express
-HTTP
+Новый репозиторий:
+
+server.js
+src/
+ ├─ config.js
+ ├─ game/
+ │   ├─ engine.js
+ │   └─ rooms.js
+ └─ database/
+
+Render:
+npm start
+
 Socket.IO
-Durak 36 cards
-2 players per room
+Durak 36 карт
+2 живых игрока
 No AI
 Authoritative server
 Reconnect
 Profiles
 Economy
 Rooms
-
-IMPORTANT:
-config.js
-engine.js
-rooms/manager.js
-
-не требуют изменений.
 =========================================================
 */
-
 
 const express = require("express");
 const cors = require("cors");
@@ -36,8 +39,8 @@ const path = require("path");
 
 const { Server } = require("socket.io");
 
-const config = require("./config");
-const rooms = require("./rooms/manager");
+const config = require("./src/config");
+const rooms = require("./src/game/rooms");
 
 
 /*
@@ -46,17 +49,58 @@ CONFIG
 =========================================================
 */
 
-const {
-    PORT,
-    HOST,
-    STAKES,
-    DEFAULT_BALANCE,
-    XP_WIN,
-    XP_LOSS,
-    XP_DRAW,
-    LEVEL_BASE_XP,
-    DISCONNECT_GRACE_MS
-} = config;
+const PORT =
+    Number(
+        process.env.PORT ||
+        config.PORT ||
+        10000
+    );
+
+const HOST =
+    process.env.HOST ||
+    config.HOST ||
+    "0.0.0.0";
+
+const STAKES =
+    Array.isArray(config.STAKES)
+        ? config.STAKES
+        : [];
+
+const DEFAULT_BALANCE =
+    Number(
+        config.DEFAULT_BALANCE ||
+        0
+    );
+
+const XP_WIN =
+    Number(
+        config.XP_WIN ||
+        0
+    );
+
+const XP_LOSS =
+    Number(
+        config.XP_LOSS ||
+        0
+    );
+
+const XP_DRAW =
+    Number(
+        config.XP_DRAW ||
+        0
+    );
+
+const LEVEL_BASE_XP =
+    Number(
+        config.LEVEL_BASE_XP ||
+        500
+    );
+
+const DISCONNECT_GRACE_MS =
+    Number(
+        config.DISCONNECT_GRACE_MS ||
+        120000
+    );
 
 
 /*
@@ -65,10 +109,13 @@ APP
 =========================================================
 */
 
-const app = express();
+const app =
+    express();
 
 const httpServer =
-    http.createServer(app);
+    http.createServer(
+        app
+    );
 
 
 /*
@@ -104,10 +151,29 @@ STATIC
 =========================================================
 */
 
+/*
+Новый проект пока может иметь
+index.html в корне либо public/.
+
+Проверяем оба варианта.
+*/
+
 const publicPath =
     path.join(
         __dirname,
         "public"
+    );
+
+const rootIndex =
+    path.join(
+        __dirname,
+        "index.html"
+    );
+
+const publicIndex =
+    path.join(
+        publicPath,
+        "index.html"
     );
 
 app.use(
@@ -189,7 +255,9 @@ function safeString(
 
     }
 
-    return String(value).trim();
+    return String(
+        value
+    ).trim();
 
 }
 
@@ -235,10 +303,14 @@ function normalizeStake(
 ) {
 
     const value =
-        Number(stake);
+        Number(
+            stake
+        );
 
     if (
-        !Number.isFinite(value)
+        !Number.isFinite(
+            value
+        )
     ) {
 
         return 0;
@@ -253,6 +325,14 @@ function normalizeStake(
 function isValidStake(
     stake
 ) {
+
+    if (
+        STAKES.length === 0
+    ) {
+
+        return true;
+
+    }
 
     return STAKES.includes(
         Number(stake)
@@ -276,7 +356,8 @@ function getLevelProgress(
             0,
             Number(
                 player &&
-                player.xp || 0
+                player.xp ||
+                0
             )
         );
 
@@ -284,7 +365,8 @@ function getLevelProgress(
         Math.max(
             1,
             Number(
-                LEVEL_BASE_XP || 500
+                LEVEL_BASE_XP ||
+                500
             )
         );
 
@@ -335,26 +417,31 @@ function createPlayer(
         ) ||
         createPlayerId();
 
-
     const balance =
         Number.isFinite(
-            Number(data.balance)
+            Number(
+                data.balance
+            )
         )
-            ? Number(data.balance)
+            ? Number(
+                data.balance
+            )
             : DEFAULT_BALANCE;
-
 
     const xp =
         Number.isFinite(
-            Number(data.xp)
+            Number(
+                data.xp
+            )
         )
-            ? Number(data.xp)
+            ? Number(
+                data.xp
+            )
             : 0;
 
-
     const sourceStats =
-        data.stats || {};
-
+        data.stats ||
+        {};
 
     return {
 
@@ -392,7 +479,9 @@ function createPlayer(
                 Math.max(
                     0,
                     Number(
-                        sourceStats.games || 0
+                        sourceStats.games ||
+                        sourceStats.gamesPlayed ||
+                        0
                     )
                 ),
 
@@ -400,7 +489,8 @@ function createPlayer(
                 Math.max(
                     0,
                     Number(
-                        sourceStats.wins || 0
+                        sourceStats.wins ||
+                        0
                     )
                 ),
 
@@ -408,7 +498,8 @@ function createPlayer(
                 Math.max(
                     0,
                     Number(
-                        sourceStats.losses || 0
+                        sourceStats.losses ||
+                        0
                     )
                 ),
 
@@ -416,7 +507,8 @@ function createPlayer(
                 Math.max(
                     0,
                     Number(
-                        sourceStats.draws || 0
+                        sourceStats.draws ||
+                        0
                     )
                 )
 
@@ -461,10 +553,11 @@ function getOrCreatePlayer(
             data.playerId
         );
 
-
     if (
         requestedId &&
-        players.has(requestedId)
+        players.has(
+            requestedId
+        )
     ) {
 
         const player =
@@ -472,8 +565,10 @@ function getOrCreatePlayer(
                 requestedId
             );
 
-
-        if (data.name !== undefined) {
+        if (
+            data.name !==
+            undefined
+        ) {
 
             player.name =
                 normalizeName(
@@ -481,7 +576,6 @@ function getOrCreatePlayer(
                 );
 
         }
-
 
         if (
             data.username !==
@@ -495,7 +589,6 @@ function getOrCreatePlayer(
 
         }
 
-
         if (
             data.telegramId !==
             undefined
@@ -507,27 +600,22 @@ function getOrCreatePlayer(
 
         }
 
-
         player.lastSeenAt =
             Date.now();
-
 
         return player;
 
     }
-
 
     const player =
         createPlayer(
             data
         );
 
-
     players.set(
         player.playerId,
         player
     );
-
 
     return player;
 
@@ -552,7 +640,9 @@ function getPlayer(
 
     return (
         players.get(
-            String(playerId)
+            String(
+                playerId
+            )
         ) ||
         null
     );
@@ -576,12 +666,10 @@ function getPublicProfile(
 
     }
 
-
     const level =
         getLevelProgress(
             player
         );
-
 
     return {
 
@@ -649,7 +737,6 @@ function getRoomPublicState(
 
     }
 
-
     if (
         typeof rooms.getPublicState ===
         "function"
@@ -662,6 +749,17 @@ function getRoomPublicState(
 
     }
 
+    if (
+        typeof rooms.getGameState ===
+        "function"
+    ) {
+
+        return rooms.getGameState(
+            room,
+            playerId
+        );
+
+    }
 
     if (
         room.engine &&
@@ -674,7 +772,6 @@ function getRoomPublicState(
         );
 
     }
-
 
     return null;
 
@@ -697,7 +794,6 @@ function getRoomSummary(
 
     }
 
-
     if (
         typeof rooms.getRoomSummary ===
         "function"
@@ -709,20 +805,24 @@ function getRoomSummary(
 
     }
 
-
     return {
 
         roomId:
             room.id,
 
         stake:
-            room.stake,
+            Number(
+                room.stake ||
+                0
+            ),
 
         status:
             room.status,
 
         players:
-            Array.isArray(room.players)
+            Array.isArray(
+                room.players
+            )
                 ? room.players.length
                 : 0
 
@@ -747,7 +847,6 @@ function sendError(
         return;
 
     }
-
 
     socket.emit(
         "error_message",
@@ -783,26 +882,22 @@ function emitProfile(
 
     }
 
-
     if (!player.socketId) {
 
         return;
 
     }
 
-
     const socket =
         io.sockets.sockets.get(
             player.socketId
         );
-
 
     if (!socket) {
 
         return;
 
     }
-
 
     socket.emit(
         "profile",
@@ -830,7 +925,6 @@ function emitRoomState(
 
     }
 
-
     if (
         !Array.isArray(
             room.players
@@ -840,7 +934,6 @@ function emitRoomState(
         return;
 
     }
-
 
     for (
         const roomPlayer
@@ -853,12 +946,10 @@ function emitRoomState(
 
         }
 
-
         const player =
             getPlayer(
                 roomPlayer.playerId
             );
-
 
         if (!player) {
 
@@ -866,26 +957,22 @@ function emitRoomState(
 
         }
 
-
         if (!player.socketId) {
 
             continue;
 
         }
 
-
         const socket =
             io.sockets.sockets.get(
                 player.socketId
             );
-
 
         if (!socket) {
 
             continue;
 
         }
-
 
         socket.emit(
             "room_state",
@@ -913,10 +1000,14 @@ function emitRoomList() {
         "function"
     ) {
 
+        io.emit(
+            "rooms",
+            []
+        );
+
         return;
 
     }
-
 
     io.emit(
         "rooms",
@@ -941,7 +1032,6 @@ function clearDisconnectTimer(
         return;
 
     }
-
 
     if (
         player.disconnectTimer
@@ -978,22 +1068,18 @@ function applySettlement(
 
     }
 
-
     const stake =
         Math.max(
             0,
             Number(
-                room.stake || 0
+                room.stake ||
+                0
             )
         );
-
 
     /*
     -----------------------------------------------------
     DRAW
-
-    На старте оба игрока уже внесли stake.
-    При ничьей каждый получает обратно свою ставку.
     -----------------------------------------------------
     */
 
@@ -1003,7 +1089,8 @@ function applySettlement(
 
         for (
             const roomPlayer
-            of room.players
+            of room.players ||
+            []
         ) {
 
             const player =
@@ -1011,33 +1098,36 @@ function applySettlement(
                     roomPlayer.playerId
                 );
 
-
             if (!player) {
 
                 continue;
 
             }
 
-
             player.stats.games += 1;
             player.stats.draws += 1;
             player.xp += XP_DRAW;
 
+            /*
+            Если ставка была снята
+            при старте игры —
+            возвращаем её.
+            */
 
-            if (stake > 0) {
+            if (
+                stake > 0
+            ) {
 
                 player.balance +=
                     stake;
 
             }
 
-
             emitProfile(
                 player
             );
 
         }
-
 
         return;
 
@@ -1055,29 +1145,20 @@ function applySettlement(
             winnerId
         );
 
-
     if (winner) {
 
         winner.stats.games += 1;
         winner.stats.wins += 1;
         winner.xp += XP_WIN;
 
-
-        /*
-        Оба игрока уже заплатили stake
-        при старте.
-
-        Победитель получает весь pot:
-        2 × stake.
-        */
-
-        if (stake > 0) {
+        if (
+            stake > 0
+        ) {
 
             winner.balance +=
                 stake * 2;
 
         }
-
 
         emitProfile(
             winner
@@ -1097,21 +1178,11 @@ function applySettlement(
             loserId
         );
 
-
     if (loser) {
 
         loser.stats.games += 1;
         loser.stats.losses += 1;
         loser.xp += XP_LOSS;
-
-
-        /*
-        Ставка уже была списана
-        при старте игры.
-
-        Поэтому здесь повторно
-        деньги не списываем.
-        */
 
         loser.balance =
             Math.max(
@@ -1120,7 +1191,6 @@ function applySettlement(
                     loser.balance
                 )
             );
-
 
         emitProfile(
             loser
@@ -1147,7 +1217,6 @@ function settleRoom(
 
     }
 
-
     if (
         room.status !==
         "finished"
@@ -1156,7 +1225,6 @@ function settleRoom(
         return;
 
     }
-
 
     if (
         settledRooms.has(
@@ -1168,11 +1236,9 @@ function settleRoom(
 
     }
 
-
     settledRooms.add(
         room.id
     );
-
 
     applySettlement(
         room,
@@ -1198,7 +1264,6 @@ function handleCreateRoom(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -1210,8 +1275,9 @@ function handleCreateRoom(
 
     }
 
-
-    if (player.roomId) {
+    if (
+        player.roomId
+    ) {
 
         sendError(
             socket,
@@ -1222,13 +1288,11 @@ function handleCreateRoom(
 
     }
 
-
     const stake =
         normalizeStake(
             data &&
             data.stake
         );
-
 
     if (
         !isValidStake(
@@ -1245,7 +1309,6 @@ function handleCreateRoom(
 
     }
 
-
     if (
         player.balance <
         stake
@@ -1259,7 +1322,6 @@ function handleCreateRoom(
         return;
 
     }
-
 
     const result =
         rooms.createRoom(
@@ -1281,27 +1343,28 @@ function handleCreateRoom(
             }
         );
 
-
-    if (!result.ok) {
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Не удалось создать комнату."
         );
 
         return;
 
     }
 
-
     const room =
         result.room;
-
 
     socket.join(
         room.id
     );
-
 
     socket.emit(
         "room_created",
@@ -1316,7 +1379,6 @@ function handleCreateRoom(
 
         }
     );
-
 
     emitRoomState(
         room
@@ -1345,7 +1407,6 @@ function handleJoinRoom(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -1357,13 +1418,11 @@ function handleJoinRoom(
 
     }
 
-
     const roomId =
         safeString(
             data &&
             data.roomId
         ).toUpperCase();
-
 
     if (!roomId) {
 
@@ -1376,12 +1435,10 @@ function handleJoinRoom(
 
     }
 
-
     const room =
         rooms.getRoom(
             roomId
         );
-
 
     if (!room) {
 
@@ -1394,11 +1451,14 @@ function handleJoinRoom(
 
     }
 
-
     if (
         player.roomId &&
-        String(player.roomId) !==
-        String(room.id)
+        String(
+            player.roomId
+        ) !==
+        String(
+            room.id
+        )
     ) {
 
         sendError(
@@ -1410,10 +1470,12 @@ function handleJoinRoom(
 
     }
 
-
     if (
         player.balance <
-        Number(room.stake || 0)
+        Number(
+            room.stake ||
+            0
+        )
     ) {
 
         sendError(
@@ -1424,7 +1486,6 @@ function handleJoinRoom(
         return;
 
     }
-
 
     const result =
         rooms.joinRoom(
@@ -1447,47 +1508,49 @@ function handleJoinRoom(
             }
         );
 
-
-    if (!result.ok) {
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Не удалось войти в комнату."
         );
 
         return;
 
     }
 
-
     socket.join(
         room.id
     );
 
-
     /*
     -----------------------------------------------------
     START GAME
-
-    Ставка списывается только после
-    фактического запуска игры.
     -----------------------------------------------------
     */
 
-    if (result.started) {
+    if (
+        result.started
+    ) {
 
         const stake =
             Math.max(
                 0,
                 Number(
-                    room.stake || 0
+                    room.stake ||
+                    0
                 )
             );
 
-
         for (
             const roomPlayer
-            of room.players
+            of room.players ||
+            []
         ) {
 
             const profile =
@@ -1495,27 +1558,16 @@ function handleJoinRoom(
                     roomPlayer.playerId
                 );
 
-
             if (!profile) {
 
                 continue;
 
             }
 
-
             if (
                 profile.balance <
                 stake
             ) {
-
-                /*
-                Теоретически этого уже
-                не должно произойти,
-                так как баланс проверяется
-                до join.
-
-                Дополнительная защита.
-                */
 
                 profile.balance =
                     0;
@@ -1531,7 +1583,6 @@ function handleJoinRoom(
 
     }
 
-
     socket.emit(
         "room_joined",
         {
@@ -1546,20 +1597,24 @@ function handleJoinRoom(
             reconnected:
                 Boolean(
                     result.reconnected
+                ),
+
+            started:
+                Boolean(
+                    result.started
                 )
 
         }
     );
 
-
     emitRoomState(
         room
     );
 
-
     for (
         const roomPlayer
-        of room.players
+        of room.players ||
+        []
     ) {
 
         emitProfile(
@@ -1569,7 +1624,6 @@ function handleJoinRoom(
         );
 
     }
-
 
     emitRoomList();
 
@@ -1593,13 +1647,11 @@ function handleReconnect(
             data.playerId
         );
 
-
     const roomId =
         safeString(
             data &&
             data.roomId
         ).toUpperCase();
-
 
     if (!playerId) {
 
@@ -1612,12 +1664,10 @@ function handleReconnect(
 
     }
 
-
     const player =
         getPlayer(
             playerId
         );
-
 
     if (!player) {
 
@@ -1630,15 +1680,13 @@ function handleReconnect(
 
     }
 
-
     clearDisconnectTimer(
         player
     );
 
-
     /*
     -----------------------------------------------------
-    RECONNECT WITHOUT ROOM
+    WITHOUT ROOM
     -----------------------------------------------------
     */
 
@@ -1656,7 +1704,6 @@ function handleReconnect(
         socket.player =
             player;
 
-
         socket.emit(
             "reconnected",
             {
@@ -1672,7 +1719,6 @@ function handleReconnect(
             }
         );
 
-
         emitProfile(
             player
         );
@@ -1680,7 +1726,6 @@ function handleReconnect(
         return;
 
     }
-
 
     /*
     -----------------------------------------------------
@@ -1692,7 +1737,6 @@ function handleReconnect(
         rooms.getRoom(
             roomId
         );
-
 
     if (!room) {
 
@@ -1711,7 +1755,6 @@ function handleReconnect(
         socket.player =
             player;
 
-
         socket.emit(
             "reconnected",
             {
@@ -1727,7 +1770,6 @@ function handleReconnect(
             }
         );
 
-
         emitProfile(
             player
         );
@@ -1735,13 +1777,6 @@ function handleReconnect(
         return;
 
     }
-
-
-    /*
-    -----------------------------------------------------
-    MANAGER RECONNECT
-    -----------------------------------------------------
-    */
 
     const result =
         rooms.reconnectPlayer(
@@ -1763,18 +1798,21 @@ function handleReconnect(
             }
         );
 
-
-    if (!result.ok) {
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Не удалось восстановить соединение."
         );
 
         return;
 
     }
-
 
     player.socketId =
         socket.id;
@@ -1788,20 +1826,16 @@ function handleReconnect(
     player.lastSeenAt =
         Date.now();
 
-
     clearDisconnectTimer(
         player
     );
 
-
     socket.player =
         player;
-
 
     socket.join(
         result.room.id
     );
-
 
     socket.emit(
         "reconnected",
@@ -1814,22 +1848,21 @@ function handleReconnect(
 
             gameStarted:
                 Boolean(
-                    result.gameStarted
+                    result.gameStarted ||
+                    result.room.status ===
+                    "playing"
                 )
 
         }
     );
 
-
     emitProfile(
         player
     );
 
-
     emitRoomState(
         result.room
     );
-
 
     emitRoomList();
 
@@ -1849,20 +1882,19 @@ function handleLeaveRoom(
     const player =
         socket.player;
 
-
     if (!player) {
 
         return;
 
     }
 
-
     clearDisconnectTimer(
         player
     );
 
-
-    if (!player.roomId) {
+    if (
+        !player.roomId
+    ) {
 
         socket.emit(
             "left_room",
@@ -1875,12 +1907,10 @@ function handleLeaveRoom(
 
     }
 
-
     const room =
         rooms.getRoom(
             player.roomId
         );
-
 
     if (!room) {
 
@@ -1902,18 +1932,15 @@ function handleLeaveRoom(
 
     }
 
-
     const result =
         rooms.leaveRoom(
             player,
             "leave"
         );
 
-
     socket.leave(
         room.id
     );
-
 
     if (
         result &&
@@ -1926,7 +1953,6 @@ function handleLeaveRoom(
 
     }
 
-
     player.roomId =
         null;
 
@@ -1936,14 +1962,12 @@ function handleLeaveRoom(
     player.connected =
         true;
 
-
     socket.emit(
         "left_room",
         {
             ok: true
         }
     );
-
 
     emitRoomState(
         room
@@ -1954,6 +1978,35 @@ function handleLeaveRoom(
     );
 
     emitRoomList();
+
+}
+
+
+/*
+=========================================================
+GET ROOM
+=========================================================
+*/
+
+function getPlayerRoom(
+    player
+) {
+
+    if (!player) {
+
+        return null;
+
+    }
+
+    if (!player.roomId) {
+
+        return null;
+
+    }
+
+    return rooms.getRoom(
+        player.roomId
+    );
 
 }
 
@@ -1972,7 +2025,6 @@ function handleAttack(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -1984,12 +2036,10 @@ function handleAttack(
 
     }
 
-
     const room =
-        rooms.getRoom(
-            player.roomId
+        getPlayerRoom(
+            player
         );
-
 
     if (!room) {
 
@@ -2002,23 +2052,6 @@ function handleAttack(
 
     }
 
-
-    if (
-        !room.engine ||
-        typeof room.engine.attackCard !==
-        "function"
-    ) {
-
-        sendError(
-            socket,
-            "Игровой движок недоступен."
-        );
-
-        return;
-
-    }
-
-
     const cardId =
         safeString(
             data &&
@@ -2027,7 +2060,6 @@ function handleAttack(
                 data.id
             )
         );
-
 
     if (!cardId) {
 
@@ -2040,15 +2072,48 @@ function handleAttack(
 
     }
 
+    let result =
+        null;
 
-    const result =
-        room.engine.attackCard(
-            player.playerId,
-            cardId
+    if (
+        room.engine &&
+        typeof room.engine.attackCard ===
+        "function"
+    ) {
+
+        result =
+            room.engine.attackCard(
+                player.playerId,
+                cardId
+            );
+
+    } else if (
+        typeof rooms.attackCard ===
+        "function"
+    ) {
+
+        result =
+            rooms.attackCard(
+                room,
+                player.playerId,
+                cardId
+            );
+
+    } else {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
+        return;
 
-    if (!result || !result.ok) {
+    }
+
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
@@ -2061,10 +2126,21 @@ function handleAttack(
 
     }
 
+    if (
+        result.gameOver
+    ) {
+
+        settleRoom(
+            room
+        );
+
+    }
 
     emitRoomState(
         room
     );
+
+    emitRoomList();
 
 }
 
@@ -2083,7 +2159,6 @@ function handleDefend(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -2095,12 +2170,10 @@ function handleDefend(
 
     }
 
-
     const room =
-        rooms.getRoom(
-            player.roomId
+        getPlayerRoom(
+            player
         );
-
 
     if (!room) {
 
@@ -2113,23 +2186,6 @@ function handleDefend(
 
     }
 
-
-    if (
-        !room.engine ||
-        typeof room.engine.defendCard !==
-        "function"
-    ) {
-
-        sendError(
-            socket,
-            "Игровой движок недоступен."
-        );
-
-        return;
-
-    }
-
-
     const attackId =
         safeString(
             data &&
@@ -2139,7 +2195,6 @@ function handleDefend(
             )
         );
 
-
     const defenseId =
         safeString(
             data &&
@@ -2148,7 +2203,6 @@ function handleDefend(
                 data.cardId
             )
         );
-
 
     if (!attackId) {
 
@@ -2161,7 +2215,6 @@ function handleDefend(
 
     }
 
-
     if (!defenseId) {
 
         sendError(
@@ -2173,16 +2226,50 @@ function handleDefend(
 
     }
 
+    let result =
+        null;
 
-    const result =
-        room.engine.defendCard(
-            player.playerId,
-            attackId,
-            defenseId
+    if (
+        room.engine &&
+        typeof room.engine.defendCard ===
+        "function"
+    ) {
+
+        result =
+            room.engine.defendCard(
+                player.playerId,
+                attackId,
+                defenseId
+            );
+
+    } else if (
+        typeof rooms.defendCard ===
+        "function"
+    ) {
+
+        result =
+            rooms.defendCard(
+                room,
+                player.playerId,
+                attackId,
+                defenseId
+            );
+
+    } else {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
+        return;
 
-    if (!result || !result.ok) {
+    }
+
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
@@ -2195,10 +2282,21 @@ function handleDefend(
 
     }
 
+    if (
+        result.gameOver
+    ) {
+
+        settleRoom(
+            room
+        );
+
+    }
 
     emitRoomState(
         room
     );
+
+    emitRoomList();
 
 }
 
@@ -2216,7 +2314,6 @@ function handleTake(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -2228,12 +2325,10 @@ function handleTake(
 
     }
 
-
     const room =
-        rooms.getRoom(
-            player.roomId
+        getPlayerRoom(
+            player
         );
-
 
     if (!room) {
 
@@ -2246,12 +2341,32 @@ function handleTake(
 
     }
 
+    let result =
+        null;
 
     if (
-        !room.engine ||
-        typeof room.engine.takeCards !==
+        room.engine &&
+        typeof room.engine.takeCards ===
         "function"
     ) {
+
+        result =
+            room.engine.takeCards(
+                player.playerId
+            );
+
+    } else if (
+        typeof rooms.takeCards ===
+        "function"
+    ) {
+
+        result =
+            rooms.takeCards(
+                room,
+                player.playerId
+            );
+
+    } else {
 
         sendError(
             socket,
@@ -2262,14 +2377,10 @@ function handleTake(
 
     }
 
-
-    const result =
-        room.engine.takeCards(
-            player.playerId
-        );
-
-
-    if (!result || !result.ok) {
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
@@ -2282,8 +2393,9 @@ function handleTake(
 
     }
 
-
-    if (result.gameOver) {
+    if (
+        result.gameOver
+    ) {
 
         settleRoom(
             room
@@ -2291,41 +2403,27 @@ function handleTake(
 
     }
 
-
     emitRoomState(
         room
     );
-
 
     emitProfile(
         player
     );
 
-
-    const opponent =
-        Array.isArray(room.players)
-            ? room.players.find(
-                item =>
-                    String(
-                        item.playerId
-                    ) !==
-                    String(
-                        player.playerId
-                    )
-            )
-            : null;
-
-
-    if (opponent) {
+    for (
+        const roomPlayer
+        of room.players ||
+        []
+    ) {
 
         emitProfile(
             getPlayer(
-                opponent.playerId
+                roomPlayer.playerId
             )
         );
 
     }
-
 
     emitRoomList();
 
@@ -2345,7 +2443,6 @@ function handleBito(
     const player =
         socket.player;
 
-
     if (!player) {
 
         sendError(
@@ -2357,12 +2454,10 @@ function handleBito(
 
     }
 
-
     const room =
-        rooms.getRoom(
-            player.roomId
+        getPlayerRoom(
+            player
         );
-
 
     if (!room) {
 
@@ -2375,12 +2470,32 @@ function handleBito(
 
     }
 
+    let result =
+        null;
 
     if (
-        !room.engine ||
-        typeof room.engine.bito !==
+        room.engine &&
+        typeof room.engine.bito ===
         "function"
     ) {
+
+        result =
+            room.engine.bito(
+                player.playerId
+            );
+
+    } else if (
+        typeof rooms.bito ===
+        "function"
+    ) {
+
+        result =
+            rooms.bito(
+                room,
+                player.playerId
+            );
+
+    } else {
 
         sendError(
             socket,
@@ -2391,14 +2506,10 @@ function handleBito(
 
     }
 
-
-    const result =
-        room.engine.bito(
-            player.playerId
-        );
-
-
-    if (!result || !result.ok) {
+    if (
+        !result ||
+        !result.ok
+    ) {
 
         sendError(
             socket,
@@ -2411,8 +2522,9 @@ function handleBito(
 
     }
 
-
-    if (result.gameOver) {
+    if (
+        result.gameOver
+    ) {
 
         settleRoom(
             room
@@ -2420,25 +2532,23 @@ function handleBito(
 
     }
 
-
     emitRoomState(
         room
     );
 
+    for (
+        const roomPlayer
+        of room.players ||
+        []
+    ) {
 
-    emitProfile(
-        getPlayer(
-            room.winnerId
-        )
-    );
+        emitProfile(
+            getPlayer(
+                roomPlayer.playerId
+            )
+        );
 
-
-    emitProfile(
-        getPlayer(
-            room.loserId
-        )
-    );
-
+    }
 
     emitRoomList();
 
@@ -2447,7 +2557,7 @@ function handleBito(
 
 /*
 =========================================================
-ROOM STATE REQUEST
+ROOM STATE
 =========================================================
 */
 
@@ -2458,19 +2568,16 @@ function handleRoomState(
     const player =
         socket.player;
 
-
     if (!player) {
 
         return;
 
     }
 
-
     const room =
-        rooms.getRoom(
-            player.roomId
+        getPlayerRoom(
+            player
         );
-
 
     if (!room) {
 
@@ -2482,7 +2589,6 @@ function handleRoomState(
         return;
 
     }
-
 
     socket.emit(
         "room_state",
@@ -2497,7 +2603,7 @@ function handleRoomState(
 
 /*
 =========================================================
-PROFILE REQUEST
+PROFILE
 =========================================================
 */
 
@@ -2508,13 +2614,11 @@ function handleProfile(
     const player =
         socket.player;
 
-
     if (!player) {
 
         return;
 
     }
-
 
     emitProfile(
         player
@@ -2525,7 +2629,7 @@ function handleProfile(
 
 /*
 =========================================================
-ROOMS REQUEST
+ROOMS
 =========================================================
 */
 
@@ -2547,7 +2651,6 @@ function handleRooms(
 
     }
 
-
     socket.emit(
         "rooms",
         rooms.getPublicRoomList()
@@ -2558,7 +2661,7 @@ function handleRooms(
 
 /*
 =========================================================
-AUTH / IDENTIFICATION
+AUTH
 =========================================================
 */
 
@@ -2586,7 +2689,6 @@ function identifySocket(
             }
         );
 
-
     /*
     -----------------------------------------------------
     OLD SOCKET
@@ -2595,14 +2697,14 @@ function identifySocket(
 
     if (
         player.socketId &&
-        player.socketId !== socket.id
+        player.socketId !==
+        socket.id
     ) {
 
         const oldSocket =
             io.sockets.sockets.get(
                 player.socketId
             );
-
 
         if (oldSocket) {
 
@@ -2614,11 +2716,9 @@ function identifySocket(
 
     }
 
-
     clearDisconnectTimer(
         player
     );
-
 
     player.socketId =
         socket.id;
@@ -2629,10 +2729,8 @@ function identifySocket(
     player.lastSeenAt =
         Date.now();
 
-
     socket.player =
         player;
-
 
     socket.emit(
         "authenticated",
@@ -2651,11 +2749,9 @@ function identifySocket(
         }
     );
 
-
     emitProfile(
         player
     );
-
 
     /*
     -----------------------------------------------------
@@ -2663,13 +2759,14 @@ function identifySocket(
     -----------------------------------------------------
     */
 
-    if (player.roomId) {
+    if (
+        player.roomId
+    ) {
 
         const room =
             rooms.getRoom(
                 player.roomId
             );
-
 
         if (room) {
 
@@ -2694,13 +2791,14 @@ function identifySocket(
                     }
                 );
 
-
-            if (result.ok) {
+            if (
+                result &&
+                result.ok
+            ) {
 
                 socket.join(
                     room.id
                 );
-
 
                 player.roomId =
                     room.id;
@@ -2710,7 +2808,6 @@ function identifySocket(
 
                 player.connected =
                     true;
-
 
                 socket.emit(
                     "reconnected",
@@ -2728,7 +2825,6 @@ function identifySocket(
                     }
                 );
 
-
                 emitRoomState(
                     room
                 );
@@ -2743,7 +2839,6 @@ function identifySocket(
         }
 
     }
-
 
     emitRoomList();
 
@@ -2851,7 +2946,6 @@ io.on(
 
             }
         );
-
 
         socket.on(
             "rooms",
@@ -2986,7 +3080,6 @@ io.on(
             }
         );
 
-
         socket.on(
             "room_state",
             () => {
@@ -3051,7 +3144,6 @@ io.on(
             }
         );
 
-
         socket.on(
             "attack_card",
             data => {
@@ -3083,7 +3175,7 @@ io.on(
 
         /*
         -------------------------------------------------
-        DEFENSE
+        DEFEND
         -------------------------------------------------
         */
 
@@ -3114,7 +3206,6 @@ io.on(
 
             }
         );
-
 
         socket.on(
             "defend_card",
@@ -3178,7 +3269,6 @@ io.on(
             }
         );
 
-
         socket.on(
             "take_cards",
             () => {
@@ -3240,7 +3330,6 @@ io.on(
             }
         );
 
-
         socket.on(
             "beat",
             () => {
@@ -3284,7 +3373,6 @@ io.on(
                     const player =
                         socket.player;
 
-
                     if (!player) {
 
                         console.log(
@@ -3295,11 +3383,9 @@ io.on(
 
                     }
 
-
                     /*
-                    Если этот socket уже заменён
-                    новым соединением, старый disconnect
-                    не должен ломать активную сессию.
+                    Старый socket не должен
+                    ломать новую сессию.
                     */
 
                     if (
@@ -3315,7 +3401,6 @@ io.on(
 
                     }
 
-
                     player.connected =
                         false;
 
@@ -3325,12 +3410,10 @@ io.on(
                     player.socketId =
                         null;
 
-
                     const room =
                         rooms.getRoom(
                             player.roomId
                         );
-
 
                     /*
                     -------------------------------------------------
@@ -3351,7 +3434,6 @@ io.on(
 
                     }
 
-
                     /*
                     -------------------------------------------------
                     WAITING ROOM
@@ -3363,21 +3445,30 @@ io.on(
                         "waiting"
                     ) {
 
-                        rooms.disconnectPlayer(
-                            player
-                        );
+                        const result =
+                            rooms.disconnectPlayer(
+                                player
+                            );
 
+                        if (
+                            result &&
+                            result.finished
+                        ) {
+
+                            settleRoom(
+                                room
+                            );
+
+                        }
 
                         player.roomId =
                             null;
-
 
                         emitRoomState(
                             room
                         );
 
                         emitRoomList();
-
 
                         console.log(
                             `[SOCKET] waiting player disconnected ${socket.id} (${reason})`
@@ -3386,7 +3477,6 @@ io.on(
                         return;
 
                     }
-
 
                     /*
                     -------------------------------------------------
@@ -3403,7 +3493,6 @@ io.on(
                             player
                         );
 
-
                         player.disconnectTimer =
                             setTimeout(
                                 () => {
@@ -3411,12 +3500,10 @@ io.on(
                                     player.disconnectTimer =
                                         null;
 
-
                                     const current =
                                         getPlayer(
                                             player.playerId
                                         );
-
 
                                     if (
                                         !current ||
@@ -3427,12 +3514,10 @@ io.on(
 
                                     }
 
-
                                     const currentRoom =
                                         rooms.getRoom(
                                             current.roomId
                                         );
-
 
                                     if (
                                         !currentRoom ||
@@ -3444,14 +3529,12 @@ io.on(
 
                                     }
 
-
                                     const result =
                                         rooms.forfeitPlayer(
                                             currentRoom,
                                             current.playerId,
                                             "disconnect"
                                         );
-
 
                                     if (
                                         !result ||
@@ -3462,16 +3545,13 @@ io.on(
 
                                     }
 
-
                                     settleRoom(
                                         currentRoom
                                     );
 
-
                                     emitRoomState(
                                         currentRoom
                                     );
-
 
                                     emitProfile(
                                         getPlayer(
@@ -3479,13 +3559,11 @@ io.on(
                                         )
                                     );
 
-
                                     emitProfile(
                                         getPlayer(
                                             currentRoom.loserId
                                         )
                                     );
-
 
                                     emitRoomList();
 
@@ -3493,15 +3571,11 @@ io.on(
 
                                 Math.max(
                                     1000,
-                                    Number(
-                                        DISCONNECT_GRACE_MS ||
-                                        120000
-                                    )
+                                    DISCONNECT_GRACE_MS
                                 )
                             );
 
                     }
-
 
                     console.log(
                         `[SOCKET] disconnected ${socket.id} (${reason})`
@@ -3525,7 +3599,7 @@ io.on(
 
 /*
 =========================================================
-HTTP: HOME
+HTTP HOME
 =========================================================
 */
 
@@ -3536,39 +3610,48 @@ app.get(
         res
     ) => {
 
-        res.sendFile(
-            path.join(
-                publicPath,
-                "index.html"
-            ),
-            error => {
+        /*
+        Сначала public/index.html,
+        затем корневой index.html.
+        */
 
-                if (error) {
+        if (
+            require("fs").existsSync(
+                publicIndex
+            )
+        ) {
 
-                    if (
-                        res.headersSent
-                    ) {
+            return res.sendFile(
+                publicIndex
+            );
 
-                        return;
+        }
 
-                    }
+        if (
+            require("fs").existsSync(
+                rootIndex
+            )
+        ) {
 
+            return res.sendFile(
+                rootIndex
+            );
 
-                    res.json(
-                        {
+        }
 
-                            ok: true,
+        return res.json(
+            {
 
-                            service:
-                                "Heavy Lux Card",
+                ok: true,
 
-                            socket:
-                                "ready"
+                service:
+                    "Heavy Lux Card",
 
-                        }
-                    );
+                server:
+                    "online",
 
-                }
+                socket:
+                    "ready"
 
             }
         );
@@ -3579,7 +3662,7 @@ app.get(
 
 /*
 =========================================================
-HTTP: HEALTH
+HEALTH
 =========================================================
 */
 
@@ -3608,7 +3691,12 @@ app.get(
                     typeof rooms.roomCount ===
                     "function"
                         ? rooms.roomCount()
-                        : 0,
+                        : (
+                            typeof rooms.getRooms ===
+                            "function"
+                                ? rooms.getRooms().length
+                                : 0
+                        ),
 
                 players:
                     players.size,
@@ -3625,7 +3713,7 @@ app.get(
 
 /*
 =========================================================
-HTTP: CONFIG
+API CONFIG
 =========================================================
 */
 
@@ -3644,16 +3732,20 @@ app.get(
                 game: {
 
                     deckSize:
-                        config.DECK_SIZE,
+                        config.DECK_SIZE ||
+                        36,
 
                     maxPlayers:
-                        config.MAX_PLAYERS,
+                        config.MAX_PLAYERS ||
+                        2,
 
                     startingHand:
-                        config.STARTING_HAND_SIZE,
+                        config.STARTING_HAND_SIZE ||
+                        6,
 
                     maxAttack:
-                        config.MAX_ATTACK_CARDS
+                        config.MAX_ATTACK_CARDS ||
+                        6
 
                 },
 
@@ -3669,7 +3761,7 @@ app.get(
 
 /*
 =========================================================
-HTTP: ROOMS
+API ROOMS
 =========================================================
 */
 
@@ -3700,6 +3792,58 @@ app.get(
 
 /*
 =========================================================
+API PROFILE
+=========================================================
+*/
+
+app.get(
+    "/api/profile/:playerId",
+    (
+        req,
+        res
+    ) => {
+
+        const player =
+            getPlayer(
+                req.params.playerId
+            );
+
+        if (!player) {
+
+            return res.status(
+                404
+            ).json(
+                {
+
+                    ok: false,
+
+                    error:
+                        "Игрок не найден."
+
+                }
+            );
+
+        }
+
+        return res.json(
+            {
+
+                ok: true,
+
+                profile:
+                    getPublicProfile(
+                        player
+                    )
+
+            }
+        );
+
+    }
+);
+
+
+/*
+=========================================================
 HTTP ERROR HANDLER
 =========================================================
 */
@@ -3717,7 +3861,6 @@ app.use(
             error
         );
 
-
         if (
             res.headersSent
         ) {
@@ -3727,7 +3870,6 @@ app.use(
             );
 
         }
-
 
         res.status(
             500
@@ -3758,7 +3900,7 @@ httpServer.listen(
     () => {
 
         console.log(
-            `Server started on port ${PORT}`
+            `Server started on ${HOST}:${PORT}`
         );
 
         console.log(
@@ -3770,19 +3912,27 @@ httpServer.listen(
         );
 
         console.log(
-            `Max players per room: ${config.MAX_PLAYERS}`
+            `Max players per room: ${
+                config.MAX_PLAYERS || 2
+            }`
         );
 
         console.log(
-            `Starting hand: ${config.STARTING_HAND_SIZE}`
+            `Starting hand: ${
+                config.STARTING_HAND_SIZE || 6
+            }`
         );
 
         console.log(
-            `Max attack cards: ${config.MAX_ATTACK_CARDS}`
+            `Max attack cards: ${
+                config.MAX_ATTACK_CARDS || 6
+            }`
         );
 
         console.log(
-            `Real players only: ${config.MAX_PLAYERS === 2}`
+            `Real players only: ${
+                (config.MAX_PLAYERS || 2) === 2
+            }`
         );
 
     }
@@ -3806,7 +3956,6 @@ process.on(
 
     }
 );
-
 
 process.on(
     "unhandledRejection",
