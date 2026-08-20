@@ -1,806 +1,1372 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width,
-                 initial-scale=1,
-                 maximum-scale=1,
-                 user-scalable=no,
-                 viewport-fit=cover"
-    >
-
-    <meta name="theme-color" content="#070707">
-
-    <title>Heavy Lux Card</title>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100%;
-            background: #070707;
-            color: #fff;
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        button,
-        input,
-        select {
-            font: inherit;
-        }
-
-        button {
-            cursor: pointer;
-        }
-
-        .app {
-            width: 100%;
-            max-width: 760px;
-            min-height: 100vh;
-            margin: 0 auto;
-            padding:
-                max(14px, env(safe-area-inset-top))
-                14px
-                max(90px, env(safe-area-inset-bottom));
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 8px 0 18px;
-        }
-
-        .brand {
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: -0.8px;
-        }
-
-        .brand span {
-            color: #f5c542;
-        }
-
-        .connection {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 12px;
-            color: #777;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #8b1d1d;
-        }
-
-        .dot.online {
-            background: #38c172;
-            box-shadow: 0 0 10px rgba(56,193,114,.6);
-        }
-
-        .card {
-            background:
-                linear-gradient(
-                    145deg,
-                    #151515,
-                    #0d0d0d
-                );
-            border: 1px solid #242424;
-            border-radius: 22px;
-            padding: 18px;
-            margin-bottom: 14px;
-            box-shadow:
-                0 14px 40px rgba(0,0,0,.25);
-        }
-
-        .profile {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-        }
-
-        .profile-main {
-            min-width: 0;
-        }
-
-        .profile-name {
-            font-size: 19px;
-            font-weight: 800;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .profile-level {
-            margin-top: 5px;
-            color: #8d8d8d;
-            font-size: 12px;
-        }
-
-        .wallet {
-            text-align: right;
-        }
-
-        .wallet-label {
-            color: #777;
-            font-size: 11px;
-        }
-
-        .wallet-value {
-            margin-top: 3px;
-            color: #f5c542;
-            font-size: 21px;
-            font-weight: 900;
-        }
-
-        .tabs {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 7px;
-            margin-bottom: 14px;
-        }
-
-        .tab {
-            border: 1px solid #242424;
-            background: #101010;
-            color: #888;
-            border-radius: 13px;
-            padding: 11px 6px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .tab.active {
-            background: #f5c542;
-            color: #080808;
-            border-color: #f5c542;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 900;
-            margin-bottom: 5px;
-        }
-
-        .section-subtitle {
-            color: #777;
-            font-size: 12px;
-            margin-bottom: 16px;
-        }
-
-        .stakes {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .stake {
-            padding: 13px 8px;
-            border-radius: 14px;
-            border: 1px solid #292929;
-            background: #111;
-            color: #ddd;
-            font-weight: 800;
-        }
-
-        .stake.selected {
-            border-color: #f5c542;
-            color: #f5c542;
-            background: #18150a;
-        }
-
-        .primary {
-            width: 100%;
-            margin-top: 12px;
-            border: 0;
-            border-radius: 15px;
-            padding: 15px;
-            background: #f5c542;
-            color: #080808;
-            font-weight: 900;
-            font-size: 15px;
-        }
-
-        .primary:active,
-        .secondary:active,
-        .danger:active,
-        .game-btn:active {
-            transform: scale(.98);
-        }
-
-        .secondary {
-            border: 1px solid #303030;
-            background: #151515;
-            color: #ddd;
-            border-radius: 13px;
-            padding: 11px 14px;
-            font-weight: 800;
-        }
-
-        .danger {
-            border: 1px solid #632020;
-            background: #211010;
-            color: #ff7b7b;
-            border-radius: 13px;
-            padding: 11px 14px;
-            font-weight: 800;
-        }
-
-        .room {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 14px 0;
-            border-bottom: 1px solid #202020;
-        }
-
-        .room:last-child {
-            border-bottom: 0;
-        }
-
-        .room-id {
-            font-weight: 900;
-            font-size: 15px;
-        }
-
-        .room-info {
-            color: #777;
-            font-size: 11px;
-            margin-top: 4px;
-        }
-
-        .room-status {
-            color: #f5c542;
-        }
-
-        .empty {
-            padding: 30px 10px;
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-        }
-
-        .input {
-            width: 100%;
-            padding: 14px;
-            border-radius: 13px;
-            border: 1px solid #292929;
-            outline: none;
-            background: #101010;
-            color: white;
-            margin-bottom: 9px;
-        }
-
-        .input:focus {
-            border-color: #f5c542;
-        }
-
-        .room-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .game-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .game-room {
-            font-size: 12px;
-            color: #777;
-        }
-
-        .turn {
-            padding: 7px 10px;
-            border-radius: 10px;
-            background: #151515;
-            color: #aaa;
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .turn.yours {
-            color: #080808;
-            background: #f5c542;
-        }
-
-        .opponent {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 13px;
-            background: #101010;
-            border: 1px solid #222;
-            border-radius: 15px;
-            margin-bottom: 13px;
-        }
-
-        .opponent-name {
-            font-weight: 800;
-        }
-
-        .opponent-cards {
-            color: #777;
-            font-size: 12px;
-        }
-
-        .table {
-            min-height: 170px;
-            border-radius: 20px;
-            border: 1px solid #202020;
-            background:
-                radial-gradient(
-                    circle at center,
-                    #13291b 0,
-                    #09120c 65%,
-                    #080808 100%
-                );
-            padding: 14px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-
-        .pair {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .mini-card {
-            width: 54px;
-            height: 76px;
-            border-radius: 9px;
-            background: #f8f8f8;
-            color: #111;
-            padding: 6px;
-            font-weight: 900;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 5px 14px rgba(0,0,0,.4);
-        }
-
-        .mini-card.red {
-            color: #d52626;
-        }
-
-        .defense {
-            transform: translateY(9px);
-        }
-
-        .hand {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            padding: 6px 0 12px;
-        }
-
-        .playing-card {
-            width: 62px;
-            height: 88px;
-            border-radius: 10px;
-            border: 2px solid transparent;
-            background: #f8f8f8;
-            color: #111;
-            padding: 7px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            font-weight: 900;
-            box-shadow: 0 8px 18px rgba(0,0,0,.4);
-            transition: .15s;
-        }
-
-        .playing-card.red {
-            color: #d52626;
-        }
-
-        .playing-card.selected {
-            border-color: #f5c542;
-            transform: translateY(-8px);
-        }
-
-        .playing-card.disabled {
-            opacity: .42;
-        }
-
-        .card-rank {
-            font-size: 19px;
-        }
-
-        .card-suit {
-            font-size: 18px;
-            text-align: center;
-        }
-
-        .game-actions {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 7px;
-        }
-
-        .game-btn {
-            min-height: 48px;
-            border: 1px solid #292929;
-            background: #141414;
-            color: #ddd;
-            border-radius: 13px;
-            font-weight: 900;
-        }
-
-        .game-btn.main {
-            background: #f5c542;
-            border-color: #f5c542;
-            color: #080808;
-        }
-
-        .game-btn:disabled {
-            opacity: .3;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .stat {
-            background: #101010;
-            border: 1px solid #222;
-            border-radius: 14px;
-            padding: 12px 6px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: 900;
-        }
-
-        .stat-label {
-            margin-top: 3px;
-            color: #777;
-            font-size: 10px;
-        }
-
-        .garage-row {
-            padding: 13px;
-            border: 1px solid #222;
-            border-radius: 14px;
-            background: #101010;
-            margin-bottom: 8px;
-        }
-
-        .garage-title {
-            font-weight: 800;
-        }
-
-        .garage-info {
-            margin-top: 5px;
-            color: #777;
-            font-size: 11px;
-        }
-
-        .toast {
-            position: fixed;
-            left: 50%;
-            bottom: 24px;
-            transform: translateX(-50%) translateY(20px);
-            width: calc(100% - 28px);
-            max-width: 520px;
-            padding: 13px 15px;
-            border-radius: 14px;
-            background: #202020;
-            color: white;
-            border: 1px solid #333;
-            opacity: 0;
-            pointer-events: none;
-            transition: .2s;
-            z-index: 100;
-            text-align: center;
-            font-size: 13px;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .loading {
-            text-align: center;
-            color: #777;
-            padding: 45px 10px;
-        }
-
-        @media (max-width: 420px) {
-            .tabs {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .playing-card {
-                width: 56px;
-                height: 80px;
-            }
-
-            .mini-card {
-                width: 48px;
-                height: 68px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1,
+             maximum-scale=1,
+             user-scalable=no,
+             viewport-fit=cover"
+>
+
+<title>Heavy Lux Card</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+:root {
+    --bg: #08090d;
+    --panel: #11131a;
+    --panel2: #171a22;
+    --border: rgba(255,255,255,.08);
+    --text: #f4f4f6;
+    --muted: #9297a5;
+    --gold: #d7ad5a;
+    --gold2: #f0cf7a;
+    --green: #4fd18b;
+    --red: #e85b65;
+    --blue: #5b9df5;
+    --shadow: 0 18px 50px rgba(0,0,0,.45);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* =====================================================
+   APP
+===================================================== */
+
+.app {
+    width: 100%;
+    min-height: 100vh;
+    padding:
+        env(safe-area-inset-top)
+        0
+        env(safe-area-inset-bottom);
+}
+
+.screen {
+    width: 100%;
+    min-height: 100vh;
+}
+
+.container {
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    padding: 16px;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    background:
+        rgba(8,9,13,.88);
+
+    backdrop-filter: blur(18px);
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+.header-inner {
+    width: min(1100px, 100%);
+    margin: 0 auto;
+
+    min-height: 68px;
+    padding: 10px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-mark {
+    width: 40px;
+    height: 40px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #2b2416,
+            #14110b
+        );
+
+    border:
+        1px solid
+        rgba(215,173,90,.3);
+
+    color: var(--gold2);
+
+    font-size: 20px;
+    box-shadow:
+        0 8px 25px
+        rgba(215,173,90,.08);
+}
+
+.logo-title {
+    font-weight: 800;
+    letter-spacing: .5px;
+}
+
+.logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+}
+
+.connection.online .connection-dot {
+    background: var(--green);
+    box-shadow:
+        0 0 12px
+        rgba(79,209,139,.6);
+}
+
+/* =====================================================
+   AUTH
+===================================================== */
+
+.auth-screen {
+    min-height: calc(100vh - 69px);
+
+    display: grid;
+    place-items: center;
+
+    padding: 25px 16px;
+}
+
+.auth-card {
+    width: min(440px, 100%);
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(23,26,34,.98),
+            rgba(13,15,21,.98)
+        );
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 26px;
+
+    padding: 28px;
+
+    box-shadow: var(--shadow);
+}
+
+.auth-icon {
+    width: 72px;
+    height: 72px;
+
+    margin: 0 auto 18px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 22px;
+
+    font-size: 32px;
+
+    color: var(--gold2);
+
+    background:
+        linear-gradient(
+            145deg,
+            #302613,
+            #13100b
+        );
+
+    border:
+        1px solid
+        rgba(215,173,90,.25);
+}
+
+.auth-card h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 27px;
+}
+
+.auth-card p {
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.field {
+    margin-top: 16px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.input {
+    width: 100%;
+    height: 48px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 14px;
+
+    outline: none;
+
+    padding: 0 15px;
+
+    background: #0b0d12;
+    color: var(--text);
+}
+
+.input:focus {
+    border-color:
+        rgba(215,173,90,.45);
+}
+
+.primary {
+    width: 100%;
+    min-height: 48px;
+
+    margin-top: 18px;
+
+    border-radius: 14px;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gold2),
+            var(--gold)
+        );
+
+    color: #15110a;
+
+    font-weight: 800;
+
+    box-shadow:
+        0 10px 30px
+        rgba(215,173,90,.14);
+}
+
+.secondary {
+    min-height: 44px;
+
+    padding: 0 16px;
+
+    border-radius: 13px;
+
+    color: var(--text);
+
+    background: var(--panel2);
+
+    border:
+        1px solid var(--border);
+}
+
+.danger {
+    color: #fff;
+
+    background:
+        rgba(232,91,101,.12);
+
+    border:
+        1px solid
+        rgba(232,91,101,.2);
+}
+
+/* =====================================================
+   PROFILE BAR
+===================================================== */
+
+.profile-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+
+    margin-bottom: 16px;
+}
+
+.profile-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+
+    border-radius: 15px;
+
+    display: grid;
+    place-items: center;
+
+    background:
+        linear-gradient(
+            145deg,
+            #2a2113,
+            #12100b
+        );
+
+    color: var(--gold2);
+
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.profile-name {
+    font-weight: 800;
+}
+
+.profile-username {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 10px;
+    margin-top: 7px;
+    flex-wrap: wrap;
+}
+
+.stat-mini {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.wallet-card {
+    min-width: 150px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    padding: 14px 16px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.wallet-label {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.wallet-value {
+    color: var(--gold2);
+    font-size: 21px;
+    font-weight: 900;
+    margin-top: 3px;
+}
+
+.xp-bar {
+    height: 5px;
+    background: #272b35;
+    border-radius: 999px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.xp-fill {
+    height: 100%;
+    width: 0%;
+    background:
+        linear-gradient(
+            90deg,
+            var(--gold),
+            var(--gold2)
+        );
+}
+
+/* =====================================================
+   NAV
+===================================================== */
+
+.nav {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.nav-btn {
+    min-height: 48px;
+
+    background: var(--panel);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 15px;
+
+    color: var(--muted);
+
+    font-weight: 700;
+}
+
+.nav-btn.active {
+    color: var(--gold2);
+
+    border-color:
+        rgba(215,173,90,.28);
+
+    background:
+        rgba(215,173,90,.07);
+}
+
+/* =====================================================
+   PANELS
+===================================================== */
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 10px 35px rgba(0,0,0,.16);
+}
+
+.panel + .panel {
+    margin-top: 14px;
+}
+
+.panel-title {
+    font-size: 19px;
+    font-weight: 850;
+}
+
+.panel-subtitle {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* =====================================================
+   ROOM CREATION
+===================================================== */
+
+.create-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.stake-select {
+    width: 100%;
+    min-height: 48px;
+
+    background: #0b0d12;
+    color: var(--text);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 14px;
+
+    padding: 0 13px;
+}
+
+/* =====================================================
+   ROOMS
+===================================================== */
+
+.rooms-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.room-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+
+    padding: 15px;
+
+    border-radius: 16px;
+
+    background: #0c0e13;
+
+    border:
+        1px solid var(--border);
+}
+
+.room-id {
+    font-weight: 850;
+    letter-spacing: 1px;
+}
+
+.room-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    color: var(--muted);
+    font-size: 12px;
+
+    margin-top: 6px;
+}
+
+.join-btn {
+    min-width: 88px;
+}
+
+/* =====================================================
+   GAME
+===================================================== */
+
+.game-screen {
+    padding-bottom: 30px;
+}
+
+.game-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+
+    align-items: center;
+
+    margin-bottom: 14px;
+}
+
+.game-player {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    padding: 11px 13px;
+}
+
+.game-player.right {
+    text-align: right;
+}
+
+.game-player-name {
+    font-weight: 800;
+}
+
+.game-player-cards {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.game-center {
+    text-align: center;
+}
+
+.game-room {
+    font-weight: 850;
+    color: var(--gold2);
+}
+
+.game-stake {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+.table {
+    position: relative;
+
+    min-height: 390px;
+
+    border-radius: 30px;
+
+    overflow: hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% 45%,
+            #183d2c 0,
+            #0f3024 38%,
+            #092017 100%
+        );
+
+    border:
+        1px solid
+        rgba(79,209,139,.15);
+
+    box-shadow:
+        inset 0 0 80px
+        rgba(0,0,0,.28),
+        0 20px 60px
+        rgba(0,0,0,.25);
+}
+
+.table::before {
+    content: "";
+
+    position: absolute;
+    inset: 20px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.06);
+
+    border-radius: 24px;
+
+    pointer-events: none;
+}
+
+.turn-badge {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 5;
+
+    padding: 8px 14px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(0,0,0,.38);
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    color: #dce7df;
+}
+
+.deck {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%);
+
+    width: 66px;
+    height: 94px;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #23252d,
+            #101218
+        );
+
+    border:
+        1px solid
+        rgba(255,255,255,.13);
+
+    box-shadow:
+        5px 6px 0 #090b0e,
+        10px 11px 0 rgba(0,0,0,.2);
+}
+
+.deck::after {
+    content: "♠";
+
+    position: absolute;
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    color: rgba(255,255,255,.14);
+    font-size: 28px;
+}
+
+.table-cards {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%);
+
+    width: min(700px, 90%);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+/* =====================================================
+   CARDS
+===================================================== */
+
+.card {
+    width: 68px;
+    height: 96px;
+
+    border-radius: 10px;
+
+    position: relative;
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff,
+            #e9e9eb
+        );
+
+    color: #111;
+
+    border:
+        1px solid
+        rgba(0,0,0,.14);
+
+    box-shadow:
+        0 7px 15px
+        rgba(0,0,0,.28);
+
+    user-select: none;
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease;
+}
+
+.card.red {
+    color: #c52d3d;
+}
+
+.card.black {
+    color: #111;
+}
+
+.card.clickable {
+    cursor: pointer;
+}
+
+.card.clickable:hover {
+    transform: translateY(-5px);
+}
+
+.card.selected {
+    transform: translateY(-12px);
+
+    box-shadow:
+        0 15px 28px
+        rgba(0,0,0,.38),
+        0 0 0 2px
+        var(--gold2);
+}
+
+.card-rank {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+
+    font-weight: 900;
+    font-size: 17px;
+}
+
+.card-suit {
+    position: absolute;
+    bottom: 5px;
+    right: 8px;
+
+    font-size: 19px;
+}
+
+.card-center {
+    position: absolute;
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    font-size: 30px;
+}
+
+.card.back {
+    background:
+        linear-gradient(
+            135deg,
+            #202532,
+            #0b0f17
+        );
+
+    border-color:
+        rgba(255,255,255,.14);
+}
+
+.card.back::before {
+    content: "HLC";
+
+    position: absolute;
+    inset: 7px;
+
+    border:
+        1px solid
+        rgba(215,173,90,.22);
+
+    border-radius: 7px;
+
+    display: grid;
+    place-items: center;
+
+    color:
+        rgba(215,173,90,.35);
+
+    font-size: 12px;
+    font-weight: 900;
+}
+
+/* =====================================================
+   HAND
+===================================================== */
+
+.hand-section {
+    margin-top: 15px;
+}
+
+.hand-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 8px;
+}
+
+.hand-title strong {
+    font-size: 15px;
+}
+
+.hand-count {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.hand {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+
+    overflow-x: auto;
+
+    padding:
+        12px
+        8px
+        18px;
+
+    min-height: 130px;
+}
+
+.hand .card {
+    flex: 0 0 68px;
+}
+
+/* =====================================================
+   CONTROLS
+===================================================== */
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+
+    margin-top: 14px;
+}
+
+.game-btn {
+    min-height: 48px;
+
+    border-radius: 14px;
+
+    background: var(--panel);
+
+    color: var(--text);
+
+    border:
+        1px solid var(--border);
+
+    font-weight: 800;
+}
+
+.game-btn.gold {
+    color: #161108;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gold2),
+            var(--gold)
+        );
+
+    border: 0;
+}
+
+.game-btn.green {
+    background:
+        rgba(79,209,139,.12);
+
+    color: var(--green);
+
+    border-color:
+        rgba(79,209,139,.2);
+}
+
+.game-btn.red {
+    background:
+        rgba(232,91,101,.12);
+
+    color: #ff8a91;
+
+    border-color:
+        rgba(232,91,101,.2);
+}
+
+/* =====================================================
+   GAME LOG
+===================================================== */
+
+.game-log {
+    margin-top: 14px;
+
+    max-height: 130px;
+    overflow-y: auto;
+
+    padding: 11px 13px;
+
+    background: rgba(0,0,0,.18);
+
+    border-radius: 14px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+.modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 100;
+
+    display: grid;
+    place-items: center;
+
+    padding: 18px;
+
+    background:
+        rgba(0,0,0,.68);
+
+    backdrop-filter: blur(8px);
+}
+
+.modal-card {
+    width: min(440px, 100%);
+
+    background: #12151c;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 22px;
+
+    padding: 20px;
+
+    box-shadow: var(--shadow);
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 850;
+}
+
+.modal-text {
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-top: 17px;
+}
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+.toast-container {
+    position: fixed;
+
+    z-index: 200;
+
+    top:
+        calc(
+            env(safe-area-inset-top) + 78px
+        );
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: min(430px, calc(100% - 30px));
+
+    pointer-events: none;
+}
+
+.toast {
+    padding: 13px 15px;
+
+    margin-bottom: 8px;
+
+    background:
+        rgba(19,22,29,.96);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 12px 35px
+        rgba(0,0,0,.35);
+
+    font-size: 13px;
+
+    animation:
+        toastIn .2s ease;
+}
+
+.toast.error {
+    border-color:
+        rgba(232,91,101,.3);
+}
+
+.toast.success {
+    border-color:
+        rgba(79,209,139,.3);
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.empty {
+    text-align: center;
+    padding: 28px 10px;
+
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 700px) {
+
+    .profile-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .wallet-card {
+        min-width: 0;
+    }
+
+    .game-header {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .game-center {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .game-player {
+        margin-top: 45px;
+    }
+
+    .table {
+        min-height: 330px;
+    }
+
+    .card {
+        width: 58px;
+        height: 83px;
+    }
+
+    .hand .card {
+        flex-basis: 58px;
+    }
+
+    .card-rank {
+        font-size: 15px;
+    }
+
+    .card-center {
+        font-size: 24px;
+    }
+
+    .card-suit {
+        font-size: 16px;
+    }
+
+    .controls {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+}
+
+@media (max-width: 420px) {
+
+    .container {
+        padding: 11px;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    .auth-card {
+        padding: 21px;
+    }
+
+    .table {
+        min-height: 300px;
+        border-radius: 23px;
+    }
+
+    .card {
+        width: 53px;
+        height: 77px;
+    }
+
+    .hand .card {
+        flex-basis: 53px;
+    }
+
+    .controls {
+        gap: 6px;
+    }
+
+    .game-btn {
+        font-size: 12px;
+        padding: 0 4px;
+    }
+
+}
+</style>
 </head>
 
 <body>
 
 <div class="app">
 
-    <div class="topbar">
-        <div class="brand">
-            HEAVY <span>LUX</span>
-        </div>
+    <!-- =================================================
+         HEADER
+    ================================================== -->
 
-        <div class="connection">
-            <div id="connectionDot" class="dot"></div>
-            <span id="connectionText">подключение...</span>
-        </div>
-    </div>
+    <header class="header">
 
-    <div id="profileCard" class="card">
-        <div class="loading">Загрузка профиля...</div>
-    </div>
+        <div class="header-inner">
 
-    <div class="tabs">
-        <button class="tab active" data-tab="game">
-            ИГРА
-        </button>
+            <div class="logo">
 
-        <button class="tab" data-tab="rooms">
-            КОМНАТЫ
-        </button>
+                <div class="logo-mark">
+                    ♠
+                </div>
 
-        <button class="tab" data-tab="garage">
-            ГАРАЖ
-        </button>
+                <div>
+                    <div class="logo-title">
+                        HEAVY LUX
+                    </div>
 
-        <button class="tab" data-tab="profile">
-            ПРОФИЛЬ
-        </button>
-    </div>
+                    <div class="logo-sub">
+                        CARD
+                    </div>
+                </div>
 
-    <section id="tab-game">
-
-        <div id="lobbyCard" class="card">
-
-            <div class="section-title">
-                Дурак 36
             </div>
 
-            <div class="section-subtitle">
-                Игра один на один. Только живые игроки.
-            </div>
-
-            <div class="stakes" id="stakes"></div>
-
-            <button
-                id="createRoomBtn"
-                class="primary"
+            <div
+                id="connection"
+                class="connection"
             >
-                СОЗДАТЬ КОМНАТУ
-            </button>
+                <span class="connection-dot"></span>
+                <span id="connectionText">
+                    Подключение...
+                </span>
+            </div>
 
-            <div style="height:8px"></div>
+        </div>
 
-            <div class="room-actions">
+    </header>
+
+
+    <!-- =================================================
+         AUTH SCREEN
+    ================================================== -->
+
+    <section
+        id="authScreen"
+        class="screen auth-screen"
+    >
+
+        <div class="auth-card">
+
+            <div class="auth-icon">
+                ♠
+            </div>
+
+            <h1>
+                Heavy Lux Card
+            </h1>
+
+            <p>
+                Онлайн-Дурак на 36 карт.
+                Только живые игроки.
+            </p>
+
+            <div class="field">
+
+                <label for="nameInput">
+                    Ваш ник
+                </label>
 
                 <input
-                    id="roomInput"
+                    id="nameInput"
                     class="input"
-                    placeholder="ID комнаты"
-                    style="margin:0"
-                    maxlength="12"
+                    maxlength="24"
+                    placeholder="Введите ник"
+                    autocomplete="off"
                 >
 
-                <button
-                    id="joinRoomBtn"
-                    class="secondary"
-                >
-                    ВОЙТИ
-                </button>
-
-            </div>
-
-        </div>
-
-        <div id="gameCard" class="card hidden">
-
-            <div class="game-header">
-
-                <div>
-                    <div class="section-title">
-                        ДУРАК
-                    </div>
-
-                    <div
-                        id="gameRoom"
-                        class="game-room"
-                    >
-                        Комната
-                    </div>
-                </div>
-
-                <div
-                    id="turnBadge"
-                    class="turn"
-                >
-                    ОЖИДАНИЕ
-                </div>
-
-            </div>
-
-            <div
-                id="opponent"
-                class="opponent"
-            >
-                <div>
-                    <div
-                        id="opponentName"
-                        class="opponent-name"
-                    >
-                        Противник
-                    </div>
-
-                    <div
-                        id="opponentStatus"
-                        class="opponent-cards"
-                    >
-                        ожидание
-                    </div>
-                </div>
-
-                <div
-                    id="opponentCards"
-                    class="opponent-cards"
-                >
-                    0 карт
-                </div>
-            </div>
-
-            <div
-                id="table"
-                class="table"
-            >
-                Ожидание начала игры...
-            </div>
-
-            <div
-                id="hand"
-                class="hand"
-            ></div>
-
-            <div class="game-actions">
-
-                <button
-                    id="takeBtn"
-                    class="game-btn"
-                >
-                    ВЗЯТЬ
-                </button>
-
-                <button
-                    id="bitoBtn"
-                    class="game-btn main"
-                >
-                    БИТО
-                </button>
-
-                <button
-                    id="leaveBtn"
-                    class="game-btn"
-                >
-                    ВЫЙТИ
-                </button>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <section
-        id="tab-rooms"
-        class="hidden"
-    >
-
-        <div class="card">
-
-            <div class="section-title">
-                КОМНАТЫ
-            </div>
-
-            <div class="section-subtitle">
-                Доступные игры
-            </div>
-
-            <div id="roomsList">
-                <div class="loading">
-                    Загрузка...
-                </div>
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <section
-        id="tab-garage"
-        class="hidden"
-    >
-
-        <div class="card">
-
-            <div class="section-title">
-                ГАРАЖ
-            </div>
-
-            <div class="section-subtitle">
-                Ваш транспорт
-            </div>
-
-            <div id="garageList">
-                <div class="loading">
-                    Нажмите для загрузки
-                </div>
             </div>
 
             <button
-                id="garageBtn"
+                id="enterButton"
                 class="primary"
             >
-                ОБНОВИТЬ ГАРАЖ
+                Войти в игру
             </button>
 
         </div>
@@ -808,201 +1374,717 @@
     </section>
 
 
-    <section
-        id="tab-profile"
-        class="hidden"
+    <!-- =================================================
+         MAIN
+    ================================================== -->
+
+    <main
+        id="mainScreen"
+        class="screen hidden"
     >
 
-        <div class="card">
+        <div class="container">
 
-            <div class="section-title">
-                ПРОФИЛЬ
+            <!-- PROFILE -->
+
+            <div class="profile-bar">
+
+                <div class="profile-card">
+
+                    <div
+                        id="avatar"
+                        class="avatar"
+                    >
+                        H
+                    </div>
+
+                    <div>
+
+                        <div
+                            id="profileName"
+                            class="profile-name"
+                        >
+                            Игрок
+                        </div>
+
+                        <div
+                            id="profileUsername"
+                            class="profile-username"
+                        >
+                            Онлайн
+                        </div>
+
+                        <div class="profile-stats">
+
+                            <span class="stat-mini">
+                                Ур.
+                                <strong id="profileLevel">
+                                    1
+                                </strong>
+                            </span>
+
+                            <span class="stat-mini">
+                                Игр:
+                                <strong id="profileGames">
+                                    0
+                                </strong>
+                            </span>
+
+                            <span class="stat-mini">
+                                Побед:
+                                <strong id="profileWins">
+                                    0
+                                </strong>
+                            </span>
+
+                            <span class="stat-mini">
+                                Поражений:
+                                <strong id="profileLosses">
+                                    0
+                                </strong>
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="wallet-card">
+
+                    <div class="wallet-label">
+                        Баланс
+                    </div>
+
+                    <div
+                        id="wallet"
+                        class="wallet-value"
+                    >
+                        0
+                    </div>
+
+                    <div class="xp-bar">
+                        <div
+                            id="xpFill"
+                            class="xp-fill"
+                        ></div>
+                    </div>
+
+                </div>
+
             </div>
 
-            <div
-                id="profileDetails"
-                class="section-subtitle"
-            ></div>
 
-            <div
-                id="stats"
-                class="stats"
-            ></div>
+            <!-- NAV -->
+
+            <div class="nav">
+
+                <button
+                    id="roomsTab"
+                    class="nav-btn active"
+                >
+                    Комнаты
+                </button>
+
+                <button
+                    id="gameTab"
+                    class="nav-btn"
+                >
+                    Игра
+                </button>
+
+            </div>
+
+
+            <!-- =================================================
+                 ROOMS VIEW
+            ================================================== -->
+
+            <section
+                id="roomsView"
+            >
+
+                <div class="panel">
+
+                    <div class="panel-title">
+                        Создать комнату
+                    </div>
+
+                    <div class="panel-subtitle">
+                        1×1 · только живой игрок
+                    </div>
+
+                    <div class="create-row">
+
+                        <select
+                            id="stakeSelect"
+                            class="stake-select"
+                        >
+                        </select>
+
+                        <button
+                            id="createRoomButton"
+                            class="primary"
+                            style="margin-top:0; min-width:130px;"
+                        >
+                            Создать
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="panel-title">
+                        Комнаты
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Выберите свободную комнату
+                    </div>
+
+                    <div
+                        id="roomsList"
+                        class="rooms-list"
+                    >
+
+                        <div class="empty">
+                            Загрузка комнат...
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 GAME VIEW
+            ================================================== -->
+
+            <section
+                id="gameView"
+                class="game-screen hidden"
+            >
+
+                <div class="game-header">
+
+                    <div class="game-player">
+
+                        <div
+                            id="opponentName"
+                            class="game-player-name"
+                        >
+                            Соперник
+                        </div>
+
+                        <div
+                            id="opponentCards"
+                            class="game-player-cards"
+                        >
+                            Карт: 0
+                        </div>
+
+                    </div>
+
+                    <div class="game-center">
+
+                        <div
+                            id="gameRoom"
+                            class="game-room"
+                        >
+                            —
+                        </div>
+
+                        <div
+                            id="gameStake"
+                            class="game-stake"
+                        >
+                            Ставка: 0
+                        </div>
+
+                    </div>
+
+                    <div class="game-player right">
+
+                        <div
+                            id="myGameName"
+                            class="game-player-name"
+                        >
+                            Вы
+                        </div>
+
+                        <div
+                            id="myCardsCount"
+                            class="game-player-cards"
+                        >
+                            Карт: 0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table">
+
+                    <div
+                        id="turnBadge"
+                        class="turn-badge"
+                    >
+                        Ожидание...
+                    </div>
+
+                    <div class="deck"></div>
+
+                    <div
+                        id="tableCards"
+                        class="table-cards"
+                    ></div>
+
+                </div>
+
+
+                <div class="hand-section">
+
+                    <div class="hand-title">
+
+                        <strong>
+                            Ваша рука
+                        </strong>
+
+                        <span
+                            id="handCount"
+                            class="hand-count"
+                        >
+                            0 карт
+                        </span>
+
+                    </div>
+
+                    <div
+                        id="hand"
+                        class="hand"
+                    ></div>
+
+                </div>
+
+
+                <div class="controls">
+
+                    <button
+                        id="attackButton"
+                        class="game-btn gold"
+                    >
+                        Атаковать
+                    </button>
+
+                    <button
+                        id="defendButton"
+                        class="game-btn green"
+                    >
+                        Защититься
+                    </button>
+
+                    <button
+                        id="takeButton"
+                        class="game-btn"
+                    >
+                        Взять
+                    </button>
+
+                    <button
+                        id="bitoButton"
+                        class="game-btn"
+                    >
+                        БИТО
+                    </button>
+
+                    <button
+                        id="cancelButton"
+                        class="game-btn"
+                    >
+                        Снять выбор
+                    </button>
+
+                    <button
+                        id="leaveButton"
+                        class="game-btn red"
+                    >
+                        Выйти
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="gameLog"
+                    class="game-log"
+                >
+                    Игра ещё не началась.
+                </div>
+
+            </section>
 
         </div>
 
-        <div class="card">
-
-            <div class="section-title">
-                ГИБДД
-            </div>
-
-            <div
-                id="gibddInfo"
-                class="section-subtitle"
-            >
-                Проверка...
-            </div>
-
-            <button
-                id="gibddBtn"
-                class="secondary"
-            >
-                ПРОВЕРИТЬ ГИБДД
-            </button>
-
-        </div>
-
-    </section>
+    </main>
 
 </div>
 
 
-<div id="toast" class="toast"></div>
+<!-- =====================================================
+     MODAL
+====================================================== -->
+
+<div
+    id="modal"
+    class="modal hidden"
+>
+
+    <div class="modal-card">
+
+        <div
+            id="modalTitle"
+            class="modal-title"
+        >
+            Heavy Lux
+        </div>
+
+        <div
+            id="modalText"
+            class="modal-text"
+        >
+            —
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                id="modalCancel"
+                class="secondary"
+            >
+                Отмена
+            </button>
+
+            <button
+                id="modalConfirm"
+                class="primary"
+                style="margin-top:0"
+            >
+                OK
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     TOAST
+====================================================== -->
+
+<div
+    id="toastContainer"
+    class="toast-container"
+></div>
 
 
 <script>
 "use strict";
 
+/* =====================================================
+   TELEGRAM
+===================================================== */
 
-/*
-=========================================================
-TELEGRAM
-=========================================================
-*/
-
-const tg =
+const telegram =
     window.Telegram &&
     window.Telegram.WebApp
         ? window.Telegram.WebApp
         : null;
 
-if (tg) {
-    tg.ready();
-    tg.expand();
+if (telegram) {
 
     try {
-        tg.setHeaderColor("#070707");
-        tg.setBackgroundColor("#070707");
-    } catch (_) {}
+
+        telegram.ready();
+        telegram.expand();
+
+    } catch (error) {
+
+        console.warn(
+            "[TELEGRAM]",
+            error
+        );
+
+    }
+
 }
 
 
-/*
-=========================================================
-STATE
-=========================================================
-*/
+/* =====================================================
+   STORAGE
+===================================================== */
+
+const STORAGE_PLAYER_ID =
+    "heavy_lux_player_id";
+
+const STORAGE_NAME =
+    "heavy_lux_name";
+
+
+/* =====================================================
+   STATE
+===================================================== */
 
 const state = {
+
     socket: null,
+
+    authenticated: false,
+
+    playerId:
+        localStorage.getItem(
+            STORAGE_PLAYER_ID
+        ) || null,
+
+    roomId: null,
+
+    roomState: null,
+
     profile: null,
-    rooms: [],
-    game: null,
-    selectedStake: null,
+
     selectedCardId: null,
-    garage: []
+
+    selectedAttackId: null,
+
+    selectedDefenseId: null,
+
+    connected: false,
+
+    pendingAction: null
+
 };
 
 
-/*
-=========================================================
-DOM
-=========================================================
-*/
+/* =====================================================
+   DOM
+===================================================== */
 
-const $ = id =>
-    document.getElementById(id);
-
-
-/*
-=========================================================
-TOAST
-=========================================================
-*/
-
-let toastTimer = null;
-
-function toast(message) {
-
-    const el = $("toast");
-
-    el.textContent =
-        String(message || "Ошибка");
-
-    el.classList.add("show");
-
-    clearTimeout(toastTimer);
-
-    toastTimer =
-        setTimeout(
-            () => {
-                el.classList.remove("show");
-            },
-            3000
-        );
-}
+const $ =
+    id =>
+        document.getElementById(id);
 
 
-/*
-=========================================================
-CONNECTION
-=========================================================
-*/
+/* =====================================================
+   TOAST
+===================================================== */
 
-function setConnection(
-    online
+function toast(
+    message,
+    type = ""
 ) {
 
-    $("connectionDot")
-        .classList.toggle(
-            "online",
-            Boolean(online)
+    const container =
+        $("toastContainer");
+
+    const item =
+        document.createElement(
+            "div"
         );
 
-    $("connectionText")
-        .textContent =
-        online
-            ? "онлайн"
-            : "нет соединения";
+    item.className =
+        "toast " +
+        type;
+
+    item.textContent =
+        String(message);
+
+    container.appendChild(
+        item
+    );
+
+    setTimeout(
+        () => {
+
+            item.remove();
+
+        },
+        3500
+    );
+
 }
 
 
-/*
-=========================================================
-SOCKET
-=========================================================
-*/
+/* =====================================================
+   LOG
+===================================================== */
 
-function createSocket() {
+function logGame(
+    message
+) {
+
+    const log =
+        $("gameLog");
+
+    const line =
+        document.createElement(
+            "div"
+        );
+
+    const time =
+        new Date()
+            .toLocaleTimeString(
+                "ru-RU",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }
+            );
+
+    line.textContent =
+        `[${time}] ${message}`;
+
+    log.appendChild(
+        line
+    );
+
+    while (
+        log.children.length >
+        60
+    ) {
+
+        log.firstChild.remove();
+
+    }
+
+    log.scrollTop =
+        log.scrollHeight;
+
+}
+
+
+/* =====================================================
+   CONNECTION UI
+===================================================== */
+
+function setConnection(
+    connected
+) {
+
+    state.connected =
+        Boolean(
+            connected
+        );
+
+    const element =
+        $("connection");
+
+    const text =
+        $("connectionText");
+
+    if (state.connected) {
+
+        element.classList.add(
+            "online"
+        );
+
+        text.textContent =
+            "Онлайн";
+
+    } else {
+
+        element.classList.remove(
+            "online"
+        );
+
+        text.textContent =
+            "Нет соединения";
+
+    }
+
+}
+
+
+/* =====================================================
+   PLAYER NAME
+===================================================== */
+
+function getInitialName() {
+
+    const stored =
+        localStorage.getItem(
+            STORAGE_NAME
+        );
+
+    if (stored) {
+
+        return stored;
+
+    }
+
+    if (
+        telegram &&
+        telegram.initDataUnsafe &&
+        telegram.initDataUnsafe.user
+    ) {
+
+        const user =
+            telegram.initDataUnsafe.user;
+
+        if (user.first_name) {
+
+            return (
+                user.first_name +
+                (
+                    user.last_name
+                        ? " " +
+                          user.last_name
+                        : ""
+                )
+            ).slice(
+                0,
+                24
+            );
+
+        }
+
+    }
+
+    return "";
+
+}
+
+
+/* =====================================================
+   SOCKET
+===================================================== */
+
+function connectSocket() {
 
     if (state.socket) {
-        return state.socket;
+
+        try {
+            state.socket.disconnect();
+        } catch (_) {}
+
     }
-
-    const auth = {};
-
-    if (tg && tg.initData) {
-        auth.initData =
-            tg.initData;
-    }
-
-    /*
-     * Сервер текущей версии
-     * получает Telegram auth
-     * через Socket.IO middleware.
-     */
 
     state.socket =
         io(
             window.location.origin,
             {
+
                 transports: [
                     "websocket",
                     "polling"
                 ],
-
-                auth,
 
                 reconnection: true,
 
@@ -1010,10 +2092,12 @@ function createSocket() {
 
                 reconnectionDelay: 1000,
 
+                reconnectionDelayMax: 5000,
+
                 timeout: 15000
+
             }
         );
-
 
     const socket =
         state.socket;
@@ -1023,15 +2107,15 @@ function createSocket() {
         "connect",
         () => {
 
-            setConnection(true);
-
-            socket.emit(
-                "get_profile"
+            setConnection(
+                true
             );
 
-            socket.emit(
-                "get_rooms"
+            logGame(
+                "Socket.IO подключён."
             );
+
+            authenticate();
 
         }
     );
@@ -1039,9 +2123,16 @@ function createSocket() {
 
     socket.on(
         "disconnect",
-        () => {
+        reason => {
 
-            setConnection(false);
+            setConnection(
+                false
+            );
+
+            logGame(
+                "Соединение потеряно: " +
+                reason
+            );
 
         }
     );
@@ -1051,141 +2142,49 @@ function createSocket() {
         "connect_error",
         error => {
 
-            setConnection(false);
+            setConnection(
+                false
+            );
 
-            console.error(
-                "Socket error:",
+            console.warn(
+                "[SOCKET ERROR]",
                 error
             );
 
-            toast(
-                error &&
-                error.message
-                    ? error.message
-                    : "Ошибка подключения"
+        }
+    );
+
+
+    socket.on(
+        "authenticated",
+        data => {
+
+            if (!data || !data.ok) {
+
+                return;
+
+            }
+
+            state.authenticated =
+                true;
+
+            state.playerId =
+                data.playerId;
+
+            localStorage.setItem(
+                STORAGE_PLAYER_ID,
+                state.playerId
             );
 
-        }
-    );
+            if (data.profile) {
 
-
-    /*
-    -----------------------------------------------------
-    PROFILE
-    -----------------------------------------------------
-    */
-
-    socket.on(
-        "profile",
-        profile => {
-
-            state.profile =
-                profile || null;
-
-            renderProfile();
-
-            renderProfileDetails();
-
-            renderStakes();
-
-        }
-    );
-
-
-    /*
-    -----------------------------------------------------
-    ROOMS
-    -----------------------------------------------------
-    */
-
-    socket.on(
-        "rooms_list",
-        rooms => {
-
-            state.rooms =
-                Array.isArray(rooms)
-                    ? rooms
-                    : [];
-
-            renderRooms();
-
-        }
-    );
-
-
-    /*
-    -----------------------------------------------------
-    ROOM
-    -----------------------------------------------------
-    */
-
-    socket.on(
-        "room_created",
-        data => {
-
-            if (
-                data &&
-                data.room
-            ) {
-
-                const id =
-                    data.room.id;
-
-                toast(
-                    "Комната создана: " +
-                    id
+                updateProfile(
+                    data.profile
                 );
-
-                $("roomInput")
-                    .value = id;
-
-                openGame();
 
             }
 
-        }
-    );
-
-
-    socket.on(
-        "room_joined",
-        data => {
-
-            if (
-                data &&
-                data.room
-            ) {
-
-                toast(
-                    "Вы вошли в комнату"
-                );
-
-                openGame();
-
-            }
-
-        }
-    );
-
-
-    socket.on(
-        "left_room",
-        () => {
-
-            state.game = null;
-
-            state.selectedCardId =
-                null;
-
-            $("gameCard")
-                .classList.add(
-                    "hidden"
-                );
-
-            $("lobbyCard")
-                .classList.remove(
-                    "hidden"
-                );
+            showMain();
 
             socket.emit(
                 "get_rooms"
@@ -1195,57 +2194,191 @@ function createSocket() {
     );
 
 
-    /*
-    -----------------------------------------------------
-    GAME STATE
-    -----------------------------------------------------
-    */
+    socket.on(
+        "profile",
+        profile => {
+
+            if (!profile) {
+
+                return;
+
+            }
+
+            updateProfile(
+                profile
+            );
+
+        }
+    );
+
 
     socket.on(
-        "game_state",
-        game => {
+        "rooms",
+        rooms => {
 
-            state.game =
-                game || null;
+            renderRooms(
+                Array.isArray(
+                    rooms
+                )
+                    ? rooms
+                    : []
+            );
 
-            renderGame();
+        }
+    );
+
+
+    socket.on(
+        "room_created",
+        data => {
+
+            if (!data || !data.ok) {
+
+                return;
+
+            }
 
             if (
-                game &&
-                game.wallet
+                data.room &&
+                data.room.roomId
             ) {
 
-                /*
-                 * Сервер может отдавать
-                 * актуальный wallet прямо
-                 * внутри game_state.
-                 */
+                state.roomId =
+                    data.room.roomId;
 
-                if (state.profile) {
+            }
 
-                    if (
-                        typeof game.wallet.balance ===
-                        "number"
-                    ) {
+            toast(
+                "Комната создана.",
+                "success"
+            );
 
-                        state.profile.wallet =
-                            game.wallet.balance;
+            logGame(
+                "Комната создана."
+            );
 
-                    }
+            switchToGame();
 
-                    if (
-                        typeof game.wallet.available ===
-                        "number"
-                    ) {
+        }
+    );
 
-                        state.profile.walletAvailable =
-                            game.wallet.available;
 
-                    }
+    socket.on(
+        "room_joined",
+        data => {
+
+            if (!data || !data.ok) {
+
+                return;
+
+            }
+
+            if (
+                data.room &&
+                data.room.roomId
+            ) {
+
+                state.roomId =
+                    data.room.roomId;
+
+            }
+
+            toast(
+                data.reconnected
+                    ? "Вы восстановились в комнате."
+                    : "Вы вошли в комнату.",
+                "success"
+            );
+
+            switchToGame();
+
+        }
+    );
+
+
+    socket.on(
+        "reconnected",
+        data => {
+
+            if (!data || !data.ok) {
+
+                return;
+
+            }
+
+            state.roomId =
+                data.roomId ||
+                null;
+
+            if (state.roomId) {
+
+                switchToGame();
+
+                logGame(
+                    "Игровая сессия восстановлена."
+                );
+
+            }
+
+            socket.emit(
+                "get_profile"
+            );
+
+            socket.emit(
+                "get_rooms"
+            );
+
+            socket.emit(
+                "get_room_state"
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "session_replaced",
+        () => {
+
+            toast(
+                "Сессия открыта на другом устройстве.",
+                "error"
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "room_state",
+        roomState => {
+
+            state.roomState =
+                roomState;
+
+            if (roomState) {
+
+                state.roomId =
+                    roomState.roomId ||
+                    state.roomId;
+
+                renderGame(
+                    roomState
+                );
+
+                if (
+                    roomState.status ===
+                    "playing"
+                ) {
+
+                    switchToGame();
 
                 }
 
-                renderProfile();
+            } else {
+
+                state.roomId =
+                    null;
 
             }
 
@@ -1253,75 +2386,42 @@ function createSocket() {
     );
 
 
-    /*
-    -----------------------------------------------------
-    GARAGE
-    -----------------------------------------------------
-    */
-
     socket.on(
-        "garage",
+        "left_room",
         data => {
 
-            state.garage =
-                data &&
-                Array.isArray(
-                    data.vehicles
-                )
-                    ? data.vehicles
-                    : [];
+            if (
+                !data ||
+                data.ok
+            ) {
 
-            renderGarage();
+                state.roomId =
+                    null;
 
-        }
-    );
+                state.roomState =
+                    null;
 
+                state.selectedCardId =
+                    null;
 
-    /*
-    -----------------------------------------------------
-    GIBDD
-    -----------------------------------------------------
-    */
+                state.selectedAttackId =
+                    null;
 
-    socket.on(
-        "gibdd_state",
-        data => {
+                state.selectedDefenseId =
+                    null;
 
-            if (!data) {
-                return;
-            }
+                switchToRooms();
 
-            $("gibddInfo")
-                .textContent =
-                data.message ||
-                (
-                    "ГИБДД готово. " +
-                    "Цена номера: " +
-                    (
-                        Number(
-                            data.platePrice || 0
-                        )
-                    ).toLocaleString("ru-RU")
+                socket.emit(
+                    "get_rooms"
                 );
 
-        }
-    );
+                toast(
+                    "Вы вышли из комнаты.",
+                    "success"
+                );
 
-
-    /*
-    -----------------------------------------------------
-    ERRORS
-    -----------------------------------------------------
-    */
-
-    socket.on(
-        "game_error",
-        message => {
-
-            toast(
-                message ||
-                "Ошибка игры"
-            );
+            }
 
         }
     );
@@ -1331,1152 +2431,522 @@ function createSocket() {
         "error_message",
         data => {
 
-            toast(
+            const message =
                 data &&
                 data.error
                     ? data.error
-                    : "Ошибка сервера"
+                    : "Произошла ошибка.";
+
+            toast(
+                message,
+                "error"
+            );
+
+            logGame(
+                "Ошибка: " +
+                message
             );
 
         }
     );
 
-
-    return socket;
 }
 
 
-/*
-=========================================================
-AUTH WAIT
-=========================================================
-*/
+/* =====================================================
+   AUTHENTICATE
+===================================================== */
 
-function start() {
+function authenticate() {
 
-    createSocket();
+    if (
+        !state.socket ||
+        !state.socket.connected
+    ) {
 
-}
-
-
-/*
-=========================================================
-PROFILE
-=========================================================
-*/
-
-function renderProfile() {
-
-    const p =
-        state.profile;
-
-    if (!p) {
         return;
+
     }
 
+    const inputName =
+        $("nameInput").value.trim();
+
+    const storedName =
+        localStorage.getItem(
+            STORAGE_NAME
+        );
+
     const name =
-        p.name ||
+        inputName ||
+        storedName ||
+        getInitialName() ||
         "Игрок";
 
-    const level =
-        p.level || {};
+    localStorage.setItem(
+        STORAGE_NAME,
+        name
+    );
 
-    const wallet =
-        Number(
-            p.wallet ??
-            p.balance ??
+    const telegramUser =
+        telegram &&
+        telegram.initDataUnsafe &&
+        telegram.initDataUnsafe.user
+            ? telegram.initDataUnsafe.user
+            : null;
+
+    state.socket.emit(
+        "auth",
+        {
+
+            playerId:
+                state.playerId,
+
+            telegramId:
+                telegramUser
+                    ? telegramUser.id
+                    : null,
+
+            name,
+
+            username:
+                telegramUser
+                    ? telegramUser.username ||
+                      null
+                    : null
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   PROFILE
+===================================================== */
+
+function updateProfile(
+    profile
+) {
+
+    state.profile =
+        profile;
+
+    if (
+        profile.playerId
+    ) {
+
+        state.playerId =
+            profile.playerId;
+
+        localStorage.setItem(
+            STORAGE_PLAYER_ID,
+            profile.playerId
+        );
+
+    }
+
+    $("profileName").textContent =
+        profile.name ||
+        "Игрок";
+
+    $("profileUsername").textContent =
+        profile.username
+            ? "@" +
+              profile.username
+            : "Игрок";
+
+    const firstLetter =
+        (
+            profile.name ||
+            "H"
+        )
+            .trim()
+            .charAt(0)
+            .toUpperCase();
+
+    $("avatar").textContent =
+        firstLetter ||
+        "H";
+
+    $("wallet").textContent =
+        formatNumber(
+            profile.wallet ??
+            profile.balance ??
             0
         );
 
-    $("profileCard")
-        .innerHTML = `
-
-            <div class="profile">
-
-                <div class="profile-main">
-
-                    <div class="profile-name">
-                        ${escapeHtml(name)}
-                    </div>
-
-                    <div class="profile-level">
-                        Уровень ${Number(level.level || 1)}
-                        · XP ${Number(p.xp || level.xp || 0)}
-                    </div>
-
-                </div>
-
-                <div class="wallet">
-
-                    <div class="wallet-label">
-                        БАЛАНС
-                    </div>
-
-                    <div class="wallet-value">
-                        ${wallet.toLocaleString("ru-RU")}
-                    </div>
-
-                </div>
-
-            </div>
-        `;
-}
-
-
-function renderProfileDetails() {
-
-    const p =
-        state.profile;
-
-    if (!p) {
-        return;
-    }
-
     const level =
-        p.level || {};
+        profile.level ||
+        {};
 
-    $("profileDetails")
-        .innerHTML = `
-            <div style="color:#ddd">
-                ${escapeHtml(p.name || "Игрок")}
-            </div>
+    $("profileLevel").textContent =
+        level.level ||
+        1;
 
-            <div style="margin-top:6px">
-                ID: ${escapeHtml(
-                    p.telegramId ||
-                    p.playerId ||
-                    "—"
-                )}
-            </div>
+    $("profileGames").textContent =
+        profile.stats &&
+        profile.stats.games
+            ? profile.stats.games
+            : 0;
 
-            <div style="margin-top:5px">
-                Уровень:
-                <b style="color:#f5c542">
-                    ${Number(level.level || 1)}
-                </b>
-            </div>
+    $("profileWins").textContent =
+        profile.stats &&
+        profile.stats.wins
+            ? profile.stats.wins
+            : 0;
 
-            <div style="margin-top:5px">
-                XP:
-                ${Number(
-                    p.xp ||
-                    level.xp ||
-                    0
-                )}
-            </div>
-        `;
+    $("profileLosses").textContent =
+        profile.stats &&
+        profile.stats.losses
+            ? profile.stats.losses
+            : 0;
 
+    const progress =
+        Number(
+            level.progress ||
+            0
+        );
 
-    const stats =
-        p.stats || {};
+    $("xpFill").style.width =
+        (
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    progress
+                )
+            ) * 100
+        ) + "%";
 
-    $("stats")
-        .innerHTML = `
-
-            <div class="stat">
-                <div class="stat-value">
-                    ${Number(
-                        stats.gamesPlayed ??
-                        stats.games ??
-                        0
-                    )}
-                </div>
-                <div class="stat-label">
-                    ИГР
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-value">
-                    ${Number(stats.wins || 0)}
-                </div>
-                <div class="stat-label">
-                    ПОБЕД
-                </div>
-            </div>
-
-            <div class="stat">
-                <div class="stat-value">
-                    ${Number(stats.losses || 0)}
-                </div>
-                <div class="stat-label">
-                    ПОРАЖЕНИЙ
-                </div>
-            </div>
-        `;
 }
 
 
-/*
-=========================================================
-STAKES
-=========================================================
-*/
+/* =====================================================
+   NUMBER
+===================================================== */
 
-function renderStakes() {
+function formatNumber(
+    value
+) {
 
-    const container =
-        $("stakes");
-
-    if (!container) {
-        return;
-    }
-
-    const configured =
-        state.profile &&
-        Array.isArray(
-            state.profile.stakes
-        )
-            ? state.profile.stakes
-            : [10, 50, 100];
-
+    const number =
+        Number(
+            value
+        );
 
     if (
-        state.selectedStake === null &&
-        configured.length
+        !Number.isFinite(
+            number
+        )
     ) {
 
-        state.selectedStake =
-            Number(
-                configured[0]
-            );
+        return "0";
 
     }
 
+    return number.toLocaleString(
+        "ru-RU"
+    );
 
-    container.innerHTML =
-        configured
-            .map(
-                stake => {
-
-                    const n =
-                        Number(stake);
-
-                    return `
-                        <button
-                            class="stake ${
-                                n ===
-                                Number(
-                                    state.selectedStake
-                                )
-                                    ? "selected"
-                                    : ""
-                            }"
-                            data-stake="${n}"
-                        >
-                            ${n.toLocaleString("ru-RU")}
-                        </button>
-                    `;
-
-                }
-            )
-            .join("");
-
-
-    container
-        .querySelectorAll(
-            ".stake"
-        )
-        .forEach(
-            button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        state.selectedStake =
-                            Number(
-                                button.dataset.stake
-                            );
-
-                        renderStakes();
-
-                    }
-                );
-
-            }
-        );
 }
 
 
-/*
-=========================================================
-ROOMS
-=========================================================
-*/
+/* =====================================================
+   CONFIG
+===================================================== */
 
-function renderRooms() {
+async function loadConfig() {
 
-    const container =
+    try {
+
+        const response =
+            await fetch(
+                "/api/config"
+            );
+
+        const data =
+            await response.json();
+
+        const stakes =
+            data &&
+            Array.isArray(
+                data.stakes
+            )
+                ? data.stakes
+                : [];
+
+        renderStakes(
+            stakes
+        );
+
+    } catch (error) {
+
+        console.error(
+            "[CONFIG]",
+            error
+        );
+
+        renderStakes(
+            []
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   STAKES
+===================================================== */
+
+function renderStakes(
+    stakes
+) {
+
+    const select =
+        $("stakeSelect");
+
+    select.innerHTML =
+        "";
+
+    if (!stakes.length) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            "0";
+
+        option.textContent =
+            "Без ставки";
+
+        select.appendChild(
+            option
+        );
+
+        return;
+
+    }
+
+    for (
+        const stake
+        of stakes
+    ) {
+
+        const value =
+            Number(
+                stake
+            );
+
+        if (
+            !Number.isFinite(
+                value
+            )
+        ) {
+
+            continue;
+
+        }
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            String(
+                value
+            );
+
+        option.textContent =
+            "Ставка " +
+            formatNumber(
+                value
+            );
+
+        select.appendChild(
+            option
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ROOMS
+===================================================== */
+
+function renderRooms(
+    rooms
+) {
+
+    const list =
         $("roomsList");
 
-    if (!container) {
-        return;
-    }
+    list.innerHTML =
+        "";
 
+    if (!rooms.length) {
 
-    if (!state.rooms.length) {
-
-        container.innerHTML = `
-            <div class="empty">
-                Сейчас нет доступных комнат.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        state.rooms
-            .map(
-                room => {
-
-                    const count =
-                        Number(
-                            room.playersCount ??
-                            room.players ??
-                            0
-                        );
-
-                    const max =
-                        Number(
-                            room.maxPlayers ||
-                            2
-                        );
-
-                    const status =
-                        room.status ===
-                        "playing"
-                            ? "ИГРА ИДЁТ"
-                            : "ОЖИДАНИЕ";
-
-
-                    return `
-                        <div class="room">
-
-                            <div>
-                                <div class="room-id">
-                                    ${escapeHtml(
-                                        room.id ||
-                                        room.roomId ||
-                                        "ROOM"
-                                    )}
-                                </div>
-
-                                <div class="room-info">
-                                    Ставка:
-                                    ${Number(
-                                        room.stake || 0
-                                    ).toLocaleString("ru-RU")}
-
-                                    ·
-
-                                    ${count}/${max}
-
-                                    ·
-
-                                    <span class="room-status">
-                                        ${status}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <button
-                                class="secondary"
-                                data-room="${escapeAttr(
-                                    room.id ||
-                                    room.roomId ||
-                                    ""
-                                )}"
-                            >
-                                ВОЙТИ
-                            </button>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-
-    container
-        .querySelectorAll(
-            "[data-room]"
-        )
-        .forEach(
-            button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        joinRoom(
-                            button.dataset.room
-                        );
-
-                    }
-                );
-
-            }
-        );
-}
-
-
-/*
-=========================================================
-GAME
-=========================================================
-*/
-
-function renderGame() {
-
-    const game =
-        state.game;
-
-    if (!game) {
-
-        $("gameCard")
-            .classList.add(
-                "hidden"
+        const empty =
+            document.createElement(
+                "div"
             );
 
-        $("lobbyCard")
-            .classList.remove(
-                "hidden"
-            );
+        empty.className =
+            "empty";
+
+        empty.textContent =
+            "Сейчас нет свободных комнат.";
+
+        list.appendChild(
+            empty
+        );
 
         return;
 
     }
 
-
-    $("gameCard")
-        .classList.remove(
-            "hidden"
-        );
-
-    $("lobbyCard")
-        .classList.add(
-            "hidden"
-        );
-
-
-    $("gameRoom")
-        .textContent =
-        "Комната " +
-        (
-            game.roomId ||
-            "—"
-        );
-
-
-    const turn =
-        game.turn ||
-        "WAITING";
-
-
-    const turnBadge =
-        $("turnBadge");
-
-    turnBadge
-        .classList.toggle(
-            "yours",
-            turn ===
-            "YOUR_TURN"
-        );
-
-
-    turnBadge
-        .textContent =
-        turn ===
-        "YOUR_TURN"
-            ? "ВАШ ХОД"
-            : turn ===
-              "OPPONENT_TURN"
-                ? "ХОД ПРОТИВНИКА"
-                : "ОЖИДАНИЕ";
-
-
-    const opponent =
-        game.opponent;
-
-
-    $("opponentName")
-        .textContent =
-        opponent &&
-        opponent.name
-            ? opponent.name
-            : "Противник";
-
-
-    $("opponentCards")
-        .textContent =
-        (
-            opponent &&
-            opponent.cardsCount
-        ) ||
-        0;
-
-    $("opponentStatus")
-        .textContent =
-        opponent &&
-        opponent.connected === false
-            ? "соединение потеряно"
-            : "живой игрок";
-
-
-    renderTable(
-        game.table || []
-    );
-
-
-    renderHand(
-        game.hand || [],
-        game
-    );
-
-
-    $("takeBtn")
-        .disabled =
-        !Boolean(
-            game.canTake
-        );
-
-
-    $("bitoBtn")
-        .disabled =
-        !Boolean(
-            game.canBito
-        );
-
-
-    if (
-        game.status ===
-        "finished"
+    for (
+        const room
+        of rooms
     ) {
 
-        const winner =
-            game.winnerId;
+        if (!room) {
 
-        const me =
-            state.profile &&
-            state.profile.playerId;
-
-        if (winner && me) {
-
-            toast(
-                winner === me
-                    ? "Вы победили!"
-                    : "Вы проиграли."
-            );
+            continue;
 
         }
 
-    }
-}
+        const item =
+            document.createElement(
+                "div"
+            );
 
+        item.className =
+            "room-item";
 
-/*
-=========================================================
-TABLE
-=========================================================
-*/
+        const info =
+            document.createElement(
+                "div"
+            );
 
-function renderTable(
-    table
-) {
+        const roomId =
+            room.roomId ||
+            room.id ||
+            "—";
 
-    const container =
-        $("table");
+        const stake =
+            Number(
+                room.stake ||
+                0
+            );
 
+        const players =
+            Number(
+                room.players ||
+                room.playerCount ||
+                0
+            );
 
-    if (!Array.isArray(table) ||
-        table.length === 0
-    ) {
+        const title =
+            document.createElement(
+                "div"
+            );
 
-        container.innerHTML = `
-            <div style="color:#657267">
-                Стол пуст
-            </div>
-        `;
+        title.className =
+            "room-id";
 
-        return;
+        title.textContent =
+            String(
+                roomId
+            );
 
-    }
+        const meta =
+            document.createElement(
+                "div"
+            );
 
+        meta.className =
+            "room-meta";
 
-    container.innerHTML =
-        table
-            .map(
-                pair => {
+        meta.innerHTML =
+            `
+                <span>Ставка: ${escapeHtml(
+                    formatNumber(stake)
+                )}</span>
+                <span>Игроков: ${escapeHtml(
+                    String(players)
+                )}/2</span>
+                <span>${
+                    room.status === "playing"
+                        ? "Игра идёт"
+                        : "Ожидание"
+                }</span>
+            `;
 
-                    return `
-                        <div class="pair">
-
-                            ${renderMiniCard(
-                                pair.attack
-                            )}
-
-                            ${
-                                pair.defense
-                                    ? renderMiniCard(
-                                        pair.defense,
-                                        true
-                                    )
-                                    : ""
-                            }
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-}
-
-
-/*
-=========================================================
-HAND
-=========================================================
-*/
-
-function renderHand(
-    cards,
-    game
-) {
-
-    const container =
-        $("hand");
-
-
-    if (!Array.isArray(cards) ||
-        cards.length === 0
-    ) {
-
-        container.innerHTML =
-            `<div class="empty">Нет карт</div>`;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        cards
-            .map(
-                card => {
-
-                    const selected =
-                        state.selectedCardId ===
-                        card.id;
-
-
-                    const disabled =
-                        game.canAttack !==
-                        true;
-
-
-                    return `
-                        <button
-                            class="
-                                playing-card
-                                ${
-                                    isRedSuit(
-                                        card.suit
-                                    )
-                                        ? "red"
-                                        : ""
-                                }
-                                ${
-                                    selected
-                                        ? "selected"
-                                        : ""
-                                }
-                                ${
-                                    disabled
-                                        ? "disabled"
-                                        : ""
-                                }
-                            "
-                            data-card="${escapeAttr(
-                                card.id
-                            )}"
-                        >
-
-                            <div class="card-rank">
-                                ${escapeHtml(
-                                    card.rank
-                                )}
-                            </div>
-
-                            <div class="card-suit">
-                                ${suitSymbol(
-                                    card.suit
-                                )}
-                            </div>
-
-                            <div style="text-align:right">
-                                ${escapeHtml(
-                                    card.rank
-                                )}
-                            </div>
-
-                        </button>
-                    `;
-
-                }
-            )
-            .join("");
-
-
-    container
-        .querySelectorAll(
-            "[data-card]"
-        )
-        .forEach(
-            button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        if (
-                            !game.canAttack
-                        ) {
-
-                            return;
-
-                        }
-
-                        state.selectedCardId =
-                            button.dataset.card;
-
-                        renderGame();
-
-                        attackSelected();
-
-                    }
-                );
-
-            }
+        info.appendChild(
+            title
         );
-}
 
+        info.appendChild(
+            meta
+        );
 
-/*
-=========================================================
-MINI CARD
-=========================================================
-*/
+        const button =
+            document.createElement(
+                "button"
+            );
 
-function renderMiniCard(
-    card,
-    defense = false
-) {
+        button.className =
+            "secondary join-btn";
 
-    if (!card) {
-        return "";
-    }
+        button.textContent =
+            "Войти";
 
+        button.addEventListener(
+            "click",
+            () => {
 
-    return `
-        <div
-            class="
-                mini-card
-                ${
-                    isRedSuit(
-                        card.suit
+                joinRoom(
+                    String(
+                        roomId
                     )
-                        ? "red"
-                        : ""
-                }
-                ${
-                    defense
-                        ? "defense"
-                        : ""
-                }
-            "
-        >
-
-            <div>
-                ${escapeHtml(
-                    card.rank
-                )}
-            </div>
-
-            <div style="text-align:center">
-                ${suitSymbol(
-                    card.suit
-                )}
-            </div>
-
-            <div style="text-align:right">
-                ${escapeHtml(
-                    card.rank
-                )}
-            </div>
-
-        </div>
-    `;
-}
-
-
-/*
-=========================================================
-ATTACK
-=========================================================
-*/
-
-function attackSelected() {
-
-    if (
-        !state.selectedCardId ||
-        !state.socket
-    ) {
-        return;
-    }
-
-
-    const game =
-        state.game;
-
-
-    if (
-        !game ||
-        !game.canAttack
-    ) {
-        return;
-    }
-
-
-    state.socket.emit(
-        "attack_card",
-        {
-            cardId:
-                state.selectedCardId
-        }
-    );
-
-
-    state.selectedCardId =
-        null;
-}
-
-
-/*
-=========================================================
-DEFENSE
-=========================================================
-*/
-
-function defend(
-    attackId,
-    defenseId
-) {
-
-    if (!state.socket) {
-        return;
-    }
-
-
-    state.socket.emit(
-        "defend_card",
-        {
-            attackId,
-            defenseId
-        }
-    );
-
-}
-
-
-/*
-=========================================================
-ROOM ACTIONS
-=========================================================
-*/
-
-function createRoom() {
-
-    if (!state.socket) {
-        toast("Нет соединения");
-        return;
-    }
-
-
-    if (
-        state.selectedStake === null
-    ) {
-
-        toast("Выберите ставку");
-
-        return;
-
-    }
-
-
-    state.socket.emit(
-        "create_room",
-        {
-            stake:
-                Number(
-                    state.selectedStake
-                )
-        }
-    );
-
-}
-
-
-function joinRoom(
-    roomId
-) {
-
-    if (!roomId) {
-        toast("Введите ID комнаты");
-        return;
-    }
-
-
-    state.socket.emit(
-        "join_room",
-        {
-            roomId:
-                String(
-                    roomId
-                ).trim().toUpperCase()
-        }
-    );
-
-}
-
-
-function openGame() {
-
-    switchTab(
-        "game"
-    );
-
-    $("gameCard")
-        .classList.remove(
-            "hidden"
-        );
-
-    $("lobbyCard")
-        .classList.add(
-            "hidden"
-        );
-
-}
-
-
-function leaveRoom() {
-
-    if (
-        state.socket
-    ) {
-
-        state.socket.emit(
-            "leave_room"
-        );
-
-    }
-
-}
-
-
-/*
-=========================================================
-GARAGE
-=========================================================
-*/
-
-function loadGarage() {
-
-    if (!state.socket) {
-        return;
-    }
-
-    state.socket.emit(
-        "get_garage"
-    );
-
-}
-
-
-function renderGarage() {
-
-    const container =
-        $("garageList");
-
-
-    if (!state.garage.length) {
-
-        container.innerHTML = `
-            <div class="empty">
-                Гараж пока пуст.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        state.garage
-            .map(
-                car => {
-
-                    return `
-                        <div class="garage-row">
-
-                            <div class="garage-title">
-                                ${escapeHtml(
-                                    car.model ||
-                                    "Автомобиль"
-                                )}
-                            </div>
-
-                            <div class="garage-info">
-                                Цвет:
-                                ${escapeHtml(
-                                    car.color ||
-                                    "—"
-                                )}
-
-                                ·
-
-                                Номер:
-                                ${escapeHtml(
-                                    car.plate ||
-                                    "нет"
-                                )}
-
-                                ·
-
-                                Состояние:
-                                ${Number(
-                                    car.condition ??
-                                    100
-                                )}%
-
-                            </div>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/*
-=========================================================
-GIBDD
-=========================================================
-*/
-
-function loadGibdd() {
-
-    if (!state.socket) {
-        return;
-    }
-
-
-    state.socket.emit(
-        "gibdd_state"
-    );
-
-}
-
-
-/*
-=========================================================
-TABS
-=========================================================
-*/
-
-function switchTab(
-    tab
-) {
-
-    document
-        .querySelectorAll(
-            ".tab"
-        )
-        .forEach(
-            button => {
-
-                button.classList.toggle(
-                    "active",
-                    button.dataset.tab ===
-                    tab
                 );
 
             }
         );
 
-
-    document
-        .querySelectorAll(
-            "[id^='tab-']"
-        )
-        .forEach(
-            section => {
-
-                section.classList.toggle(
-                    "hidden",
-                    section.id !==
-                    "tab-" + tab
-                );
-
-            }
+        item.appendChild(
+            info
         );
 
-
-    if (tab === "rooms") {
-
-        state.socket.emit(
-            "get_rooms"
+        item.appendChild(
+            button
         );
 
-    }
-
-    if (tab === "garage") {
-
-        loadGarage();
-
-    }
-
-    if (tab === "profile") {
-
-        loadGibdd();
+        list.appendChild(
+            item
+        );
 
     }
 
 }
 
 
-/*
-=========================================================
-HELPERS
-=========================================================
-*/
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
 
 function escapeHtml(
     value
 ) {
 
     return String(
-        value ??
-        ""
+        value
     )
         .replace(
             /&/g,
@@ -2502,142 +2972,1390 @@ function escapeHtml(
 }
 
 
-function escapeAttr(
-    value
-) {
+/* =====================================================
+   CREATE ROOM
+===================================================== */
 
-    return escapeHtml(
-        value
+function createRoom() {
+
+    if (
+        !state.socket ||
+        !state.socket.connected
+    ) {
+
+        toast(
+            "Нет соединения с сервером.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const stake =
+        Number(
+            $("stakeSelect").value
+        );
+
+    if (
+        !Number.isFinite(
+            stake
+        )
+    ) {
+
+        toast(
+            "Некорректная ставка.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    state.socket.emit(
+        "create_room",
+        {
+            stake
+        }
     );
 
 }
 
 
-function isRedSuit(
-    suit
+/* =====================================================
+   JOIN ROOM
+===================================================== */
+
+function joinRoom(
+    roomId
 ) {
 
-    const s =
-        String(
-            suit ||
-            ""
-        ).toLowerCase();
+    if (
+        !state.socket ||
+        !state.socket.connected
+    ) {
+
+        toast(
+            "Нет соединения с сервером.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    state.socket.emit(
+        "join_room",
+        {
+            roomId
+        }
+    );
+
+}
+
+
+/* =====================================================
+   GAME STATE HELPERS
+===================================================== */
+
+function getPlayersFromState(
+    roomState
+) {
+
+    if (
+        !roomState
+    ) {
+
+        return [];
+
+    }
+
+    if (
+        Array.isArray(
+            roomState.players
+        )
+    ) {
+
+        return roomState.players;
+
+    }
+
+    if (
+        roomState.game &&
+        Array.isArray(
+            roomState.game.players
+        )
+    ) {
+
+        return roomState.game.players;
+
+    }
+
+    return [];
+
+}
+
+
+function getMyPlayer(
+    roomState
+) {
+
+    const players =
+        getPlayersFromState(
+            roomState
+        );
 
     return (
-        s.includes("heart") ||
-        s.includes("diamond") ||
-        s.includes("черв") ||
-        s.includes("буб") ||
-        s === "♥" ||
-        s === "♦"
+        players.find(
+            player =>
+                String(
+                    player.playerId ||
+                    player.id
+                ) ===
+                String(
+                    state.playerId
+                )
+        ) ||
+        null
     );
 
 }
 
 
-function suitSymbol(
-    suit
+function getOpponent(
+    roomState
 ) {
 
-    const s =
+    const players =
+        getPlayersFromState(
+            roomState
+        );
+
+    return (
+        players.find(
+            player =>
+                String(
+                    player.playerId ||
+                    player.id
+                ) !==
+                String(
+                    state.playerId
+                )
+        ) ||
+        null
+    );
+
+}
+
+
+/* =====================================================
+   RENDER GAME
+===================================================== */
+
+function renderGame(
+    roomState
+) {
+
+    if (!roomState) {
+
+        return;
+
+    }
+
+    const myPlayer =
+        getMyPlayer(
+            roomState
+        );
+
+    const opponent =
+        getOpponent(
+            roomState
+        );
+
+    $("gameRoom").textContent =
+        roomState.roomId ||
+        roomState.id ||
+        state.roomId ||
+        "—";
+
+    $("gameStake").textContent =
+        "Ставка: " +
+        formatNumber(
+            roomState.stake ||
+            0
+        );
+
+    $("myGameName").textContent =
+        myPlayer &&
+        myPlayer.name
+            ? myPlayer.name
+            : (
+                state.profile &&
+                state.profile.name
+                    ? state.profile.name
+                    : "Вы"
+            );
+
+    $("opponentName").textContent =
+        opponent &&
+        opponent.name
+            ? opponent.name
+            : "Соперник";
+
+    $("opponentCards").textContent =
+        "Карт: " +
+        getHandCount(
+            opponent
+        );
+
+    $("myCardsCount").textContent =
+        "Карт: " +
+        getHandCount(
+            myPlayer
+        );
+
+    renderTurn(
+        roomState,
+        myPlayer,
+        opponent
+    );
+
+    renderTable(
+        roomState
+    );
+
+    renderHand(
+        roomState,
+        myPlayer
+    );
+
+    updateControls(
+        roomState,
+        myPlayer
+    );
+
+}
+
+
+/* =====================================================
+   HAND COUNT
+===================================================== */
+
+function getHandCount(
+    player
+) {
+
+    if (!player) {
+
+        return 0;
+
+    }
+
+    if (
+        Array.isArray(
+            player.hand
+        )
+    ) {
+
+        return player.hand.length;
+
+    }
+
+    if (
+        Number.isFinite(
+            Number(
+                player.handCount
+            )
+        )
+    ) {
+
+        return Number(
+            player.handCount
+        );
+
+    }
+
+    if (
+        Number.isFinite(
+            Number(
+                player.cards
+            )
+        )
+    ) {
+
+        return Number(
+            player.cards
+        );
+
+    }
+
+    return 0;
+
+}
+
+
+/* =====================================================
+   TURN
+===================================================== */
+
+function renderTurn(
+    roomState,
+    myPlayer,
+    opponent
+) {
+
+    const turn =
+        roomState.turnPlayerId ||
+        roomState.currentPlayerId ||
+        roomState.activePlayerId ||
+        (
+            roomState.game &&
+            (
+                roomState.game.turnPlayerId ||
+                roomState.game.currentPlayerId
+            )
+        );
+
+    if (!turn) {
+
+        $("turnBadge").textContent =
+            roomState.status === "waiting"
+                ? "Ожидание соперника"
+                : "Ожидание";
+
+        return;
+
+    }
+
+    if (
+        String(turn) ===
+        String(state.playerId)
+    ) {
+
+        $("turnBadge").textContent =
+            "Ваш ход";
+
+    } else {
+
+        $("turnBadge").textContent =
+            opponent &&
+            opponent.name
+                ? "Ход: " +
+                  opponent.name
+                : "Ход соперника";
+
+    }
+
+}
+
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+function renderTable(
+    roomState
+) {
+
+    const table =
+        $("tableCards");
+
+    table.innerHTML =
+        "";
+
+    const cards =
+        getTableCards(
+            roomState
+        );
+
+    for (
+        const card
+        of cards
+    ) {
+
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+        wrapper.style.display =
+            "flex";
+
+        wrapper.style.gap =
+            "5px";
+
+        const attack =
+            card.attack ||
+            card.attackingCard ||
+            null;
+
+        const defense =
+            card.defense ||
+            card.defendingCard ||
+            null;
+
+        if (attack) {
+
+            wrapper.appendChild(
+                createCardElement(
+                    attack,
+                    false
+                )
+            );
+
+        } else if (
+            card.card
+        ) {
+
+            wrapper.appendChild(
+                createCardElement(
+                    card.card,
+                    false
+                )
+            );
+
+        } else {
+
+            wrapper.appendChild(
+                createCardElement(
+                    card,
+                    false
+                )
+            );
+
+        }
+
+        if (defense) {
+
+            wrapper.appendChild(
+                createCardElement(
+                    defense,
+                    false
+                )
+            );
+
+        }
+
+        table.appendChild(
+            wrapper
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   TABLE CARDS
+===================================================== */
+
+function getTableCards(
+    roomState
+) {
+
+    const candidates = [
+
+        roomState.table,
+
+        roomState.tableCards,
+
+        roomState.battle,
+
+        roomState.pairs,
+
+        roomState.attacks,
+
+        roomState.game &&
+        roomState.game.table,
+
+        roomState.game &&
+        roomState.game.tableCards,
+
+        roomState.game &&
+        roomState.game.battle
+
+    ];
+
+    for (
+        const value
+        of candidates
+    ) {
+
+        if (
+            Array.isArray(
+                value
+            )
+        ) {
+
+            return value;
+
+        }
+
+    }
+
+    return [];
+
+}
+
+
+/* =====================================================
+   HAND
+===================================================== */
+
+function renderHand(
+    roomState,
+    myPlayer
+) {
+
+    const handElement =
+        $("hand");
+
+    handElement.innerHTML =
+        "";
+
+    const hand =
+        getHand(
+            roomState,
+            myPlayer
+        );
+
+    $("handCount").textContent =
+        hand.length +
+        (
+            hand.length === 1
+                ? " карта"
+                : " карт"
+        );
+
+    for (
+        const card
+        of hand
+    ) {
+
+        const element =
+            createCardElement(
+                card,
+                true
+            );
+
+        handElement.appendChild(
+            element
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   GET HAND
+===================================================== */
+
+function getHand(
+    roomState,
+    myPlayer
+) {
+
+    if (
+        myPlayer &&
+        Array.isArray(
+            myPlayer.hand
+        )
+    ) {
+
+        return myPlayer.hand;
+
+    }
+
+    if (
+        Array.isArray(
+            roomState.hand
+        )
+    ) {
+
+        return roomState.hand;
+
+    }
+
+    if (
+        roomState.player &&
+        Array.isArray(
+            roomState.player.hand
+        )
+    ) {
+
+        return roomState.player.hand;
+
+    }
+
+    if (
+        roomState.myHand &&
+        Array.isArray(
+            roomState.myHand
+        )
+    ) {
+
+        return roomState.myHand;
+
+    }
+
+    return [];
+
+}
+
+
+/* =====================================================
+   CARD ELEMENT
+===================================================== */
+
+function createCardElement(
+    card,
+    clickable
+) {
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+    element.className =
+        "card";
+
+    const cardId =
+        getCardId(
+            card
+        );
+
+    const rank =
+        getCardRank(
+            card
+        );
+
+    const suit =
+        getCardSuit(
+            card
+        );
+
+    const red =
+        suit === "♥" ||
+        suit === "♦" ||
+        suit === "hearts" ||
+        suit === "diamonds" ||
+        suit === "черви" ||
+        suit === "бубны";
+
+    element.classList.add(
+        red
+            ? "red"
+            : "black"
+    );
+
+    if (
+        clickable
+    ) {
+
+        element.classList.add(
+            "clickable"
+        );
+
+        if (
+            cardId &&
+            (
+                state.selectedCardId ===
+                cardId ||
+                state.selectedDefenseId ===
+                cardId
+            )
+        ) {
+
+            element.classList.add(
+                "selected"
+            );
+
+        }
+
+        element.addEventListener(
+            "click",
+            () => {
+
+                selectCard(
+                    card
+                );
+
+            }
+        );
+
+    }
+
+    const rankElement =
+        document.createElement(
+            "div"
+        );
+
+    rankElement.className =
+        "card-rank";
+
+    rankElement.textContent =
+        rank;
+
+    const center =
+        document.createElement(
+            "div"
+        );
+
+    center.className =
+        "card-center";
+
+    center.textContent =
+        suit;
+
+    const suitElement =
+        document.createElement(
+            "div"
+        );
+
+    suitElement.className =
+        "card-suit";
+
+    suitElement.textContent =
+        suit;
+
+    element.appendChild(
+        rankElement
+    );
+
+    element.appendChild(
+        center
+    );
+
+    element.appendChild(
+        suitElement
+    );
+
+    return element;
+
+}
+
+
+/* =====================================================
+   CARD DATA
+===================================================== */
+
+function getCardId(
+    card
+) {
+
+    if (
+        card === null ||
+        card === undefined
+    ) {
+
+        return "";
+
+    }
+
+    if (
+        typeof card === "string" ||
+        typeof card === "number"
+    ) {
+
+        return String(
+            card
+        );
+
+    }
+
+    return String(
+        card.cardId ||
+        card.id ||
+        card.code ||
+        (
+            String(
+                card.rank ||
+                ""
+            ) +
+            "_" +
+            String(
+                card.suit ||
+                ""
+            )
+        )
+    );
+
+}
+
+
+function getCardRank(
+    card
+) {
+
+    if (
+        typeof card === "string"
+    ) {
+
+        return card;
+
+    }
+
+    if (
+        typeof card === "number"
+    ) {
+
+        return String(
+            card
+        );
+
+    }
+
+    if (!card) {
+
+        return "?";
+
+    }
+
+    return String(
+        card.rank ||
+        card.value ||
+        card.name ||
+        "?"
+    );
+
+}
+
+
+function getCardSuit(
+    card
+) {
+
+    if (
+        !card
+    ) {
+
+        return "?";
+
+    }
+
+    if (
+        typeof card === "string" ||
+        typeof card === "number"
+    ) {
+
+        return "";
+
+    }
+
+    const value =
         String(
-            suit ||
+            card.suit ||
+            card.symbol ||
             ""
         ).toLowerCase();
 
+    const map = {
 
-    if (
-        s.includes("heart") ||
-        s.includes("черв") ||
-        s === "♥"
-    ) {
-        return "♥";
-    }
+        hearts: "♥",
+        heart: "♥",
+        "черви": "♥",
 
+        diamonds: "♦",
+        diamond: "♦",
+        "бубны": "♦",
 
-    if (
-        s.includes("diamond") ||
-        s.includes("буб") ||
-        s === "♦"
-    ) {
-        return "♦";
-    }
+        clubs: "♣",
+        club: "♣",
+        "трефы": "♣",
 
+        spades: "♠",
+        spade: "♠",
+        "пики": "♠"
 
-    if (
-        s.includes("club") ||
-        s.includes("крест") ||
-        s === "♣"
-    ) {
-        return "♣";
-    }
+    };
 
-
-    if (
-        s.includes("spade") ||
-        s.includes("пик") ||
-        s === "♠"
-    ) {
-        return "♠";
-    }
-
-
-    return String(
-        suit ||
-        ""
+    return (
+        map[value] ||
+        card.suit ||
+        "?"
     );
+
 }
 
 
-/*
-=========================================================
-EVENTS
-=========================================================
-*/
+/* =====================================================
+   CARD SELECTION
+===================================================== */
 
-document
-    .querySelectorAll(
-        ".tab"
-    )
-    .forEach(
-        button => {
+function selectCard(
+    card
+) {
 
-            button.addEventListener(
-                "click",
-                () => {
+    const cardId =
+        getCardId(
+            card
+        );
 
-                    switchTab(
-                        button.dataset.tab
-                    );
+    if (!cardId) {
 
-                }
+        return;
+
+    }
+
+    state.selectedCardId =
+        cardId;
+
+    state.pendingAction =
+        null;
+
+    logGame(
+        "Выбрана карта: " +
+        getCardRank(card) +
+        " " +
+        getCardSuit(card)
+    );
+
+    renderGame(
+        state.roomState
+    );
+
+}
+
+
+/* =====================================================
+   CONTROLS
+===================================================== */
+
+function updateControls(
+    roomState,
+    myPlayer
+) {
+
+    const status =
+        roomState.status ||
+        (
+            roomState.game &&
+            roomState.game.status
+        ) ||
+        "";
+
+    const turn =
+        roomState.turnPlayerId ||
+        roomState.currentPlayerId ||
+        roomState.activePlayerId ||
+        (
+            roomState.game &&
+            (
+                roomState.game.turnPlayerId ||
+                roomState.game.currentPlayerId
+            )
+        );
+
+    const myTurn =
+        String(turn) ===
+        String(state.playerId);
+
+    const hasCard =
+        Boolean(
+            state.selectedCardId
+        );
+
+    const isPlaying =
+        status === "playing";
+
+    $("attackButton").disabled =
+        !isPlaying ||
+        !myTurn ||
+        !hasCard;
+
+    $("defendButton").disabled =
+        !isPlaying ||
+        !myTurn ||
+        !hasCard;
+
+    $("takeButton").disabled =
+        !isPlaying ||
+        !myTurn;
+
+    $("bitoButton").disabled =
+        !isPlaying ||
+        !myTurn;
+
+}
+
+
+/* =====================================================
+   ATTACK
+===================================================== */
+
+function attack() {
+
+    if (
+        !state.selectedCardId
+    ) {
+
+        toast(
+            "Сначала выберите карту.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    state.socket.emit(
+        "attack",
+        {
+
+            cardId:
+                state.selectedCardId
+
+        }
+    );
+
+    logGame(
+        "Попытка атаки."
+    );
+
+    state.selectedCardId =
+        null;
+
+}
+
+
+/* =====================================================
+   DEFEND
+===================================================== */
+
+function defend() {
+
+    if (
+        !state.selectedCardId
+    ) {
+
+        toast(
+            "Выберите карту для защиты.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const attackId =
+        findUnbeatenAttackId(
+            state.roomState
+        );
+
+    if (!attackId) {
+
+        toast(
+            "Не найдена карта атаки.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    state.socket.emit(
+        "defend",
+        {
+
+            attackId,
+
+            defenseId:
+                state.selectedCardId
+
+        }
+    );
+
+    logGame(
+        "Попытка защиты."
+    );
+
+    state.selectedCardId =
+        null;
+
+}
+
+
+/* =====================================================
+   FIND ATTACK
+===================================================== */
+
+function findUnbeatenAttackId(
+    roomState
+) {
+
+    const cards =
+        getTableCards(
+            roomState
+        );
+
+    for (
+        const item
+        of cards
+    ) {
+
+        if (
+            item &&
+            item.attack &&
+            !item.defense
+        ) {
+
+            return getCardId(
+                item.attack
+            );
+
+        }
+
+        if (
+            item &&
+            item.attackingCard &&
+            !item.defendingCard
+        ) {
+
+            return getCardId(
+                item.attackingCard
+            );
+
+        }
+
+    }
+
+    return null;
+
+}
+
+
+/* =====================================================
+   TAKE
+===================================================== */
+
+function takeCards() {
+
+    state.socket.emit(
+        "take"
+    );
+
+    state.selectedCardId =
+        null;
+
+    logGame(
+        "Вы нажали «Взять»."
+    );
+
+}
+
+
+/* =====================================================
+   BITO
+===================================================== */
+
+function bito() {
+
+    state.socket.emit(
+        "bito"
+    );
+
+    state.selectedCardId =
+        null;
+
+    logGame(
+        "Вы нажали «БИТО»."
+    );
+
+}
+
+
+/* =====================================================
+   LEAVE
+===================================================== */
+
+function leaveRoom() {
+
+    showModal(
+        "Выйти из комнаты?",
+        "Если игра уже идёт, выход может привести к поражению.",
+        () => {
+
+            state.socket.emit(
+                "leave_room"
             );
 
         }
     );
 
+}
 
-$("createRoomBtn")
-    .addEventListener(
-        "click",
-        createRoom
+
+/* =====================================================
+   TABS
+===================================================== */
+
+function switchToRooms() {
+
+    $("roomsView")
+        .classList.remove(
+            "hidden"
+        );
+
+    $("gameView")
+        .classList.add(
+            "hidden"
+        );
+
+    $("roomsTab")
+        .classList.add(
+            "active"
+        );
+
+    $("gameTab")
+        .classList.remove(
+            "active"
+        );
+
+}
+
+
+function switchToGame() {
+
+    $("roomsView")
+        .classList.add(
+            "hidden"
+        );
+
+    $("gameView")
+        .classList.remove(
+            "hidden"
+        );
+
+    $("roomsTab")
+        .classList.remove(
+            "active"
+        );
+
+    $("gameTab")
+        .classList.add(
+            "active"
+        );
+
+    if (
+        state.socket
+    ) {
+
+        state.socket.emit(
+            "get_room_state"
+        );
+
+    }
+
+}
+
+
+function showMain() {
+
+    $("authScreen")
+        .classList.add(
+            "hidden"
+        );
+
+    $("mainScreen")
+        .classList.remove(
+            "hidden"
+        );
+
+}
+
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+function showModal(
+    title,
+    text,
+    confirm
+) {
+
+    $("modalTitle").textContent =
+        title;
+
+    $("modalText").textContent =
+        text;
+
+    $("modal").classList.remove(
+        "hidden"
     );
 
+    state.pendingAction =
+        typeof confirm ===
+        "function"
+            ? confirm
+            : null;
 
-$("joinRoomBtn")
+}
+
+
+function closeModal() {
+
+    $("modal")
+        .classList.add(
+            "hidden"
+        );
+
+    state.pendingAction =
+        null;
+
+}
+
+
+/* =====================================================
+   EVENTS
+===================================================== */
+
+$("enterButton")
     .addEventListener(
         "click",
         () => {
 
-            joinRoom(
-                $("roomInput").value
+            const name =
+                $("nameInput")
+                    .value
+                    .trim();
+
+            if (!name) {
+
+                toast(
+                    "Введите ник.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+            localStorage.setItem(
+                STORAGE_NAME,
+                name
             );
+
+            if (
+                state.socket &&
+                state.socket.connected
+            ) {
+
+                authenticate();
+
+            } else {
+
+                connectSocket();
+
+            }
 
         }
     );
 
 
-$("roomInput")
+$("nameInput")
     .addEventListener(
         "keydown",
         event => {
@@ -2647,9 +4365,8 @@ $("roomInput")
                 "Enter"
             ) {
 
-                joinRoom(
-                    event.target.value
-                );
+                $("enterButton")
+                    .click();
 
             }
 
@@ -2657,62 +4374,179 @@ $("roomInput")
     );
 
 
-$("takeBtn")
+$("createRoomButton")
+    .addEventListener(
+        "click",
+        createRoom
+    );
+
+
+$("roomsTab")
+    .addEventListener(
+        "click",
+        switchToRooms
+    );
+
+
+$("gameTab")
+    .addEventListener(
+        "click",
+        switchToGame
+    );
+
+
+$("attackButton")
+    .addEventListener(
+        "click",
+        attack
+    );
+
+
+$("defendButton")
+    .addEventListener(
+        "click",
+        defend
+    );
+
+
+$("takeButton")
+    .addEventListener(
+        "click",
+        takeCards
+    );
+
+
+$("bitoButton")
+    .addEventListener(
+        "click",
+        bito
+    );
+
+
+$("cancelButton")
     .addEventListener(
         "click",
         () => {
 
-            state.socket.emit(
-                "take_cards"
+            state.selectedCardId =
+                null;
+
+            renderGame(
+                state.roomState
             );
 
         }
     );
 
 
-$("bitoBtn")
-    .addEventListener(
-        "click",
-        () => {
-
-            state.socket.emit(
-                "bito"
-            );
-
-        }
-    );
-
-
-$("leaveBtn")
+$("leaveButton")
     .addEventListener(
         "click",
         leaveRoom
     );
 
 
-$("garageBtn")
+$("modalCancel")
     .addEventListener(
         "click",
-        loadGarage
+        closeModal
     );
 
 
-$("gibddBtn")
+$("modalConfirm")
     .addEventListener(
         "click",
-        loadGibdd
+        () => {
+
+            const action =
+                state.pendingAction;
+
+            closeModal();
+
+            if (
+                typeof action ===
+                "function"
+            ) {
+
+                action();
+
+            }
+
+        }
     );
 
 
-/*
-=========================================================
-START
-=========================================================
-*/
+/* =====================================================
+   PAGE VISIBILITY
+===================================================== */
 
-renderStakes();
+document.addEventListener(
+    "visibilitychange",
+    () => {
 
-start();
+        if (
+            document.visibilityState !==
+            "visible"
+        ) {
+
+            return;
+
+        }
+
+        if (
+            !state.socket
+        ) {
+
+            connectSocket();
+
+            return;
+
+        }
+
+        if (
+            !state.socket.connected
+        ) {
+
+            return;
+
+        }
+
+        state.socket.emit(
+            "get_profile"
+        );
+
+        state.socket.emit(
+            "get_rooms"
+        );
+
+        if (
+            state.roomId
+        ) {
+
+            state.socket.emit(
+                "get_room_state"
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   INITIAL
+===================================================== */
+
+(function init() {
+
+    $("nameInput").value =
+        getInitialName();
+
+    loadConfig();
+
+    connectSocket();
+
+})();
 
 </script>
 
