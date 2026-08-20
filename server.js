@@ -1,4 +1,4 @@
-"use strict";
+""use strict";
 
 /*
 =========================================================
@@ -27,6 +27,7 @@ rooms/manager.js
 =========================================================
 */
 
+
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -36,6 +37,14 @@ const path = require("path");
 const { Server } = require("socket.io");
 
 const config = require("./config");
+const rooms = require("./rooms/manager");
+
+
+/*
+=========================================================
+CONFIG
+=========================================================
+*/
 
 const {
     PORT,
@@ -45,10 +54,9 @@ const {
     XP_WIN,
     XP_LOSS,
     XP_DRAW,
-    LEVEL_BASE_XP
+    LEVEL_BASE_XP,
+    DISCONNECT_GRACE_MS
 } = config;
-
-const rooms = require("./rooms/manager");
 
 
 /*
@@ -62,6 +70,12 @@ const app = express();
 const httpServer =
     http.createServer(app);
 
+
+/*
+=========================================================
+MIDDLEWARE
+=========================================================
+*/
 
 app.use(
     cors({
@@ -78,7 +92,8 @@ app.use(
 
 app.use(
     express.urlencoded({
-        extended: true
+        extended: true,
+        limit: "1mb"
     })
 );
 
@@ -146,6 +161,16 @@ const players =
 
 /*
 =========================================================
+SETTLEMENT TRACKER
+=========================================================
+*/
+
+const settledRooms =
+    new Set();
+
+
+/*
+=========================================================
 UTILITY
 =========================================================
 */
@@ -197,8 +222,10 @@ function normalizeName(
 
     }
 
-    return value
-        .slice(0, 24);
+    return value.slice(
+        0,
+        24
+    );
 
 }
 
@@ -223,6 +250,17 @@ function normalizeStake(
 }
 
 
+function isValidStake(
+    stake
+) {
+
+    return STAKES.includes(
+        Number(stake)
+    );
+
+}
+
+
 /*
 =========================================================
 LEVEL
@@ -237,6 +275,7 @@ function getLevelProgress(
         Math.max(
             0,
             Number(
+                player &&
                 player.xp || 0
             )
         );
@@ -282,7 +321,7 @@ function getLevelProgress(
 
 /*
 =========================================================
-CREATE PLAYER
+PLAYER
 =========================================================
 */
 
@@ -296,7 +335,28 @@ function createPlayer(
         ) ||
         createPlayerId();
 
-    const player = {
+
+    const balance =
+        Number.isFinite(
+            Number(data.balance)
+        )
+            ? Number(data.balance)
+            : DEFAULT_BALANCE;
+
+
+    const xp =
+        Number.isFinite(
+            Number(data.xp)
+        )
+            ? Number(data.xp)
+            : 0;
+
+
+    const sourceStats =
+        data.stats || {};
+
+
+    return {
 
         playerId,
 
@@ -315,43 +375,49 @@ function createPlayer(
             ) || null,
 
         balance:
-            Number.isFinite(
-                Number(data.balance)
-            )
-                ? Number(data.balance)
-                : DEFAULT_BALANCE,
+            Math.max(
+                0,
+                balance
+            ),
 
         xp:
-            Number.isFinite(
-                Number(data.xp)
-            )
-                ? Number(data.xp)
-                : 0,
+            Math.max(
+                0,
+                xp
+            ),
 
         stats: {
 
             games:
-                Number(
-                    data.stats &&
-                    data.stats.games || 0
+                Math.max(
+                    0,
+                    Number(
+                        sourceStats.games || 0
+                    )
                 ),
 
             wins:
-                Number(
-                    data.stats &&
-                    data.stats.wins || 0
+                Math.max(
+                    0,
+                    Number(
+                        sourceStats.wins || 0
+                    )
                 ),
 
             losses:
-                Number(
-                    data.stats &&
-                    data.stats.losses || 0
+                Math.max(
+                    0,
+                    Number(
+                        sourceStats.losses || 0
+                    )
                 ),
 
             draws:
-                Number(
-                    data.stats &&
-                    data.stats.draws || 0
+                Math.max(
+                    0,
+                    Number(
+                        sourceStats.draws || 0
+                    )
                 )
 
         },
@@ -365,6 +431,9 @@ function createPlayer(
         connected:
             false,
 
+        disconnectTimer:
+            null,
+
         createdAt:
             data.createdAt ||
             Date.now(),
@@ -373,8 +442,6 @@ function createPlayer(
             Date.now()
 
     };
-
-    return player;
 
 }
 
@@ -389,22 +456,24 @@ function getOrCreatePlayer(
     data = {}
 ) {
 
-    let playerId =
+    const requestedId =
         safeString(
             data.playerId
         );
 
+
     if (
-        playerId &&
-        players.has(playerId)
+        requestedId &&
+        players.has(requestedId)
     ) {
 
         const player =
             players.get(
-                playerId
+                requestedId
             );
 
-        if (data.name) {
+
+        if (data.name !== undefined) {
 
             player.name =
                 normalizeName(
@@ -413,7 +482,11 @@ function getOrCreatePlayer(
 
         }
 
-        if (data.username !== undefined) {
+
+        if (
+            data.username !==
+            undefined
+        ) {
 
             player.username =
                 safeString(
@@ -422,15 +495,22 @@ function getOrCreatePlayer(
 
         }
 
-        if (data.telegramId !== undefined) {
+
+        if (
+            data.telegramId !==
+            undefined
+        ) {
 
             player.telegramId =
-                data.telegramId || null;
+                data.telegramId ||
+                null;
 
         }
 
+
         player.lastSeenAt =
             Date.now();
+
 
         return player;
 
@@ -442,10 +522,12 @@ function getOrCreatePlayer(
             data
         );
 
+
     players.set(
         player.playerId,
         player
     );
+
 
     return player;
 
@@ -454,7 +536,7 @@ function getOrCreatePlayer(
 
 /*
 =========================================================
-PLAYER STATE
+GET PLAYER
 =========================================================
 */
 
@@ -480,7 +562,7 @@ function getPlayer(
 
 /*
 =========================================================
-PROFILE
+PUBLIC PROFILE
 =========================================================
 */
 
@@ -494,10 +576,12 @@ function getPublicProfile(
 
     }
 
+
     const level =
         getLevelProgress(
             player
         );
+
 
     return {
 
@@ -550,172 +634,7 @@ function getPublicProfile(
 
 /*
 =========================================================
-SETTLEMENT
-=========================================================
-*/
-
-function applySettlement(
-    room,
-    winnerId,
-    loserId,
-    settlement
-) {
-
-    if (!room) {
-
-        return;
-
-    }
-
-    const stake =
-        Number(
-            room.stake || 0
-        );
-
-    const winner =
-        getPlayer(
-            winnerId
-        );
-
-    const loser =
-        getPlayer(
-            loserId
-        );
-
-
-    /*
-    -----------------------------------------------------
-    DRAW
-    -----------------------------------------------------
-    */
-
-    if (
-        settlement === "draw"
-    ) {
-
-        for (
-            const player
-            of room.players
-        ) {
-
-            const profile =
-                getPlayer(
-                    player.playerId
-                );
-
-            if (!profile) {
-                continue;
-            }
-
-            profile.stats.games += 1;
-            profile.stats.draws += 1;
-            profile.xp += XP_DRAW;
-
-        }
-
-        return;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    WIN / FORFEIT
-    -----------------------------------------------------
-    */
-
-    if (winner) {
-
-        winner.stats.games += 1;
-        winner.stats.wins += 1;
-        winner.xp += XP_WIN;
-
-        if (stake > 0) {
-
-            winner.balance +=
-                stake;
-
-        }
-
-    }
-
-
-    if (loser) {
-
-        loser.stats.games += 1;
-        loser.stats.losses += 1;
-        loser.xp += XP_LOSS;
-
-        if (stake > 0) {
-
-            loser.balance =
-                Math.max(
-                    0,
-                    loser.balance - stake
-                );
-
-        }
-
-    }
-
-}
-
-
-/*
-=========================================================
-TRACK ROOM RESULT
-=========================================================
-*/
-
-const settledRooms =
-    new Set();
-
-
-function settleRoom(
-    room
-) {
-
-    if (!room) {
-
-        return;
-
-    }
-
-    if (
-        room.status !== "finished"
-    ) {
-
-        return;
-
-    }
-
-    if (
-        settledRooms.has(
-            room.id
-        )
-    ) {
-
-        return;
-
-    }
-
-    settledRooms.add(
-        room.id
-    );
-
-    applySettlement(
-        room,
-        room.winnerId,
-        room.loserId,
-        room.settlement
-    );
-
-}
-
-
-/*
-=========================================================
-ROOM STATE
+ROOM PUBLIC STATE
 =========================================================
 */
 
@@ -730,9 +649,166 @@ function getRoomPublicState(
 
     }
 
-    return rooms.getPublicState(
-        room,
-        playerId
+
+    if (
+        typeof rooms.getPublicState ===
+        "function"
+    ) {
+
+        return rooms.getPublicState(
+            room,
+            playerId
+        );
+
+    }
+
+
+    if (
+        room.engine &&
+        typeof room.engine.getPublicState ===
+        "function"
+    ) {
+
+        return room.engine.getPublicState(
+            playerId
+        );
+
+    }
+
+
+    return null;
+
+}
+
+
+/*
+=========================================================
+ROOM SUMMARY
+=========================================================
+*/
+
+function getRoomSummary(
+    room
+) {
+
+    if (!room) {
+
+        return null;
+
+    }
+
+
+    if (
+        typeof rooms.getRoomSummary ===
+        "function"
+    ) {
+
+        return rooms.getRoomSummary(
+            room
+        );
+
+    }
+
+
+    return {
+
+        roomId:
+            room.id,
+
+        stake:
+            room.stake,
+
+        status:
+            room.status,
+
+        players:
+            Array.isArray(room.players)
+                ? room.players.length
+                : 0
+
+    };
+
+}
+
+
+/*
+=========================================================
+SEND ERROR
+=========================================================
+*/
+
+function sendError(
+    socket,
+    error
+) {
+
+    if (!socket) {
+
+        return;
+
+    }
+
+
+    socket.emit(
+        "error_message",
+        {
+
+            ok: false,
+
+            error:
+                safeString(
+                    error,
+                    "Произошла ошибка."
+                )
+
+        }
+    );
+
+}
+
+
+/*
+=========================================================
+EMIT PROFILE
+=========================================================
+*/
+
+function emitProfile(
+    player
+) {
+
+    if (!player) {
+
+        return;
+
+    }
+
+
+    if (!player.socketId) {
+
+        return;
+
+    }
+
+
+    const socket =
+        io.sockets.sockets.get(
+            player.socketId
+        );
+
+
+    if (!socket) {
+
+        return;
+
+    }
+
+
+    socket.emit(
+        "profile",
+        getPublicProfile(
+            player
+        )
     );
 
 }
@@ -754,32 +830,62 @@ function emitRoomState(
 
     }
 
+
+    if (
+        !Array.isArray(
+            room.players
+        )
+    ) {
+
+        return;
+
+    }
+
+
     for (
         const roomPlayer
         of room.players
     ) {
+
+        if (!roomPlayer) {
+
+            continue;
+
+        }
+
 
         const player =
             getPlayer(
                 roomPlayer.playerId
             );
 
+
         if (!player) {
+
             continue;
+
         }
 
+
         if (!player.socketId) {
+
             continue;
+
         }
+
 
         const socket =
             io.sockets.sockets.get(
                 player.socketId
             );
 
+
         if (!socket) {
+
             continue;
+
         }
+
 
         socket.emit(
             "room_state",
@@ -796,54 +902,21 @@ function emitRoomState(
 
 /*
 =========================================================
-EMIT PROFILE
-=========================================================
-*/
-
-function emitProfile(
-    player
-) {
-
-    if (!player) {
-
-        return;
-
-    }
-
-    if (!player.socketId) {
-
-        return;
-
-    }
-
-    const socket =
-        io.sockets.sockets.get(
-            player.socketId
-        );
-
-    if (!socket) {
-
-        return;
-
-    }
-
-    socket.emit(
-        "profile",
-        getPublicProfile(
-            player
-        )
-    );
-
-}
-
-
-/*
-=========================================================
-ROOM LIST
+EMIT ROOM LIST
 =========================================================
 */
 
 function emitRoomList() {
+
+    if (
+        typeof rooms.getPublicRoomList !==
+        "function"
+    ) {
+
+        return;
+
+    }
+
 
     io.emit(
         "rooms",
@@ -855,42 +928,257 @@ function emitRoomList() {
 
 /*
 =========================================================
-SEND ERROR
+CLEAR DISCONNECT TIMER
 =========================================================
 */
 
-function sendError(
-    socket,
-    error
+function clearDisconnectTimer(
+    player
 ) {
 
-    socket.emit(
-        "error_message",
-        {
-            ok: false,
-            error:
-                safeString(
-                    error,
-                    "Произошла ошибка."
-                )
-        }
-    );
+    if (!player) {
+
+        return;
+
+    }
+
+
+    if (
+        player.disconnectTimer
+    ) {
+
+        clearTimeout(
+            player.disconnectTimer
+        );
+
+        player.disconnectTimer =
+            null;
+
+    }
 
 }
 
 
 /*
 =========================================================
-VALIDATE STAKE
+SETTLEMENT
 =========================================================
 */
 
-function isValidStake(
-    stake
+function applySettlement(
+    room,
+    winnerId,
+    loserId,
+    settlement
 ) {
 
-    return STAKES.includes(
-        Number(stake)
+    if (!room) {
+
+        return;
+
+    }
+
+
+    const stake =
+        Math.max(
+            0,
+            Number(
+                room.stake || 0
+            )
+        );
+
+
+    /*
+    -----------------------------------------------------
+    DRAW
+
+    На старте оба игрока уже внесли stake.
+    При ничьей каждый получает обратно свою ставку.
+    -----------------------------------------------------
+    */
+
+    if (
+        settlement === "draw"
+    ) {
+
+        for (
+            const roomPlayer
+            of room.players
+        ) {
+
+            const player =
+                getPlayer(
+                    roomPlayer.playerId
+                );
+
+
+            if (!player) {
+
+                continue;
+
+            }
+
+
+            player.stats.games += 1;
+            player.stats.draws += 1;
+            player.xp += XP_DRAW;
+
+
+            if (stake > 0) {
+
+                player.balance +=
+                    stake;
+
+            }
+
+
+            emitProfile(
+                player
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    WINNER
+    -----------------------------------------------------
+    */
+
+    const winner =
+        getPlayer(
+            winnerId
+        );
+
+
+    if (winner) {
+
+        winner.stats.games += 1;
+        winner.stats.wins += 1;
+        winner.xp += XP_WIN;
+
+
+        /*
+        Оба игрока уже заплатили stake
+        при старте.
+
+        Победитель получает весь pot:
+        2 × stake.
+        */
+
+        if (stake > 0) {
+
+            winner.balance +=
+                stake * 2;
+
+        }
+
+
+        emitProfile(
+            winner
+        );
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    LOSER
+    -----------------------------------------------------
+    */
+
+    const loser =
+        getPlayer(
+            loserId
+        );
+
+
+    if (loser) {
+
+        loser.stats.games += 1;
+        loser.stats.losses += 1;
+        loser.xp += XP_LOSS;
+
+
+        /*
+        Ставка уже была списана
+        при старте игры.
+
+        Поэтому здесь повторно
+        деньги не списываем.
+        */
+
+        loser.balance =
+            Math.max(
+                0,
+                Number(
+                    loser.balance
+                )
+            );
+
+
+        emitProfile(
+            loser
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+SETTLE ROOM
+=========================================================
+*/
+
+function settleRoom(
+    room
+) {
+
+    if (!room) {
+
+        return;
+
+    }
+
+
+    if (
+        room.status !==
+        "finished"
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        settledRooms.has(
+            room.id
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    settledRooms.add(
+        room.id
+    );
+
+
+    applySettlement(
+        room,
+        room.winnerId,
+        room.loserId,
+        room.settlement
     );
 
 }
@@ -909,6 +1197,7 @@ function handleCreateRoom(
 
     const player =
         socket.player;
+
 
     if (!player) {
 
@@ -975,14 +1264,20 @@ function handleCreateRoom(
     const result =
         rooms.createRoom(
             {
+
                 player,
+
                 playerId:
                     player.playerId,
+
                 name:
                     player.name,
+
                 socketId:
                     socket.id,
+
                 stake
+
             }
         );
 
@@ -999,25 +1294,36 @@ function handleCreateRoom(
     }
 
 
+    const room =
+        result.room;
+
+
     socket.join(
-        result.room.id
+        room.id
     );
 
 
     socket.emit(
         "room_created",
         {
+
             ok: true,
+
             room:
-                rooms.getRoomSummary(
-                    result.room
+                getRoomSummary(
+                    room
                 )
+
         }
     );
 
 
     emitRoomState(
-        result.room
+        room
+    );
+
+    emitProfile(
+        player
     );
 
     emitRoomList();
@@ -1038,6 +1344,7 @@ function handleJoinRoom(
 
     const player =
         socket.player;
+
 
     if (!player) {
 
@@ -1090,9 +1397,8 @@ function handleJoinRoom(
 
     if (
         player.roomId &&
-        String(
-            player.roomId
-        ) !== room.id
+        String(player.roomId) !==
+        String(room.id)
     ) {
 
         sendError(
@@ -1123,15 +1429,21 @@ function handleJoinRoom(
     const result =
         rooms.joinRoom(
             {
+
                 player,
+
                 roomId:
                     room.id,
+
                 playerId:
                     player.playerId,
+
                 name:
                     player.name,
+
                 socketId:
                     socket.id
+
             }
         );
 
@@ -1153,33 +1465,25 @@ function handleJoinRoom(
     );
 
 
-    socket.emit(
-        "room_joined",
-        {
-            ok: true,
-            room:
-                rooms.getRoomSummary(
-                    room
-                ),
-            reconnected:
-                Boolean(
-                    result.reconnected
-                )
-        }
-    );
+    /*
+    -----------------------------------------------------
+    START GAME
 
+    Ставка списывается только после
+    фактического запуска игры.
+    -----------------------------------------------------
+    */
 
     if (result.started) {
 
-        /*
-        Ставка списывается только
-        при фактическом старте.
-        */
-
         const stake =
-            Number(
-                room.stake || 0
+            Math.max(
+                0,
+                Number(
+                    room.stake || 0
+                )
             );
+
 
         for (
             const roomPlayer
@@ -1191,13 +1495,35 @@ function handleJoinRoom(
                     roomPlayer.playerId
                 );
 
-            if (profile) {
+
+            if (!profile) {
+
+                continue;
+
+            }
+
+
+            if (
+                profile.balance <
+                stake
+            ) {
+
+                /*
+                Теоретически этого уже
+                не должно произойти,
+                так как баланс проверяется
+                до join.
+
+                Дополнительная защита.
+                */
 
                 profile.balance =
-                    Math.max(
-                        0,
-                        profile.balance - stake
-                    );
+                    0;
+
+            } else {
+
+                profile.balance -=
+                    stake;
 
             }
 
@@ -1206,13 +1532,44 @@ function handleJoinRoom(
     }
 
 
+    socket.emit(
+        "room_joined",
+        {
+
+            ok: true,
+
+            room:
+                getRoomSummary(
+                    room
+                ),
+
+            reconnected:
+                Boolean(
+                    result.reconnected
+                )
+
+        }
+    );
+
+
     emitRoomState(
         room
     );
 
-    emitProfile(
-        player
-    );
+
+    for (
+        const roomPlayer
+        of room.players
+    ) {
+
+        emitProfile(
+            getPlayer(
+                roomPlayer.playerId
+            )
+        );
+
+    }
+
 
     emitRoomList();
 
@@ -1236,11 +1593,12 @@ function handleReconnect(
             data.playerId
         );
 
+
     const roomId =
         safeString(
             data &&
             data.roomId
-        );
+        ).toUpperCase();
 
 
     if (!playerId) {
@@ -1273,6 +1631,17 @@ function handleReconnect(
     }
 
 
+    clearDisconnectTimer(
+        player
+    );
+
+
+    /*
+    -----------------------------------------------------
+    RECONNECT WITHOUT ROOM
+    -----------------------------------------------------
+    */
+
     if (!roomId) {
 
         player.socketId =
@@ -1287,6 +1656,23 @@ function handleReconnect(
         socket.player =
             player;
 
+
+        socket.emit(
+            "reconnected",
+            {
+
+                ok: true,
+
+                roomId:
+                    null,
+
+                gameStarted:
+                    false
+
+            }
+        );
+
+
         emitProfile(
             player
         );
@@ -1296,16 +1682,84 @@ function handleReconnect(
     }
 
 
+    /*
+    -----------------------------------------------------
+    FIND ROOM
+    -----------------------------------------------------
+    */
+
+    const room =
+        rooms.getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+
+        player.roomId =
+            null;
+
+        player.socketId =
+            socket.id;
+
+        player.connected =
+            true;
+
+        player.lastSeenAt =
+            Date.now();
+
+        socket.player =
+            player;
+
+
+        socket.emit(
+            "reconnected",
+            {
+
+                ok: true,
+
+                roomId:
+                    null,
+
+                gameStarted:
+                    false
+
+            }
+        );
+
+
+        emitProfile(
+            player
+        );
+
+        return;
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    MANAGER RECONNECT
+    -----------------------------------------------------
+    */
+
     const result =
         rooms.reconnectPlayer(
             {
+
                 player,
-                roomId,
+
+                roomId:
+                    room.id,
+
                 playerId,
+
                 socketId:
                     socket.id,
+
                 name:
                     player.name
+
             }
         );
 
@@ -1334,8 +1788,15 @@ function handleReconnect(
     player.lastSeenAt =
         Date.now();
 
+
+    clearDisconnectTimer(
+        player
+    );
+
+
     socket.player =
         player;
+
 
     socket.join(
         result.room.id
@@ -1345,11 +1806,17 @@ function handleReconnect(
     socket.emit(
         "reconnected",
         {
+
             ok: true,
+
             roomId:
                 result.room.id,
+
             gameStarted:
-                result.gameStarted
+                Boolean(
+                    result.gameStarted
+                )
+
         }
     );
 
@@ -1358,9 +1825,13 @@ function handleReconnect(
         player
     );
 
+
     emitRoomState(
         result.room
     );
+
+
+    emitRoomList();
 
 }
 
@@ -1378,9 +1849,17 @@ function handleLeaveRoom(
     const player =
         socket.player;
 
+
     if (!player) {
+
         return;
+
     }
+
+
+    clearDisconnectTimer(
+        player
+    );
 
 
     if (!player.roomId) {
@@ -1415,6 +1894,10 @@ function handleLeaveRoom(
             }
         );
 
+        emitProfile(
+            player
+        );
+
         return;
 
     }
@@ -1433,6 +1916,7 @@ function handleLeaveRoom(
 
 
     if (
+        result &&
         result.finished
     ) {
 
@@ -1448,6 +1932,9 @@ function handleLeaveRoom(
 
     player.socketId =
         socket.id;
+
+    player.connected =
+        true;
 
 
     socket.emit(
@@ -1485,6 +1972,7 @@ function handleAttack(
     const player =
         socket.player;
 
+
     if (!player) {
 
         sendError(
@@ -1502,11 +1990,28 @@ function handleAttack(
             player.roomId
         );
 
+
     if (!room) {
 
         sendError(
             socket,
             "Вы не находитесь в комнате."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !room.engine ||
+        typeof room.engine.attackCard !==
+        "function"
+    ) {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
         return;
@@ -1543,11 +2048,13 @@ function handleAttack(
         );
 
 
-    if (!result.ok) {
+    if (!result || !result.ok) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Ошибка атаки."
         );
 
         return;
@@ -1576,6 +2083,7 @@ function handleDefend(
     const player =
         socket.player;
 
+
     if (!player) {
 
         sendError(
@@ -1593,11 +2101,28 @@ function handleDefend(
             player.roomId
         );
 
+
     if (!room) {
 
         sendError(
             socket,
             "Вы не находитесь в комнате."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !room.engine ||
+        typeof room.engine.defendCard !==
+        "function"
+    ) {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
         return;
@@ -1614,6 +2139,7 @@ function handleDefend(
             )
         );
 
+
     const defenseId =
         safeString(
             data &&
@@ -1624,6 +2150,30 @@ function handleDefend(
         );
 
 
+    if (!attackId) {
+
+        sendError(
+            socket,
+            "Не указана карта атаки."
+        );
+
+        return;
+
+    }
+
+
+    if (!defenseId) {
+
+        sendError(
+            socket,
+            "Не указана карта защиты."
+        );
+
+        return;
+
+    }
+
+
     const result =
         room.engine.defendCard(
             player.playerId,
@@ -1632,11 +2182,13 @@ function handleDefend(
         );
 
 
-    if (!result.ok) {
+    if (!result || !result.ok) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Ошибка защиты."
         );
 
         return;
@@ -1664,6 +2216,7 @@ function handleTake(
     const player =
         socket.player;
 
+
     if (!player) {
 
         sendError(
@@ -1681,11 +2234,28 @@ function handleTake(
             player.roomId
         );
 
+
     if (!room) {
 
         sendError(
             socket,
             "Вы не находитесь в комнате."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !room.engine ||
+        typeof room.engine.takeCards !==
+        "function"
+    ) {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
         return;
@@ -1699,11 +2269,13 @@ function handleTake(
         );
 
 
-    if (!result.ok) {
+    if (!result || !result.ok) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Ошибка взятия карт."
         );
 
         return;
@@ -1724,9 +2296,38 @@ function handleTake(
         room
     );
 
+
     emitProfile(
         player
     );
+
+
+    const opponent =
+        Array.isArray(room.players)
+            ? room.players.find(
+                item =>
+                    String(
+                        item.playerId
+                    ) !==
+                    String(
+                        player.playerId
+                    )
+            )
+            : null;
+
+
+    if (opponent) {
+
+        emitProfile(
+            getPlayer(
+                opponent.playerId
+            )
+        );
+
+    }
+
+
+    emitRoomList();
 
 }
 
@@ -1744,6 +2345,7 @@ function handleBito(
     const player =
         socket.player;
 
+
     if (!player) {
 
         sendError(
@@ -1761,11 +2363,28 @@ function handleBito(
             player.roomId
         );
 
+
     if (!room) {
 
         sendError(
             socket,
             "Вы не находитесь в комнате."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !room.engine ||
+        typeof room.engine.bito !==
+        "function"
+    ) {
+
+        sendError(
+            socket,
+            "Игровой движок недоступен."
         );
 
         return;
@@ -1779,11 +2398,13 @@ function handleBito(
         );
 
 
-    if (!result.ok) {
+    if (!result || !result.ok) {
 
         sendError(
             socket,
-            result.error
+            result &&
+            result.error ||
+            "Ошибка БИТО."
         );
 
         return;
@@ -1805,24 +2426,21 @@ function handleBito(
     );
 
 
-    const winner =
+    emitProfile(
         getPlayer(
             room.winnerId
-        );
+        )
+    );
 
-    const loser =
+
+    emitProfile(
         getPlayer(
             room.loserId
-        );
-
-
-    emitProfile(
-        winner
+        )
     );
 
-    emitProfile(
-        loser
-    );
+
+    emitRoomList();
 
 }
 
@@ -1840,8 +2458,11 @@ function handleRoomState(
     const player =
         socket.player;
 
+
     if (!player) {
+
         return;
+
     }
 
 
@@ -1887,9 +2508,13 @@ function handleProfile(
     const player =
         socket.player;
 
+
     if (!player) {
+
         return;
+
     }
+
 
     emitProfile(
         player
@@ -1907,6 +2532,21 @@ ROOMS REQUEST
 function handleRooms(
     socket
 ) {
+
+    if (
+        typeof rooms.getPublicRoomList !==
+        "function"
+    ) {
+
+        socket.emit(
+            "rooms",
+            []
+        );
+
+        return;
+
+    }
+
 
     socket.emit(
         "rooms",
@@ -1930,14 +2570,19 @@ function identifySocket(
     const player =
         getOrCreatePlayer(
             {
+
                 playerId:
                     data.playerId,
+
                 telegramId:
                     data.telegramId,
+
                 name:
                     data.name,
+
                 username:
                     data.username
+
             }
         );
 
@@ -1958,6 +2603,7 @@ function identifySocket(
                 player.socketId
             );
 
+
         if (oldSocket) {
 
             oldSocket.emit(
@@ -1967,6 +2613,11 @@ function identifySocket(
         }
 
     }
+
+
+    clearDisconnectTimer(
+        player
+    );
 
 
     player.socketId =
@@ -1986,6 +2637,7 @@ function identifySocket(
     socket.emit(
         "authenticated",
         {
+
             ok: true,
 
             playerId:
@@ -1995,6 +2647,7 @@ function identifySocket(
                 getPublicProfile(
                     player
                 )
+
         }
     );
 
@@ -2023,15 +2676,21 @@ function identifySocket(
             const result =
                 rooms.reconnectPlayer(
                     {
+
                         player,
+
                         roomId:
                             room.id,
+
                         playerId:
                             player.playerId,
+
                         socketId:
                             socket.id,
+
                         name:
                             player.name
+
                     }
                 );
 
@@ -2043,9 +2702,20 @@ function identifySocket(
                 );
 
 
+                player.roomId =
+                    room.id;
+
+                player.socketId =
+                    socket.id;
+
+                player.connected =
+                    true;
+
+
                 socket.emit(
                     "reconnected",
                     {
+
                         ok: true,
 
                         roomId:
@@ -2054,6 +2724,7 @@ function identifySocket(
                         gameStarted:
                             room.status ===
                             "playing"
+
                     }
                 );
 
@@ -2064,9 +2735,17 @@ function identifySocket(
 
             }
 
+        } else {
+
+            player.roomId =
+                null;
+
         }
 
     }
+
+
+    emitRoomList();
 
 }
 
@@ -2292,7 +2971,7 @@ io.on(
 
         /*
         -------------------------------------------------
-        GAME STATE
+        ROOM STATE
         -------------------------------------------------
         */
 
@@ -2617,11 +3296,34 @@ io.on(
                     }
 
 
+                    /*
+                    Если этот socket уже заменён
+                    новым соединением, старый disconnect
+                    не должен ломать активную сессию.
+                    */
+
+                    if (
+                        player.socketId !==
+                        socket.id
+                    ) {
+
+                        console.log(
+                            `[SOCKET] old session disconnected ${socket.id} (${reason})`
+                        );
+
+                        return;
+
+                    }
+
+
                     player.connected =
                         false;
 
                     player.lastSeenAt =
                         Date.now();
+
+                    player.socketId =
+                        null;
 
 
                     const room =
@@ -2630,10 +3332,20 @@ io.on(
                         );
 
 
+                    /*
+                    -------------------------------------------------
+                    NO ROOM
+                    -------------------------------------------------
+                    */
+
                     if (!room) {
 
-                        player.socketId =
+                        player.roomId =
                             null;
+
+                        console.log(
+                            `[SOCKET] disconnected ${socket.id} (${reason})`
+                        );
 
                         return;
 
@@ -2642,7 +3354,7 @@ io.on(
 
                     /*
                     -------------------------------------------------
-                    WAITING
+                    WAITING ROOM
                     -------------------------------------------------
                     */
 
@@ -2655,14 +3367,21 @@ io.on(
                             player
                         );
 
-                        player.socketId =
+
+                        player.roomId =
                             null;
+
 
                         emitRoomState(
                             room
                         );
 
                         emitRoomList();
+
+
+                        console.log(
+                            `[SOCKET] waiting player disconnected ${socket.id} (${reason})`
+                        );
 
                         return;
 
@@ -2680,26 +3399,17 @@ io.on(
                         "playing"
                     ) {
 
-                        /*
-                        Не удаляем игрока мгновенно.
-                        Даём ему шанс переподключиться.
-                        */
+                        clearDisconnectTimer(
+                            player
+                        );
 
-                        player.socketId =
-                            null;
 
-                        room.disconnectTimer =
+                        player.disconnectTimer =
                             setTimeout(
                                 () => {
 
-                                    if (
-                                        room.status !==
-                                        "playing"
-                                    ) {
-
-                                        return;
-
-                                    }
+                                    player.disconnectTimer =
+                                        null;
 
 
                                     const current =
@@ -2709,48 +3419,85 @@ io.on(
 
 
                                     if (
-                                        current &&
-                                        !current.connected
+                                        !current ||
+                                        current.connected
                                     ) {
 
-                                        const result =
-                                            rooms.forfeitPlayer(
-                                                room,
-                                                player.playerId,
-                                                "disconnect"
-                                            );
-
-
-                                        if (
-                                            result.ok
-                                        ) {
-
-                                            settleRoom(
-                                                room
-                                            );
-
-                                            emitRoomState(
-                                                room
-                                            );
-
-                                            emitProfile(
-                                                getPlayer(
-                                                    room.winnerId
-                                                )
-                                            );
-
-                                            emitProfile(
-                                                getPlayer(
-                                                    room.loserId
-                                                )
-                                            );
-
-                                        }
+                                        return;
 
                                     }
 
+
+                                    const currentRoom =
+                                        rooms.getRoom(
+                                            current.roomId
+                                        );
+
+
+                                    if (
+                                        !currentRoom ||
+                                        currentRoom.status !==
+                                        "playing"
+                                    ) {
+
+                                        return;
+
+                                    }
+
+
+                                    const result =
+                                        rooms.forfeitPlayer(
+                                            currentRoom,
+                                            current.playerId,
+                                            "disconnect"
+                                        );
+
+
+                                    if (
+                                        !result ||
+                                        !result.ok
+                                    ) {
+
+                                        return;
+
+                                    }
+
+
+                                    settleRoom(
+                                        currentRoom
+                                    );
+
+
+                                    emitRoomState(
+                                        currentRoom
+                                    );
+
+
+                                    emitProfile(
+                                        getPlayer(
+                                            currentRoom.winnerId
+                                        )
+                                    );
+
+
+                                    emitProfile(
+                                        getPlayer(
+                                            currentRoom.loserId
+                                        )
+                                    );
+
+
+                                    emitRoomList();
+
                                 },
-                                config.DISCONNECT_GRACE_MS
+
+                                Math.max(
+                                    1000,
+                                    Number(
+                                        DISCONNECT_GRACE_MS ||
+                                        120000
+                                    )
+                                )
                             );
 
                     }
@@ -2778,7 +3525,7 @@ io.on(
 
 /*
 =========================================================
-HTTP ROUTES
+HTTP: HOME
 =========================================================
 */
 
@@ -2798,13 +3545,26 @@ app.get(
 
                 if (error) {
 
+                    if (
+                        res.headersSent
+                    ) {
+
+                        return;
+
+                    }
+
+
                     res.json(
                         {
+
                             ok: true,
+
                             service:
                                 "Heavy Lux Card",
+
                             socket:
                                 "ready"
+
                         }
                     );
 
@@ -2816,6 +3576,12 @@ app.get(
     }
 );
 
+
+/*
+=========================================================
+HTTP: HEALTH
+=========================================================
+*/
 
 app.get(
     "/health",
@@ -2839,7 +3605,10 @@ app.get(
                     "ready",
 
                 rooms:
-                    rooms.roomCount(),
+                    typeof rooms.roomCount ===
+                    "function"
+                        ? rooms.roomCount()
+                        : 0,
 
                 players:
                     players.size,
@@ -2853,6 +3622,12 @@ app.get(
     }
 );
 
+
+/*
+=========================================================
+HTTP: CONFIG
+=========================================================
+*/
 
 app.get(
     "/api/config",
@@ -2892,6 +3667,12 @@ app.get(
 );
 
 
+/*
+=========================================================
+HTTP: ROOMS
+=========================================================
+*/
+
 app.get(
     "/api/rooms",
     (
@@ -2905,7 +3686,10 @@ app.get(
                 ok: true,
 
                 rooms:
-                    rooms.getPublicRoomList()
+                    typeof rooms.getPublicRoomList ===
+                    "function"
+                        ? rooms.getPublicRoomList()
+                        : []
 
             }
         );
@@ -2916,7 +3700,7 @@ app.get(
 
 /*
 =========================================================
-ERROR HANDLER
+HTTP ERROR HANDLER
 =========================================================
 */
 
@@ -2949,9 +3733,12 @@ app.use(
             500
         ).json(
             {
+
                 ok: false,
+
                 error:
                     "Internal server error"
+
             }
         );
 
