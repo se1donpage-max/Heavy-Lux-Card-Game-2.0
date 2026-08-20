@@ -1,54 +1,19 @@
 "use strict";
 
-/*
-=========================================================
-HEAVY LUX CARD
-SERVER
-=========================================================
-
-- Express
-- HTTP
-- Socket.IO
-- Раздача frontend из /public
-- Health check
-- WebSocket connection
-- Корректная работа на Render / Railway / VPS
-=========================================================
-*/
-
 const path = require("path");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const PORT = Number(process.env.PORT) || 10000;
+const HOST = "0.0.0.0";
 
-/* =========================================================
-   CONFIG
-========================================================= */
+const PUBLIC_DIR = path.join(__dirname, "public");
+const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
 
-const PORT =
-    Number(process.env.PORT) || 10000;
+const app = express();
 
-const HOST =
-    "0.0.0.0";
-
-const PUBLIC_DIR =
-    path.join(
-        __dirname,
-        "public"
-    );
-
-
-/* =========================================================
-   EXPRESS
-========================================================= */
-
-const app =
-    express();
-
-app.disable(
-    "x-powered-by"
-);
+app.disable("x-powered-by");
 
 app.use(
     express.json({
@@ -62,73 +27,34 @@ app.use(
     })
 );
 
+const server = http.createServer(app);
 
-/* =========================================================
-   HTTP SERVER
-========================================================= */
+const io = new Server(
+    server,
+    {
+        cors: {
+            origin: true,
+            credentials: true
+        },
 
-const server =
-    http.createServer(
-        app
-    );
+        transports: [
+            "websocket",
+            "polling"
+        ],
 
+        connectionStateRecovery: {
+            maxDisconnectionDuration:
+                2 * 60 * 1000,
 
-/* =========================================================
-   SOCKET.IO
-========================================================= */
-
-const io =
-    new Server(
-        server,
-        {
-            cors: {
-                origin: true,
-                credentials: true
-            },
-
-            transports: [
-                "websocket",
-                "polling"
-            ],
-
-            connectionStateRecovery: {
-                maxDisconnectionDuration:
-                    2 * 60 * 1000,
-
-                skipMiddlewares:
-                    true
-            }
+            skipMiddlewares:
+                true
         }
-    );
-
-
-/* =========================================================
-   FRONTEND
-========================================================= */
-
-/*
-    Все файлы интерфейса должны находиться:
-
-    public/
-        index.html
-        style.css
-        app.js
-
-    Express отдаёт их напрямую.
-*/
-
-app.use(
-    express.static(
-        PUBLIC_DIR,
-        {
-            index: "index.html"
-        }
-    )
+    }
 );
 
 
 /* =========================================================
-   HEALTH CHECK
+   HEALTH
 ========================================================= */
 
 app.get(
@@ -138,6 +64,7 @@ app.get(
         res.status(200).json({
             ok: true,
             service: "heavy-lux-card",
+            version: "2.0.1",
             socket: true
         });
 
@@ -146,7 +73,47 @@ app.get(
 
 
 /* =========================================================
-   SOCKET CONNECTION
+   FRONTEND
+========================================================= */
+
+app.use(
+    express.static(
+        PUBLIC_DIR,
+        {
+            index: "index.html",
+            fallthrough: true,
+            maxAge:
+                process.env.NODE_ENV === "production"
+                    ? "1h"
+                    : 0
+        }
+    )
+);
+
+
+/* =========================================================
+   SPA FALLBACK
+========================================================= */
+
+/*
+Express 5 не используем со старым app.get("*").
+Используем RegExp.
+*/
+
+app.get(
+    /^(?!\/socket\.io)(?!\/health).*/,
+    (_req, res) => {
+
+        res.sendFile(
+            INDEX_FILE
+        );
+
+    }
+);
+
+
+/* =========================================================
+   SOCKET.IO
 ========================================================= */
 
 io.on(
@@ -158,15 +125,11 @@ io.on(
         );
 
 
-        /*
-        Сообщаем frontend,
-        что соединение успешно.
-        */
-
         socket.emit(
             "connectionReady",
             {
                 ok: true,
+
                 socketId:
                     socket.id
             }
@@ -182,33 +145,6 @@ io.on(
                 );
 
             }
-        );
-
-    }
-);
-
-
-/* =========================================================
-   SPA FALLBACK
-========================================================= */
-
-/*
-    Если frontend использует
-    внутренние маршруты, возвращаем index.html.
-
-    Важно: этот обработчик находится ПОСЛЕ
-    express.static().
-*/
-
-app.get(
-    "*",
-    (_req, res) => {
-
-        res.sendFile(
-            path.join(
-                PUBLIC_DIR,
-                "index.html"
-            )
         );
 
     }
@@ -282,6 +218,10 @@ server.listen(
         );
 
         console.log(
+            `Index file: ${INDEX_FILE}`
+        );
+
+        console.log(
             "Socket.IO: ready"
         );
 
@@ -297,9 +237,26 @@ server.listen(
    GRACEFUL SHUTDOWN
 ========================================================= */
 
+let shuttingDown =
+    false;
+
+
 function shutdown(
     signal
 ) {
+
+    if (
+        shuttingDown
+    ) {
+
+        return;
+
+    }
+
+
+    shuttingDown =
+        true;
+
 
     console.log(
         `Received ${signal}. Shutting down...`
@@ -321,6 +278,18 @@ function shutdown(
 
         }
     );
+
+
+    setTimeout(
+        () => {
+
+            process.exit(
+                0
+            );
+
+        },
+        10000
+    ).unref();
 
 }
 
