@@ -3,32 +3,12 @@
 /*
 =========================================================
 HEAVY LUX CARD
-ROOM MANAGER
-=========================================================
-
-Отвечает за:
-
-- создание комнат
-- вход в комнаты
-- выход из комнат
-- disconnect
-- reconnect
-- поиск комнат
-- хранение комнат
-- подключение game engine
-- игровой API комнаты
-
-Игровая механика находится в:
-src/game/engine.js
+ROOMS MANAGER
 =========================================================
 */
 
-const crypto = require("crypto");
-
 const {
-    MAX_PLAYERS,
-    STAKES,
-    ID_LENGTH
+    MAX_PLAYERS
 } = require("../config");
 
 const {
@@ -37,10 +17,7 @@ const {
     startGame,
     finishByForfeit,
     roomPlayerById,
-    attackCard,
-    defendCard,
-    takeCards,
-    bito,
+    otherPlayer,
     getPublicGameState
 } = require("./engine");
 
@@ -60,38 +37,115 @@ ROOM ID
 =========================================================
 */
 
-function createRoomId() {
+function generateRoomId() {
 
-    let roomId;
+    let id;
 
     do {
 
-        roomId =
-            crypto
-                .randomBytes(4)
-                .toString("hex")
-                .slice(0, ID_LENGTH)
+        id =
+            Math.random()
+                .toString(16)
+                .slice(2, 8)
                 .toUpperCase();
 
     } while (
-        rooms.has(roomId)
+        rooms.has(id)
     );
 
-    return roomId;
+    return id;
 }
 
 
 /*
 =========================================================
-NORMALIZE ROOM ID
+CREATE ROOM
 =========================================================
 */
 
-function normalizeRoomId(roomId) {
+function createRoom({
+    roomId = null,
+    stake = 0,
+    playerId,
+    name = "",
+    socketId = null
+}) {
 
-    return String(roomId || "")
-        .trim()
-        .toUpperCase();
+    if (!playerId) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Не указан игрок."
+
+        };
+
+    }
+
+
+    const id =
+        roomId ||
+        generateRoomId();
+
+
+    if (rooms.has(id)) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Комната с таким ID уже существует."
+
+        };
+
+    }
+
+
+    const player =
+        createRoomPlayer({
+
+            playerId,
+
+            name,
+
+            socketId,
+
+            connected: true
+
+        });
+
+
+    const room =
+        createGameState({
+
+            roomId: id,
+
+            stake,
+
+            players: [
+                player
+            ]
+
+        });
+
+
+    rooms.set(
+        id,
+        room
+    );
+
+
+    return {
+
+        ok: true,
+
+        room
+
+    };
+
 }
 
 
@@ -101,33 +155,39 @@ GET ROOM
 =========================================================
 */
 
-function getRoom(roomId) {
+function getRoom(
+    roomId
+) {
 
-    const normalized =
-        normalizeRoomId(roomId);
-
-    if (!normalized) {
+    if (!roomId) {
         return null;
     }
 
+
     return (
-        rooms.get(normalized) ||
+        rooms.get(
+            String(roomId)
+        ) ||
         null
     );
+
 }
 
 
 /*
 =========================================================
-GET ALL ROOMS
+ROOM EXISTS
 =========================================================
 */
 
-function getRooms() {
+function hasRoom(
+    roomId
+) {
 
-    return Array.from(
-        rooms.values()
+    return rooms.has(
+        String(roomId)
     );
+
 }
 
 
@@ -140,379 +200,7 @@ ROOM COUNT
 function roomCount() {
 
     return rooms.size;
-}
 
-
-/*
-=========================================================
-GET WAITING ROOMS
-=========================================================
-*/
-
-function getWaitingRooms() {
-
-    return getRooms().filter(
-        room =>
-            room.status === "waiting" &&
-            room.players.length < MAX_PLAYERS
-    );
-}
-
-
-/*
-=========================================================
-GET ROOM PLAYER
-=========================================================
-*/
-
-function getRoomPlayer(player) {
-
-    if (
-        !player ||
-        !player.roomId
-    ) {
-        return null;
-    }
-
-    const room =
-        getRoom(player.roomId);
-
-    if (!room) {
-        return null;
-    }
-
-    return roomPlayerById(
-        room,
-        player.playerId
-    );
-}
-
-
-/*
-=========================================================
-GET PLAYER BY ID
-=========================================================
-*/
-
-function getPlayerInRoom(
-    room,
-    playerId
-) {
-
-    if (!room) {
-        return null;
-    }
-
-    return roomPlayerById(
-        room,
-        playerId
-    );
-}
-
-
-/*
-=========================================================
-OTHER PLAYER
-=========================================================
-*/
-
-function getOtherPlayer(
-    room,
-    playerId
-) {
-
-    if (!room) {
-        return null;
-    }
-
-    return (
-        room.players.find(
-            player =>
-                String(player.playerId) !==
-                String(playerId)
-        ) ||
-        null
-    );
-}
-
-
-/*
-=========================================================
-ATTACH ENGINE
-=========================================================
-
-ВАЖНО:
-
-test-game-flow.js ожидает:
-
-room.engine
-
-Поэтому engine всегда создаётся
-после создания комнаты и после reconnect.
-=========================================================
-*/
-
-function attachRoomEngine(room) {
-
-    if (!room) {
-        return null;
-    }
-
-    room.engine = {
-
-        /*
-        -------------------------------------------------
-        ATTACK
-        -------------------------------------------------
-        */
-
-        attackCard(
-            playerId,
-            cardId
-        ) {
-
-            return attackCard(
-                room,
-                playerId,
-                cardId
-            );
-        },
-
-
-        /*
-        -------------------------------------------------
-        DEFEND
-        -------------------------------------------------
-        */
-
-        defendCard(
-            playerId,
-            attackId,
-            defenseId
-        ) {
-
-            return defendCard(
-                room,
-                playerId,
-                attackId,
-                defenseId
-            );
-        },
-
-
-        /*
-        -------------------------------------------------
-        TAKE
-        -------------------------------------------------
-        */
-
-        takeCards(
-            playerId
-        ) {
-
-            return takeCards(
-                room,
-                playerId
-            );
-        },
-
-
-        /*
-        -------------------------------------------------
-        BITO
-        -------------------------------------------------
-        */
-
-        bito(
-            playerId
-        ) {
-
-            return bito(
-                room,
-                playerId
-            );
-        },
-
-
-        /*
-        -------------------------------------------------
-        PUBLIC STATE
-        -------------------------------------------------
-        */
-
-        getPublicState(
-            playerId
-        ) {
-
-            return getPublicGameState(
-                room,
-                playerId
-            );
-        },
-
-
-        /*
-        -------------------------------------------------
-        STATE ALIAS
-        -------------------------------------------------
-        */
-
-        getState(
-            playerId
-        ) {
-
-            return getPublicGameState(
-                room,
-                playerId
-            );
-        }
-
-    };
-
-    return room;
-}
-
-
-/*
-=========================================================
-ENSURE ENGINE
-=========================================================
-*/
-
-function ensureRoomEngine(room) {
-
-    if (!room) {
-        return null;
-    }
-
-    if (
-        !room.engine ||
-        typeof room.engine !== "object"
-    ) {
-
-        attachRoomEngine(room);
-    }
-
-    return room.engine;
-}
-
-
-/*
-=========================================================
-CREATE ROOM
-=========================================================
-*/
-
-function createRoom(
-    player,
-    stake
-) {
-
-    if (!player) {
-
-        return {
-            ok: false,
-            error: "Игрок не найден."
-        };
-    }
-
-
-    if (player.roomId) {
-
-        return {
-            ok: false,
-            error:
-                "Вы уже находитесь в комнате."
-        };
-    }
-
-
-    const numericStake =
-        Number(stake);
-
-
-    if (
-        !Number.isFinite(numericStake) ||
-        !STAKES.includes(numericStake)
-    ) {
-
-        return {
-            ok: false,
-            error:
-                "Некорректная ставка."
-        };
-    }
-
-
-    const roomId =
-        createRoomId();
-
-
-    const room =
-        createGameState({
-            roomId,
-            stake: numericStake,
-            players: []
-        });
-
-
-    /*
-    -----------------------------------------------------
-    ENGINE
-    -----------------------------------------------------
-    */
-
-    attachRoomEngine(room);
-
-
-    /*
-    -----------------------------------------------------
-    FIRST PLAYER
-    -----------------------------------------------------
-    */
-
-    const roomPlayer =
-        createRoomPlayer({
-
-            playerId:
-                player.playerId,
-
-            name:
-                player.name || "",
-
-            socketId:
-                player.socketId || null,
-
-            connected:
-                true
-        });
-
-
-    room.players.push(
-        roomPlayer
-    );
-
-
-    /*
-    -----------------------------------------------------
-    SAVE
-    -----------------------------------------------------
-    */
-
-    rooms.set(
-        roomId,
-        room
-    );
-
-
-    player.roomId =
-        roomId;
-
-
-    return {
-        ok: true,
-        room
-    };
 }
 
 
@@ -522,69 +210,96 @@ JOIN ROOM
 =========================================================
 */
 
-function joinRoom(
-    player,
-    roomId
-) {
-
-    if (!player) {
-
-        return {
-            ok: false,
-            error: "Игрок не найден."
-        };
-    }
-
-
-    if (player.roomId) {
-
-        return {
-            ok: false,
-            error:
-                "Вы уже находитесь в комнате."
-        };
-    }
-
-
-    const normalizedRoomId =
-        normalizeRoomId(roomId);
-
-
-    if (!normalizedRoomId) {
-
-        return {
-            ok: false,
-            error:
-                "Введите код комнаты."
-        };
-    }
-
+function joinRoom({
+    roomId,
+    playerId,
+    name = "",
+    socketId = null
+}) {
 
     const room =
-        getRoom(normalizedRoomId);
+        getRoom(
+            roomId
+        );
 
 
     if (!room) {
 
         return {
+
             ok: false,
+
             error:
                 "Комната не найдена."
+
         };
+
     }
 
 
-    if (
-        room.status !== "waiting"
-    ) {
+    if (!playerId) {
 
         return {
+
             ok: false,
+
             error:
-                "Игра уже началась."
+                "Не указан игрок."
+
         };
+
     }
 
+
+    /*
+    -----------------------------------------------------
+    PLAYER ALREADY IN ROOM
+    -----------------------------------------------------
+    */
+
+    const existing =
+        roomPlayerById(
+            room,
+            playerId
+        );
+
+
+    if (existing) {
+
+        existing.name =
+            name ||
+            existing.name;
+
+        existing.socketId =
+            socketId ||
+            existing.socketId;
+
+        existing.connected =
+            true;
+
+
+        return {
+
+            ok: true,
+
+            room,
+
+            player:
+                existing,
+
+            reconnected:
+                true
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    ROOM FULL
+    -----------------------------------------------------
+    */
 
     if (
         room.players.length >=
@@ -592,94 +307,118 @@ function joinRoom(
     ) {
 
         return {
+
             ok: false,
+
             error:
                 "Комната заполнена."
+
         };
+
     }
 
 
     /*
     -----------------------------------------------------
-    DUPLICATE PLAYER CHECK
+    GAME ALREADY STARTED
     -----------------------------------------------------
     */
 
     if (
-        roomPlayerById(
-            room,
-            player.playerId
-        )
+        room.status !==
+        "waiting"
     ) {
 
         return {
+
             ok: false,
+
             error:
-                "Игрок уже находится в комнате."
+                "Игра уже началась."
+
         };
+
     }
 
 
-    /*
-    -----------------------------------------------------
-    ADD PLAYER
-    -----------------------------------------------------
-    */
-
-    const roomPlayer =
+    const player =
         createRoomPlayer({
 
-            playerId:
-                player.playerId,
+            playerId,
 
-            name:
-                player.name || "",
+            name,
 
-            socketId:
-                player.socketId || null,
+            socketId,
 
-            connected:
-                true
+            connected: true
+
         });
 
 
     room.players.push(
-        roomPlayer
+        player
     );
 
 
-    player.roomId =
-        room.id;
-
-
     /*
     -----------------------------------------------------
-    START GAME
+    START GAME AUTOMATICALLY
     -----------------------------------------------------
     */
 
-    const started =
-        startGame(room);
+    let gameStarted =
+        false;
 
 
-    if (!started.ok) {
+    if (
+        room.players.length ===
+        MAX_PLAYERS
+    ) {
 
-        room.players.pop();
+        const result =
+            startGame(
+                room
+            );
 
-        player.roomId =
-            null;
 
-        return started;
+        if (
+            !result.ok
+        ) {
+
+            /*
+            Если старт не удался,
+            удаляем добавленного игрока.
+            */
+
+            room.players =
+                room.players.filter(
+                    p =>
+                        String(
+                            p.playerId
+                        ) !==
+                        String(
+                            playerId
+                        )
+                );
+
+
+            return {
+
+                ok: false,
+
+                error:
+                    result.error ||
+                    "Не удалось начать игру."
+
+            };
+
+        }
+
+
+        gameStarted =
+            true;
+
     }
-
-
-    /*
-    -----------------------------------------------------
-    MAKE SURE ENGINE EXISTS
-    -----------------------------------------------------
-    */
-
-    attachRoomEngine(room);
 
 
     return {
@@ -688,120 +427,99 @@ function joinRoom(
 
         room,
 
-        started: true
+        player,
+
+        reconnected: false,
+
+        gameStarted
 
     };
+
 }
 
 
 /*
 =========================================================
-START ROOM MANUALLY
+LEAVE / DISCONNECT
 =========================================================
 */
 
-function startRoom(roomId) {
+function disconnectPlayer(
+    roomId,
+    playerId
+) {
 
     const room =
-        getRoom(roomId);
+        getRoom(
+            roomId
+        );
+
 
     if (!room) {
 
         return {
+
             ok: false,
+
             error:
                 "Комната не найдена."
+
         };
+
     }
 
 
-    if (
-        room.status !== "waiting"
-    ) {
+    const player =
+        roomPlayerById(
+            room,
+            playerId
+        );
 
-        return {
-            ok: false,
-            error:
-                "Комната уже запущена."
-        };
-    }
-
-
-    if (
-        room.players.length !==
-        MAX_PLAYERS
-    ) {
-
-        return {
-            ok: false,
-            error:
-                "Для начала игры нужны два игрока."
-        };
-    }
-
-
-    const result =
-        startGame(room);
-
-
-    if (!result.ok) {
-        return result;
-    }
-
-
-    attachRoomEngine(room);
-
-
-    return {
-        ok: true,
-        room
-    };
-}
-
-
-/*
-=========================================================
-LEAVE ROOM
-=========================================================
-*/
-
-function leaveRoom(
-    player,
-    reason = "leave"
-) {
 
     if (!player) {
 
         return {
+
             ok: false,
+
             error:
                 "Игрок не найден."
+
         };
+
     }
 
 
-    if (!player.roomId) {
+    player.connected =
+        false;
+
+    player.socketId =
+        null;
+
+
+    /*
+    -----------------------------------------------------
+    WAITING ROOM
+    -----------------------------------------------------
+    */
+
+    if (
+        room.status ===
+        "waiting"
+    ) {
 
         return {
+
             ok: true,
-            room: null
+
+            room,
+
+            disconnected: true,
+
+            finished: false
+
         };
-    }
 
-
-    const room =
-        getRoom(player.roomId);
-
-
-    if (!room) {
-
-        player.roomId =
-            null;
-
-        return {
-            ok: true,
-            room: null
-        };
     }
 
 
@@ -812,250 +530,141 @@ function leaveRoom(
     */
 
     if (
-        room.status === "playing"
+        room.status ===
+        "playing"
     ) {
 
         const result =
             finishByForfeit(
                 room,
-                player.playerId,
-                reason
+                playerId,
+                "disconnect"
             );
 
 
-        player.roomId =
-            null;
-
-
         return {
-            ...result,
-            room
-        };
-    }
 
+            ok: result.ok,
 
-    /*
-    -----------------------------------------------------
-    WAITING ROOM
-    -----------------------------------------------------
-    */
-
-    room.players =
-        room.players.filter(
-            current =>
-                String(current.playerId) !==
-                String(player.playerId)
-        );
-
-
-    player.roomId =
-        null;
-
-
-    /*
-    -----------------------------------------------------
-    DELETE EMPTY ROOM
-    -----------------------------------------------------
-    */
-
-    if (
-        room.players.length === 0
-    ) {
-
-        rooms.delete(
-            room.id
-        );
-
-        return {
-            ok: true,
-            room: null
-        };
-    }
-
-
-    return {
-        ok: true,
-        room
-    };
-}
-
-
-/*
-=========================================================
-DISCONNECT
-=========================================================
-
-Игрок НЕ удаляется из комнаты.
-
-Это важно для reconnect.
-=========================================================
-*/
-
-function disconnectPlayer(
-    player
-) {
-
-    if (!player) {
-
-        return {
-            ok: false,
-            error:
-                "Игрок не найден."
-        };
-    }
-
-
-    if (!player.roomId) {
-
-        return {
-            ok: true,
-            room: null
-        };
-    }
-
-
-    const room =
-        getRoom(player.roomId);
-
-
-    if (!room) {
-
-        player.roomId =
-            null;
-
-        return {
-            ok: true,
-            room: null
-        };
-    }
-
-
-    const roomPlayer =
-        roomPlayerById(
             room,
-            player.playerId
-        );
 
+            disconnected: true,
 
-    if (roomPlayer) {
+            finished:
+                result.ok,
 
-        roomPlayer.connected =
-            false;
+            winnerId:
+                result.winnerId ||
+                null,
 
-        roomPlayer.socketId =
-            null;
+            loserId:
+                result.loserId ||
+                playerId
+
+        };
+
     }
 
 
-    player.socketId =
-        null;
-
-
-    /*
-    -----------------------------------------------------
-    KEEP ENGINE
-    -----------------------------------------------------
-    */
-
-    ensureRoomEngine(room);
-
-
     return {
+
         ok: true,
-        room
+
+        room,
+
+        disconnected: true,
+
+        finished:
+            room.status ===
+            "finished"
+
     };
+
 }
 
 
 /*
 =========================================================
-RECONNECT
+RECONNECT PLAYER
 =========================================================
 */
 
-function reconnectPlayer(
-    player,
-    socketId
-) {
-
-    if (!player) {
-
-        return {
-            ok: false,
-            error:
-                "Игрок не найден."
-        };
-    }
-
-
-    if (!player.roomId) {
-
-        return {
-            ok: false,
-            error:
-                "Игрок не находится в комнате."
-        };
-    }
-
+function reconnectPlayer({
+    roomId,
+    playerId,
+    socketId = null,
+    name = null
+}) {
 
     const room =
-        getRoom(player.roomId);
+        getRoom(
+            roomId
+        );
 
 
     if (!room) {
 
-        player.roomId =
-            null;
-
         return {
+
             ok: false,
+
             error:
                 "Комната не найдена."
+
         };
+
     }
 
 
-    const roomPlayer =
+    const player =
         roomPlayerById(
             room,
-            player.playerId
+            playerId
         );
 
 
-    if (!roomPlayer) {
+    if (!player) {
 
         return {
+
             ok: false,
+
             error:
                 "Игрок не найден в комнате."
+
         };
+
     }
 
 
-    roomPlayer.connected =
+    player.connected =
         true;
 
-    roomPlayer.socketId =
-        socketId || null;
-
-
     player.socketId =
-        socketId || null;
+        socketId ||
+        player.socketId;
 
 
-    /*
-    -----------------------------------------------------
-    RESTORE ENGINE
-    -----------------------------------------------------
-    */
+    if (name !== null) {
 
-    attachRoomEngine(room);
+        player.name =
+            name;
+
+    }
 
 
     return {
+
         ok: true,
-        room
+
+        room,
+
+        player,
+
+        reconnected: true
+
     };
+
 }
 
 
@@ -1066,119 +675,249 @@ REMOVE PLAYER
 */
 
 function removePlayer(
-    room,
+    roomId,
     playerId
 ) {
 
-    if (!room) {
-        return false;
-    }
-
-
-    const before =
-        room.players.length;
-
-
-    room.players =
-        room.players.filter(
-            player =>
-                String(player.playerId) !==
-                String(playerId)
+    const room =
+        getRoom(
+            roomId
         );
 
 
-    return (
-        room.players.length !==
-        before
-    );
-}
+    if (!room) {
 
+        return {
 
-/*
-=========================================================
-DELETE ROOM
-=========================================================
-*/
+            ok: false,
 
-function deleteRoom(roomId) {
+            error:
+                "Комната не найдена."
 
-    return rooms.delete(
-        normalizeRoomId(roomId)
-    );
-}
+        };
 
-
-/*
-=========================================================
-CLEAR ROOMS
-=========================================================
-*/
-
-function clearRooms() {
-
-    rooms.clear();
-
-    return true;
-}
-
-
-/*
-=========================================================
-CLEANUP ROOMS
-=========================================================
-*/
-
-function cleanupRooms() {
-
-    const removed = [];
-
-
-    for (
-        const room
-        of rooms.values()
-    ) {
-
-        /*
-        Empty room
-        */
-
-        if (
-            room.players.length === 0
-        ) {
-
-            rooms.delete(
-                room.id
-            );
-
-            removed.push(
-                room.id
-            );
-
-            continue;
-        }
-
-
-        /*
-        Finished room
-        */
-
-        if (
-            room.status === "finished"
-        ) {
-
-            /*
-            Не удаляем комнату,
-            если она ещё содержит игроков.
-
-            Это позволяет клиентам получить
-            финальный результат игры.
-            */
-            continue;
-        }
     }
 
 
-    return removed;
+    const index =
+        room.players.findIndex(
+            player =>
+                String(
+                    player.playerId
+                ) ===
+                String(
+                    playerId
+                )
+        );
+
+
+    if (
+        index === -1
+    ) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Игрок не найден."
+
+        };
+
+    }
+
+
+    room.players.splice(
+        index,
+        1
+    );
+
+
+    /*
+    Если игроков больше нет,
+    удаляем комнату.
+    */
+
+    if (
+        room.players.length === 0
+    ) {
+
+        rooms.delete(
+            room.id
+        );
+
+    }
+
+
+    return {
+
+        ok: true,
+
+        room:
+            room.players.length > 0
+                ? room
+                : null
+
+    };
+
+}
+
+
+/*
+=========================================================
+FORFEIT
+=========================================================
+*/
+
+function forfeitPlayer(
+    roomId,
+    playerId,
+    reason = "leave"
+) {
+
+    const room =
+        getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Комната не найдена."
+
+        };
+
+    }
+
+
+    if (
+        room.status !==
+        "playing"
+    ) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Игра не идёт."
+
+        };
+
+    }
+
+
+    const result =
+        finishByForfeit(
+            room,
+            playerId,
+            reason
+        );
+
+
+    return {
+
+        ...result,
+
+        room
+
+    };
+
+}
+
+
+/*
+=========================================================
+ROOM PLAYER
+=========================================================
+*/
+
+function getRoomPlayer(
+    roomId,
+    playerId
+) {
+
+    const room =
+        getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+        return null;
+    }
+
+
+    return roomPlayerById(
+        room,
+        playerId
+    );
+
+}
+
+
+/*
+=========================================================
+OTHER PLAYER
+=========================================================
+*/
+
+function getOtherPlayer(
+    roomId,
+    playerId
+) {
+
+    const room =
+        getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+        return null;
+    }
+
+
+    return otherPlayer(
+        room,
+        playerId
+    );
+
+}
+
+
+/*
+=========================================================
+ROOM GAME STATE
+=========================================================
+*/
+
+function getGameState(
+    roomId,
+    playerId
+) {
+
+    const room =
+        getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+        return null;
+    }
+
+
+    return getPublicGameState(
+        room,
+        playerId
+    );
+
 }
 
 
@@ -1188,7 +927,9 @@ ROOM SUMMARY
 =========================================================
 */
 
-function getRoomSummary(room) {
+function getRoomSummary(
+    room
+) {
 
     if (!room) {
         return null;
@@ -1197,14 +938,27 @@ function getRoomSummary(room) {
 
     return {
 
-        roomId:
-            room.id,
+        /*
+        -------------------------------------------------
+        BASIC
+        -------------------------------------------------
+        */
 
         id:
             room.id,
 
+        roomId:
+            room.id,
+
         stake:
             room.stake,
+
+
+        /*
+        -------------------------------------------------
+        STATUS
+        -------------------------------------------------
+        */
 
         status:
             room.status,
@@ -1212,11 +966,28 @@ function getRoomSummary(room) {
         phase:
             room.phase,
 
+
+        /*
+        -------------------------------------------------
+        PLAYERS
+        -------------------------------------------------
+        */
+
+        playersCount:
+            room.players.length,
+
         playerCount:
             room.players.length,
 
         maxPlayers:
             MAX_PLAYERS,
+
+
+        /*
+        -------------------------------------------------
+        PLAYER DATA
+        -------------------------------------------------
+        */
 
         players:
             room.players.map(
@@ -1236,6 +1007,13 @@ function getRoomSummary(room) {
                 })
             ),
 
+
+        /*
+        -------------------------------------------------
+        GAME
+        -------------------------------------------------
+        */
+
         startedAt:
             room.startedAt,
 
@@ -1243,6 +1021,57 @@ function getRoomSummary(room) {
             room.finishedAt
 
     };
+
+}
+
+
+/*
+=========================================================
+WAITING ROOMS
+=========================================================
+*/
+
+function getWaitingRooms() {
+
+    const result = [];
+
+
+    for (
+        const room
+        of rooms.values()
+    ) {
+
+        if (
+            room.status !==
+            "waiting"
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            room.players.length >=
+            MAX_PLAYERS
+        ) {
+
+            continue;
+
+        }
+
+
+        result.push(
+            getRoomSummary(
+                room
+            )
+        );
+
+    }
+
+
+    return result;
+
 }
 
 
@@ -1254,202 +1083,60 @@ PUBLIC ROOM LIST
 
 function getPublicRooms() {
 
-    return getRooms().map(
+    return Array.from(
+        rooms.values()
+    ).map(
         room =>
-            getRoomSummary(room)
+            getRoomSummary(
+                room
+            )
     );
+
 }
 
 
 /*
 =========================================================
-PUBLIC GAME STATE
+CLEAR ROOMS
 =========================================================
 */
 
-function getPublicState(
-    room,
-    playerId
-) {
+function clearRooms() {
 
-    if (!room) {
-        return null;
-    }
+    rooms.clear();
 
-
-    return getPublicGameState(
-        room,
-        playerId
-    );
 }
 
 
 /*
 =========================================================
-ENGINE ACCESS
+DELETE ROOM
 =========================================================
 */
 
-function getRoomEngine(roomId) {
+function deleteRoom(
+    roomId
+) {
 
-    const room =
-        getRoom(roomId);
+    return rooms.delete(
+        String(roomId)
+    );
 
-
-    if (!room) {
-        return null;
-    }
-
-
-    return ensureRoomEngine(room);
 }
 
 
 /*
 =========================================================
-ROOM GAME ACTION
+ALL ROOMS
 =========================================================
 */
 
-function roomAttack(
-    roomId,
-    playerId,
-    cardId
-) {
+function getAllRooms() {
 
-    const room =
-        getRoom(roomId);
-
-
-    if (!room) {
-
-        return {
-            ok: false,
-            error:
-                "Комната не найдена."
-        };
-    }
-
-
-    const engine =
-        ensureRoomEngine(room);
-
-
-    return engine.attackCard(
-        playerId,
-        cardId
+    return Array.from(
+        rooms.values()
     );
-}
 
-
-function roomDefend(
-    roomId,
-    playerId,
-    attackId,
-    defenseId
-) {
-
-    const room =
-        getRoom(roomId);
-
-
-    if (!room) {
-
-        return {
-            ok: false,
-            error:
-                "Комната не найдена."
-        };
-    }
-
-
-    const engine =
-        ensureRoomEngine(room);
-
-
-    return engine.defendCard(
-        playerId,
-        attackId,
-        defenseId
-    );
-}
-
-
-function roomTake(
-    roomId,
-    playerId
-) {
-
-    const room =
-        getRoom(roomId);
-
-
-    if (!room) {
-
-        return {
-            ok: false,
-            error:
-                "Комната не найдена."
-        };
-    }
-
-
-    const engine =
-        ensureRoomEngine(room);
-
-
-    return engine.takeCards(
-        playerId
-    );
-}
-
-
-function roomBito(
-    roomId,
-    playerId
-) {
-
-    const room =
-        getRoom(roomId);
-
-
-    if (!room) {
-
-        return {
-            ok: false,
-            error:
-                "Комната не найдена."
-        };
-    }
-
-
-    const engine =
-        ensureRoomEngine(room);
-
-
-    return engine.bito(
-        playerId
-    );
-}
-
-
-/*
-=========================================================
-VALIDATION
-=========================================================
-*/
-
-function hasPlayer(
-    room,
-    playerId
-) {
-
-    return Boolean(
-        roomPlayerById(
-            room,
-            playerId
-        )
-    );
 }
 
 
@@ -1461,98 +1148,40 @@ EXPORTS
 
 module.exports = {
 
-    /*
-    Storage
-    */
-
-    rooms,
-
-    roomCount,
-
-    clearRooms,
-
-    getRooms,
+    createRoom,
 
     getRoom,
 
-    getWaitingRooms,
+    hasRoom,
 
-    getPublicRooms,
-
-
-    /*
-    Room lifecycle
-    */
-
-    createRoom,
+    roomCount,
 
     joinRoom,
-
-    startRoom,
-
-    leaveRoom,
-
-    deleteRoom,
-
-    cleanupRooms,
-
-
-    /*
-    Players
-    */
-
-    getRoomPlayer,
-
-    getPlayerInRoom,
-
-    getOtherPlayer,
-
-    hasPlayer,
-
-    removePlayer,
-
-
-    /*
-    Connection
-    */
 
     disconnectPlayer,
 
     reconnectPlayer,
 
+    removePlayer,
 
-    /*
-    Engine
-    */
+    forfeitPlayer,
 
-    attachRoomEngine,
+    getRoomPlayer,
 
-    ensureRoomEngine,
+    getOtherPlayer,
 
-    getRoomEngine,
-
-
-    /*
-    Game actions
-    */
-
-    roomAttack,
-
-    roomDefend,
-
-    roomTake,
-
-    roomBito,
-
-
-    /*
-    State
-    */
+    getGameState,
 
     getRoomSummary,
 
-    getPublicState,
+    getWaitingRooms,
 
-    normalizeRoomId
+    getPublicRooms,
+
+    clearRooms,
+
+    deleteRoom,
+
+    getAllRooms
 
 };
