@@ -3,36 +3,49 @@
 /*
 =========================================================
 HEAVY LUX CARD
-DATABASE SCHEMA
+ECONOMY
+GAME SETTLEMENT
 =========================================================
 
-ЕДИНАЯ СХЕМА БАЗЫ ДАННЫХ
+НАЗНАЧЕНИЕ:
 
-Основные сущности:
-
-players
-vehicles
-properties
-plates
-
-game_sessions
-game_settlements
-game_transactions
+1. Зафиксировать результат игры.
+2. Безопасно обработать ставку.
+3. Работать внутри PostgreSQL transaction.
+4. Не допускать двойной выплаты.
+5. Победитель получает весь банк.
+6. При ничьей ставки возвращаются обоим.
+7. Все изменения записываются в game_transactions.
 
 ВАЖНО:
 
-- schema.js отвечает только за структуру БД;
-- игровая логика находится в game/;
-- кошелёк находится в economy/wallet.js;
-- завершение денежной части игры находится
-  в economy/settlement.js.
+На момент начала игры stake каждого игрока
+должен находиться в reserved_balance.
+
+При победе:
+
+    winner:
+        reserved_balance -= stake
+        balance += stake * 2
+
+    loser:
+        reserved_balance -= stake
+        balance не меняется
+
+При ничьей:
+
+    оба:
+        reserved_balance -= stake
+        balance += stake
 
 =========================================================
 */
 
+const crypto = require("crypto");
+
 const {
-    query
-} = require("./db");
+    withTransaction
+} = require("../database/db");
 
 
 /*
@@ -41,19 +54,1291 @@ HELPERS
 =========================================================
 */
 
-/*
- * Выполнить SQL.
- *
- * Оставлено отдельной функцией, чтобы схема была
- * читаемой и при необходимости можно было централизованно
- * добавить логирование миграций.
- */
-async function run(
-    sql
+function makeTransactionId() {
+
+    return crypto.randomUUID();
+
+}
+
+
+function toSafeInteger(
+    value,
+    fallback = 0
 ) {
 
-    await query(
-        sql
+    const number =
+        Number(value);
+
+    if (
+        !Number.isSafeInteger(
+            number
+        )
+    ) {
+
+        return fallback;
+
+    }
+
+    return number;
+
+}
+
+
+/*
+=========================================================
+VALIDATE GAME RESULT
+=========================================================
+*/
+
+function validateSettlementResult(
+    result
+) {
+
+    if (
+        result !== "win" &&
+        result !== "draw" &&
+        result !== "forfeit"
+    ) {
+
+        throw new Error(
+            "Invalid settlement result"
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+GET SETTLEMENT
+=========================================================
+*/
+
+async function getSettlement(
+    gameId
+) {
+
+    if (!gameId) {
+
+        throw new Error(
+            "gameId is required"
+        );
+
+    }
+
+
+    const result =
+        await withTransaction(
+            async client => {
+
+                const queryResult =
+                    await client.query(
+                        `
+                        SELECT
+                            *
+                        FROM game_settlements
+                        WHERE game_id = $1
+                        LIMIT 1
+                        `,
+                        [
+                            String(
+                                gameId
+                            )
+                        ]
+                    );
+
+                return (
+                    queryResult.rows[0] ||
+                    null
+                );
+
+            }
+        );
+
+
+    if (!result) {
+
+        return null;
+
+    }
+
+
+    return {
+
+        gameId:
+            result.game_id,
+
+        status:
+            result.status,
+
+        winnerPlayerId:
+            result.winner_player_id,
+
+        loserPlayerId:
+            result.loser_player_id,
+
+        stake:
+            Number(
+                result.stake
+            ),
+
+        winnerAmount:
+            Number(
+                result.winner_amount
+            ),
+
+        loserAmount:
+            Number(
+                result.loser_amount
+            ),
+
+        createdAt:
+            result.created_at,
+
+        settledAt:
+            result.settled_at,
+
+        updatedAt:
+            result.updated_at
+
+    };
+
+}
+
+
+/*
+=========================================================
+SETTLE GAME
+=========================================================
+*/
+
+async function settleGame(
+    {
+        gameId,
+        winnerPlayerId = null,
+        loserPlayerId = null,
+        stake,
+        result = "win"
+    }
+) {
+
+    if (!gameId) {
+
+        throw new Error(
+            "gameId is required"
+        );
+
+    }
+
+
+    validateSettlementResult(
+        result
+    );
+
+
+    const value =
+        toSafeInteger(
+            stake
+        );
+
+
+    if (
+        value < 0
+    ) {
+
+        throw new Error(
+            "Invalid stake"
+        );
+
+    }
+
+
+    if (
+        result === "win" ||
+        result === "forfeit"
+    ) {
+
+        if (!winnerPlayerId) {
+
+            throw new Error(
+                "winnerPlayerId is required"
+            );
+
+        }
+
+        if (!loserPlayerId) {
+
+            throw new Error(
+                "loserPlayerId is required"
+            );
+
+        }
+
+        if (
+            String(winnerPlayerId) ===
+            String(loserPlayerId)
+        ) {
+
+            throw new Error(
+                "Winner and loser cannot be the same player"
+            );
+
+        }
+
+    }
+
+
+    if (
+        result === "draw"
+    ) {
+
+        if (
+            !winnerPlayerId &&
+            !loserPlayerId
+        ) {
+
+            throw new Error(
+                "Players are required for draw settlement"
+            );
+
+        }
+
+    }
+
+
+    return withTransaction(
+        async client => {
+
+            /*
+            -------------------------------------------------
+            LOCK / CREATE SETTLEMENT
+            -------------------------------------------------
+            */
+
+            const existingResult =
+                await client.query(
+                    `
+                    SELECT
+                        *
+                    FROM game_settlements
+                    WHERE game_id = $1
+                    FOR UPDATE
+                    `,
+                    [
+                        String(
+                            gameId
+                        )
+                    ]
+                );
+
+
+            const existing =
+                existingResult.rows[0];
+
+
+            /*
+            -------------------------------------------------
+            ALREADY SETTLED
+            -------------------------------------------------
+            */
+
+            if (
+                existing &&
+                existing.status ===
+                    "settled"
+            ) {
+
+                return {
+
+                    ok: true,
+
+                    alreadySettled:
+                        true,
+
+                    gameId:
+                        existing.game_id,
+
+                    status:
+                        existing.status,
+
+                    winnerPlayerId:
+                        existing.winner_player_id,
+
+                    loserPlayerId:
+                        existing.loser_player_id,
+
+                    stake:
+                        Number(
+                            existing.stake
+                        ),
+
+                    winnerAmount:
+                        Number(
+                            existing.winner_amount
+                        ),
+
+                    loserAmount:
+                        Number(
+                            existing.loser_amount
+                        )
+
+                };
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            CREATE PENDING SETTLEMENT
+            -------------------------------------------------
+            */
+
+            if (!existing) {
+
+                await client.query(
+                    `
+                    INSERT INTO game_settlements (
+                        game_id,
+                        status,
+                        winner_player_id,
+                        loser_player_id,
+                        stake,
+                        winner_amount,
+                        loser_amount
+                    )
+                    VALUES (
+                        $1,
+                        'pending',
+                        $2,
+                        $3,
+                        $4,
+                        0,
+                        0
+                    )
+                    `,
+                    [
+                        String(
+                            gameId
+                        ),
+
+                        winnerPlayerId
+                            ? String(
+                                winnerPlayerId
+                            )
+                            : null,
+
+                        loserPlayerId
+                            ? String(
+                                loserPlayerId
+                            )
+                            : null,
+
+                        value
+                    ]
+                );
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            DRAW
+            -------------------------------------------------
+            */
+
+            if (
+                result === "draw"
+            ) {
+
+                /*
+                 * Для ничьей нам нужны
+                 * оба игрока.
+                 */
+
+                if (
+                    !winnerPlayerId ||
+                    !loserPlayerId
+                ) {
+
+                    throw new Error(
+                        "Both players are required for draw"
+                    );
+
+                }
+
+
+                const ids = [
+
+                    String(
+                        winnerPlayerId
+                    ),
+
+                    String(
+                        loserPlayerId
+                    )
+
+                ].sort();
+
+
+                /*
+                 * Блокируем обоих игроков.
+                 */
+
+                const playersResult =
+                    await client.query(
+                        `
+                        SELECT
+                            player_id,
+                            balance,
+                            reserved_balance
+                        FROM players
+                        WHERE player_id = ANY($1::text[])
+                        ORDER BY player_id
+                        FOR UPDATE
+                        `,
+                        [
+                            ids
+                        ]
+                    );
+
+
+                if (
+                    playersResult.rows.length !==
+                    2
+                ) {
+
+                    throw new Error(
+                        "Both players must exist"
+                    );
+
+                }
+
+
+                const players =
+                    new Map(
+                        playersResult.rows.map(
+                            player => [
+                                String(
+                                    player.player_id
+                                ),
+                                player
+                            ]
+                        )
+                    );
+
+
+                const first =
+                    players.get(
+                        String(
+                            winnerPlayerId
+                        )
+                    );
+
+                const second =
+                    players.get(
+                        String(
+                            loserPlayerId
+                        )
+                    );
+
+
+                /*
+                 * Проверяем наличие
+                 * зарезервированной ставки.
+                 */
+
+                if (
+                    Number(
+                        first.reserved_balance
+                    ) <
+                    value
+                ) {
+
+                    throw new Error(
+                        "First player reserved balance is insufficient"
+                    );
+
+                }
+
+
+                if (
+                    Number(
+                        second.reserved_balance
+                    ) <
+                    value
+                ) {
+
+                    throw new Error(
+                        "Second player reserved balance is insufficient"
+                    );
+
+                }
+
+
+                /*
+                 * Возвращаем ставку первому игроку.
+                 */
+
+                await client.query(
+                    `
+                    UPDATE players
+                    SET
+                        balance =
+                            balance + $2,
+
+                        reserved_balance =
+                            reserved_balance - $2,
+
+                        updated_at =
+                            NOW()
+
+                    WHERE player_id = $1
+                    `,
+                    [
+                        String(
+                            winnerPlayerId
+                        ),
+
+                        value
+                    ]
+                );
+
+
+                /*
+                 * Возвращаем ставку второму игроку.
+                 */
+
+                await client.query(
+                    `
+                    UPDATE players
+                    SET
+                        balance =
+                            balance + $2,
+
+                        reserved_balance =
+                            reserved_balance - $2,
+
+                        updated_at =
+                            NOW()
+
+                    WHERE player_id = $1
+                    `,
+                    [
+                        String(
+                            loserPlayerId
+                        ),
+
+                        value
+                    ]
+                );
+
+
+                /*
+                 * Лог первого игрока.
+                 */
+
+                const firstTransactionId =
+                    makeTransactionId();
+
+
+                await client.query(
+                    `
+                    INSERT INTO game_transactions (
+                        transaction_id,
+                        game_id,
+                        player_id,
+                        type,
+                        amount,
+                        balance_before,
+                        balance_after,
+                        metadata
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        'draw_refund',
+                        $4,
+                        $5,
+                        $6,
+                        $7::jsonb
+                    )
+                    `,
+                    [
+                        firstTransactionId,
+
+                        String(
+                            gameId
+                        ),
+
+                        String(
+                            winnerPlayerId
+                        ),
+
+                        value,
+
+                        Number(
+                            first.balance
+                        ),
+
+                        Number(
+                            first.balance
+                        ) + value,
+
+                        JSON.stringify({
+
+                            reason:
+                                "draw",
+
+                            reservedBefore:
+                                Number(
+                                    first.reserved_balance
+                                ),
+
+                            reservedAfter:
+                                Number(
+                                    first.reserved_balance
+                                ) - value
+
+                        })
+                    ]
+                );
+
+
+                /*
+                 * Лог второго игрока.
+                 */
+
+                const secondTransactionId =
+                    makeTransactionId();
+
+
+                await client.query(
+                    `
+                    INSERT INTO game_transactions (
+                        transaction_id,
+                        game_id,
+                        player_id,
+                        type,
+                        amount,
+                        balance_before,
+                        balance_after,
+                        metadata
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        'draw_refund',
+                        $4,
+                        $5,
+                        $6,
+                        $7::jsonb
+                    )
+                    `,
+                    [
+                        secondTransactionId,
+
+                        String(
+                            gameId
+                        ),
+
+                        String(
+                            loserPlayerId
+                        ),
+
+                        value,
+
+                        Number(
+                            second.balance
+                        ),
+
+                        Number(
+                            second.balance
+                        ) + value,
+
+                        JSON.stringify({
+
+                            reason:
+                                "draw",
+
+                            reservedBefore:
+                                Number(
+                                    second.reserved_balance
+                                ),
+
+                            reservedAfter:
+                                Number(
+                                    second.reserved_balance
+                                ) - value
+
+                        })
+                    ]
+                );
+
+
+                /*
+                 * Финализируем settlement.
+                 */
+
+                const updateResult =
+                    await client.query(
+                        `
+                        UPDATE game_settlements
+                        SET
+                            status = 'settled',
+
+                            winner_player_id =
+                                NULL,
+
+                            loser_player_id =
+                                NULL,
+
+                            stake =
+                                $2,
+
+                            winner_amount =
+                                $2,
+
+                            loser_amount =
+                                $2,
+
+                            settled_at =
+                                NOW(),
+
+                            updated_at =
+                                NOW()
+
+                        WHERE game_id = $1
+
+                        RETURNING *
+                        `,
+                        [
+                            String(
+                                gameId
+                            ),
+
+                            value
+                        ]
+                    );
+
+
+                const settlement =
+                    updateResult.rows[0];
+
+
+                return {
+
+                    ok: true,
+
+                    alreadySettled:
+                        false,
+
+                    gameId:
+                        settlement.game_id,
+
+                    status:
+                        settlement.status,
+
+                    result:
+                        "draw",
+
+                    winnerPlayerId:
+                        null,
+
+                    loserPlayerId:
+                        null,
+
+                    stake:
+                        value,
+
+                    winnerAmount:
+                        value,
+
+                    loserAmount:
+                        value,
+
+                    transactionIds: [
+
+                        firstTransactionId,
+
+                        secondTransactionId
+
+                    ]
+
+                };
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            WIN / FORFEIT
+            -------------------------------------------------
+            */
+
+            const ids = [
+
+                String(
+                    winnerPlayerId
+                ),
+
+                String(
+                    loserPlayerId
+                )
+
+            ].sort();
+
+
+            /*
+             * Блокируем обоих игроков
+             * в одинаковом порядке.
+             *
+             * Это предотвращает deadlock.
+             */
+
+            const playersResult =
+                await client.query(
+                    `
+                    SELECT
+                        player_id,
+                        balance,
+                        reserved_balance
+                    FROM players
+                    WHERE player_id = ANY($1::text[])
+                    ORDER BY player_id
+                    FOR UPDATE
+                    `,
+                    [
+                        ids
+                    ]
+                );
+
+
+            if (
+                playersResult.rows.length !==
+                2
+            ) {
+
+                throw new Error(
+                    "Both players must exist"
+                );
+
+            }
+
+
+            const players =
+                new Map(
+                    playersResult.rows.map(
+                        player => [
+                            String(
+                                player.player_id
+                            ),
+                            player
+                        ]
+                    )
+                );
+
+
+            const winner =
+                players.get(
+                    String(
+                        winnerPlayerId
+                    )
+                );
+
+            const loser =
+                players.get(
+                    String(
+                        loserPlayerId
+                    )
+                );
+
+
+            const winnerBalance =
+                Number(
+                    winner.balance
+                );
+
+            const winnerReserved =
+                Number(
+                    winner.reserved_balance
+                );
+
+            const loserBalance =
+                Number(
+                    loser.balance
+                );
+
+            const loserReserved =
+                Number(
+                    loser.reserved_balance
+                );
+
+
+            /*
+            -------------------------------------------------
+            CHECK RESERVED STAKES
+            -------------------------------------------------
+            */
+
+            if (
+                winnerReserved <
+                value
+            ) {
+
+                throw new Error(
+                    "Winner reserved balance is insufficient"
+                );
+
+            }
+
+
+            if (
+                loserReserved <
+                value
+            ) {
+
+                throw new Error(
+                    "Loser reserved balance is insufficient"
+                );
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            POT
+            -------------------------------------------------
+            */
+
+            const pot =
+                value * 2;
+
+
+            /*
+            -------------------------------------------------
+            PAY WINNER
+            -------------------------------------------------
+            */
+
+            await client.query(
+                `
+                UPDATE players
+                SET
+                    balance =
+                        balance + $2,
+
+                    reserved_balance =
+                        reserved_balance - $3,
+
+                    updated_at =
+                        NOW()
+
+                WHERE player_id = $1
+                `,
+                [
+                    String(
+                        winnerPlayerId
+                    ),
+
+                    pot,
+
+                    value
+                ]
+            );
+
+
+            /*
+            -------------------------------------------------
+            REMOVE LOSER RESERVE
+            -------------------------------------------------
+            */
+
+            await client.query(
+                `
+                UPDATE players
+                SET
+                    reserved_balance =
+                        reserved_balance - $2,
+
+                    updated_at =
+                        NOW()
+
+                WHERE player_id = $1
+                `,
+                [
+                    String(
+                        loserPlayerId
+                    ),
+
+                    value
+                ]
+            );
+
+
+            /*
+            -------------------------------------------------
+            WINNER TRANSACTION
+            -------------------------------------------------
+            */
+
+            const winnerTransactionId =
+                makeTransactionId();
+
+
+            await client.query(
+                `
+                INSERT INTO game_transactions (
+                    transaction_id,
+                    game_id,
+                    player_id,
+                    type,
+                    amount,
+                    balance_before,
+                    balance_after,
+                    metadata
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    'game_win',
+                    $4,
+                    $5,
+                    $6,
+                    $7::jsonb
+                )
+                `,
+                [
+                    winnerTransactionId,
+
+                    String(
+                        gameId
+                    ),
+
+                    String(
+                        winnerPlayerId
+                    ),
+
+                    pot,
+
+                    winnerBalance,
+
+                    winnerBalance + pot,
+
+                    JSON.stringify({
+
+                        result:
+                            result,
+
+                        stake:
+                            value,
+
+                        pot:
+                            pot,
+
+                        opponentId:
+                            String(
+                                loserPlayerId
+                            ),
+
+                        reservedBefore:
+                            winnerReserved,
+
+                        reservedAfter:
+                            winnerReserved - value
+
+                    })
+                ]
+            );
+
+
+            /*
+            -------------------------------------------------
+            LOSER TRANSACTION
+            -------------------------------------------------
+            */
+
+            const loserTransactionId =
+                makeTransactionId();
+
+
+            await client.query(
+                `
+                INSERT INTO game_transactions (
+                    transaction_id,
+                    game_id,
+                    player_id,
+                    type,
+                    amount,
+                    balance_before,
+                    balance_after,
+                    metadata
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    'game_loss',
+                    $4,
+                    $5,
+                    $6,
+                    $7::jsonb
+                )
+                `,
+                [
+                    loserTransactionId,
+
+                    String(
+                        gameId
+                    ),
+
+                    String(
+                        loserPlayerId
+                    ),
+
+                    value,
+
+                    loserBalance,
+
+                    loserBalance,
+
+                    JSON.stringify({
+
+                        result:
+                            result,
+
+                        stake:
+                            value,
+
+                        opponentId:
+                            String(
+                                winnerPlayerId
+                            ),
+
+                        reservedBefore:
+                            loserReserved,
+
+                        reservedAfter:
+                            loserReserved - value
+
+                    })
+                ]
+            );
+
+
+            /*
+            -------------------------------------------------
+            UPDATE SETTLEMENT
+            -------------------------------------------------
+            */
+
+            const updateResult =
+                await client.query(
+                    `
+                    UPDATE game_settlements
+                    SET
+                        status = 'settled',
+
+                        winner_player_id =
+                            $2,
+
+                        loser_player_id =
+                            $3,
+
+                        stake =
+                            $4,
+
+                        winner_amount =
+                            $5,
+
+                        loser_amount =
+                            0,
+
+                        settled_at =
+                            NOW(),
+
+                        updated_at =
+                            NOW()
+
+                    WHERE game_id = $1
+
+                    RETURNING *
+                    `,
+                    [
+                        String(
+                            gameId
+                        ),
+
+                        String(
+                            winnerPlayerId
+                        ),
+
+                        String(
+                            loserPlayerId
+                        ),
+
+                        value,
+
+                        pot
+                    ]
+                );
+
+
+            const settlement =
+                updateResult.rows[0];
+
+
+            return {
+
+                ok: true,
+
+                alreadySettled:
+                    false,
+
+                gameId:
+                    settlement.game_id,
+
+                status:
+                    settlement.status,
+
+                result:
+                    result,
+
+                winnerPlayerId:
+                    settlement.winner_player_id,
+
+                loserPlayerId:
+                    settlement.loser_player_id,
+
+                stake:
+                    Number(
+                        settlement.stake
+                    ),
+
+                winnerAmount:
+                    Number(
+                        settlement.winner_amount
+                    ),
+
+                loserAmount:
+                    Number(
+                        settlement.loser_amount
+                    ),
+
+                transactionIds: [
+
+                    winnerTransactionId,
+
+                    loserTransactionId
+
+                ]
+
+            };
+
+        }
     );
 
 }
@@ -61,696 +1346,359 @@ async function run(
 
 /*
 =========================================================
-INITIALIZE DATABASE
+CANCEL / RELEASE GAME
+=========================================================
+
+Используется, если игра была создана,
+ставки зарезервированы, но игра отменена
+до начала нормального результата.
+
+Например:
+
+    игрок создал комнату;
+    второй игрок не вошёл;
+    игра отменена;
+    ставки нужно вернуть.
+
 =========================================================
 */
 
-async function initializeDatabase() {
+async function cancelSettlement(
+    {
+        gameId,
+        playerIds = [],
+        stake
+    }
+) {
 
-    console.log(
-        "[DATABASE] Initializing schema..."
-    );
+    if (!gameId) {
 
+        throw new Error(
+            "gameId is required"
+        );
 
-    /*
-    =====================================================
-    PLAYERS
-    =====================================================
-    */
+    }
 
-    await run(`
-        CREATE TABLE IF NOT EXISTS players (
 
-            telegram_id TEXT PRIMARY KEY,
+    const value =
+        toSafeInteger(
+            stake
+        );
 
-            player_id TEXT UNIQUE NOT NULL,
 
-            name TEXT NOT NULL
-                DEFAULT 'Player',
+    if (
+        value <= 0
+    ) {
 
-            username TEXT,
+        throw new Error(
+            "Invalid stake"
+        );
 
-            balance BIGINT NOT NULL
-                DEFAULT 1000,
+    }
 
-            reserved_balance BIGINT NOT NULL
-                DEFAULT 0,
 
-            xp BIGINT NOT NULL
-                DEFAULT 0,
-
-            level INTEGER NOT NULL
-                DEFAULT 1,
-
-            games_played INTEGER NOT NULL
-                DEFAULT 0,
-
-            wins INTEGER NOT NULL
-                DEFAULT 0,
-
-            losses INTEGER NOT NULL
-                DEFAULT 0,
-
-            draws INTEGER NOT NULL
-                DEFAULT 0,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    -----------------------------------------------------
-    PLAYERS MIGRATIONS
-    -----------------------------------------------------
-    */
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        reserved_balance BIGINT
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        xp BIGINT
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        level INTEGER
-        NOT NULL DEFAULT 1
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        games_played INTEGER
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        wins INTEGER
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        losses INTEGER
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        draws INTEGER
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        created_at TIMESTAMPTZ
-        NOT NULL DEFAULT NOW()
-    `);
-
-    await run(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS
-        updated_at TIMESTAMPTZ
-        NOT NULL DEFAULT NOW()
-    `);
-
-
-    /*
-    =====================================================
-    VEHICLES
-    =====================================================
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS vehicles (
-
-            id BIGSERIAL PRIMARY KEY,
-
-            player_id TEXT NOT NULL,
-
-            model TEXT NOT NULL,
-
-            price BIGINT NOT NULL
-                DEFAULT 0,
-
-            color TEXT,
-
-            plate TEXT,
-
-            mileage NUMERIC(12,2) NOT NULL
-                DEFAULT 0,
-
-            fuel NUMERIC(6,2) NOT NULL
-                DEFAULT 100,
-
-            condition NUMERIC(6,2) NOT NULL
-                DEFAULT 100,
-
-            tuning JSONB NOT NULL
-                DEFAULT '{}'::jsonb,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    =====================================================
-    PROPERTIES
-    =====================================================
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS properties (
-
-            id BIGSERIAL PRIMARY KEY,
-
-            player_id TEXT,
-
-            type TEXT NOT NULL,
-
-            name TEXT NOT NULL,
-
-            price BIGINT NOT NULL
-                DEFAULT 0,
-
-            data JSONB NOT NULL
-                DEFAULT '{}'::jsonb,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    =====================================================
-    PLATES
-    =====================================================
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS plates (
-
-            id BIGSERIAL PRIMARY KEY,
-
-            player_id TEXT,
-
-            plate TEXT UNIQUE NOT NULL,
-
-            price BIGINT NOT NULL
-                DEFAULT 0,
-
-            data JSONB NOT NULL
-                DEFAULT '{}'::jsonb,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    =====================================================
-    GAME SESSIONS
-    =====================================================
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS game_sessions (
-
-            game_id TEXT PRIMARY KEY,
-
-            room_id TEXT UNIQUE NOT NULL,
-
-            state JSONB NOT NULL,
-
-            status TEXT NOT NULL
-                DEFAULT 'waiting',
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    =====================================================
-    GAME SETTLEMENTS
-    =====================================================
-
-    Одна запись = одно финансовое закрытие игры.
-
-    game_id PRIMARY KEY гарантирует, что одна игра
-    не будет закрыта дважды на уровне БД.
-
-    status:
-
-        pending
-        processing
-        settled
-        cancelled
-        failed
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS game_settlements (
-
-            game_id TEXT PRIMARY KEY,
-
-            status TEXT NOT NULL
-                DEFAULT 'pending',
-
-            winner_player_id TEXT,
-
-            loser_player_id TEXT,
-
-            stake BIGINT NOT NULL
-                DEFAULT 0,
-
-            winner_amount BIGINT NOT NULL
-                DEFAULT 0,
-
-            loser_amount BIGINT NOT NULL
-                DEFAULT 0,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW(),
-
-            settled_at TIMESTAMPTZ,
-
-            updated_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    -----------------------------------------------------
-    SETTLEMENT MIGRATIONS
-    -----------------------------------------------------
-    */
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        status TEXT
-        NOT NULL DEFAULT 'pending'
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        winner_player_id TEXT
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        loser_player_id TEXT
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        stake BIGINT
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        winner_amount BIGINT
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        loser_amount BIGINT
-        NOT NULL DEFAULT 0
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        created_at TIMESTAMPTZ
-        NOT NULL DEFAULT NOW()
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        settled_at TIMESTAMPTZ
-    `);
-
-    await run(`
-        ALTER TABLE game_settlements
-        ADD COLUMN IF NOT EXISTS
-        updated_at TIMESTAMPTZ
-        NOT NULL DEFAULT NOW()
-    `);
-
-
-    /*
-    =====================================================
-    GAME TRANSACTIONS
-    =====================================================
-
-    Неизменяемый журнал денежных операций.
-
-    transaction_id UNIQUE защищает от повторной записи
-    одной и той же операции.
-
-    type может содержать, например:
-
-        reserve
-        release_reserve
-        transfer_out
-        transfer_in
-        settlement
-        refund
-        reward
-    */
-
-    await run(`
-        CREATE TABLE IF NOT EXISTS game_transactions (
-
-            id BIGSERIAL PRIMARY KEY,
-
-            transaction_id TEXT UNIQUE NOT NULL,
-
-            game_id TEXT NOT NULL,
-
-            player_id TEXT NOT NULL,
-
-            type TEXT NOT NULL,
-
-            amount BIGINT NOT NULL
-                DEFAULT 0,
-
-            balance_before BIGINT NOT NULL
-                DEFAULT 0,
-
-            balance_after BIGINT NOT NULL
-                DEFAULT 0,
-
-            metadata JSONB NOT NULL
-                DEFAULT '{}'::jsonb,
-
-            created_at TIMESTAMPTZ NOT NULL
-                DEFAULT NOW()
-        )
-    `);
-
-
-    /*
-    =====================================================
-    INDEXES
-    =====================================================
-    */
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_players_player_id
-        ON players(player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_players_username
-        ON players(username)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_vehicles_player_id
-        ON vehicles(player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_vehicles_plate
-        ON vehicles(plate)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_properties_player_id
-        ON properties(player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_properties_type
-        ON properties(type)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_plates_player_id
-        ON plates(player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_sessions_status
-        ON game_sessions(status)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_sessions_updated_at
-        ON game_sessions(updated_at)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_settlements_status
-        ON game_settlements(status)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_settlements_winner
-        ON game_settlements(winner_player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_settlements_loser
-        ON game_settlements(loser_player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_transactions_game_id
-        ON game_transactions(game_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_transactions_player_id
-        ON game_transactions(player_id)
-    `);
-
-
-    await run(`
-        CREATE INDEX IF NOT EXISTS
-        idx_game_transactions_created_at
-        ON game_transactions(created_at)
-    `);
-
-
-    /*
-    =====================================================
-    DATA NORMALIZATION
-    =====================================================
-    */
-
-    await run(`
-        UPDATE players
-        SET
-            balance = COALESCE(balance, 0),
-            reserved_balance = COALESCE(
-                reserved_balance,
-                0
-            ),
-            xp = COALESCE(xp, 0),
-            level = COALESCE(level, 1),
-            games_played = COALESCE(
-                games_played,
-                0
-            ),
-            wins = COALESCE(wins, 0),
-            losses = COALESCE(losses, 0),
-            draws = COALESCE(draws, 0),
-            updated_at = COALESCE(
-                updated_at,
-                NOW()
+    const uniquePlayerIds =
+        [
+            ...new Set(
+                playerIds.map(
+                    id =>
+                        String(id)
+                )
             )
-    `);
+        ];
 
 
-    await run(`
-        UPDATE game_settlements
-        SET
-            status = COALESCE(
-                status,
-                'pending'
-            ),
-            stake = COALESCE(
-                stake,
-                0
-            ),
-            winner_amount = COALESCE(
-                winner_amount,
-                0
-            ),
-            loser_amount = COALESCE(
-                loser_amount,
-                0
-            ),
-            updated_at = COALESCE(
-                updated_at,
-                NOW()
-            )
-    `);
+    if (
+        uniquePlayerIds.length === 0
+    ) {
+
+        throw new Error(
+            "No players provided"
+        );
+
+    }
 
 
-    await run(`
-        UPDATE game_sessions
-        SET
-            updated_at = COALESCE(
-                updated_at,
-                NOW()
-            )
-    `);
+    return withTransaction(
+        async client => {
 
-
-    /*
-    =====================================================
-    SAFETY CHECKS
-    =====================================================
-
-    Эти ограничения добавляем только если их ещё нет.
-
-    Используем отдельные DO-блоки PostgreSQL, чтобы
-    существующая БД не падала при повторном запуске.
-    */
-
-    await run(`
-        DO $$
-        BEGIN
-
-            IF NOT EXISTS (
-                SELECT 1
-                FROM pg_constraint
-                WHERE conname =
-                    'players_balance_non_negative'
-            ) THEN
-
-                ALTER TABLE players
-                ADD CONSTRAINT
-                    players_balance_non_negative
-                CHECK (
-                    balance >= 0
+            const settlementResult =
+                await client.query(
+                    `
+                    SELECT
+                        *
+                    FROM game_settlements
+                    WHERE game_id = $1
+                    FOR UPDATE
+                    `,
+                    [
+                        String(
+                            gameId
+                        )
+                    ]
                 );
 
-            END IF;
 
-        END
-        $$;
-    `);
+            const settlement =
+                settlementResult.rows[0];
 
 
-    await run(`
-        DO $$
-        BEGIN
+            if (
+                settlement &&
+                settlement.status ===
+                    "settled"
+            ) {
 
-            IF NOT EXISTS (
-                SELECT 1
-                FROM pg_constraint
-                WHERE conname =
-                    'players_reserved_balance_non_negative'
-            ) THEN
+                return {
 
-                ALTER TABLE players
-                ADD CONSTRAINT
-                    players_reserved_balance_non_negative
-                CHECK (
-                    reserved_balance >= 0
+                    ok: true,
+
+                    alreadySettled:
+                        true,
+
+                    gameId:
+                        String(
+                            gameId
+                        )
+
+                };
+
+            }
+
+
+            const playersResult =
+                await client.query(
+                    `
+                    SELECT
+                        player_id,
+                        balance,
+                        reserved_balance
+                    FROM players
+                    WHERE player_id = ANY($1::text[])
+                    ORDER BY player_id
+                    FOR UPDATE
+                    `,
+                    [
+                        uniquePlayerIds
+                    ]
                 );
 
-            END IF;
 
-        END
-        $$;
-    `);
+            const returnedPlayers = [];
 
 
-    /*
-    =====================================================
-    FOREIGN KEYS
-    =====================================================
+            for (
+                const player
+                of playersResult.rows
+            ) {
 
-    Для уже существующих проектов не добавляем FK
-    автоматически: если в старой БД есть исторические
-    записи без соответствующего игрока, миграция может
-    остановить запуск всего сервера.
+                const reserved =
+                    Number(
+                        player.reserved_balance
+                    );
 
-    Связи будут добавлены отдельной безопасной миграцией
-    после проверки существующих данных.
+                if (
+                    reserved <
+                    value
+                ) {
 
-    =====================================================
-    */
+                    throw new Error(
+                        `Reserved balance is insufficient for player ${player.player_id}`
+                    );
 
-    console.log(
-        "[DATABASE] Schema initialized successfully"
+                }
+
+
+                const balance =
+                    Number(
+                        player.balance
+                    );
+
+
+                await client.query(
+                    `
+                    UPDATE players
+                    SET
+                        balance =
+                            balance + $2,
+
+                        reserved_balance =
+                            reserved_balance - $2,
+
+                        updated_at =
+                            NOW()
+
+                    WHERE player_id = $1
+                    `,
+                    [
+                        String(
+                            player.player_id
+                        ),
+
+                        value
+                    ]
+                );
+
+
+                const transactionId =
+                    makeTransactionId();
+
+
+                await client.query(
+                    `
+                    INSERT INTO game_transactions (
+                        transaction_id,
+                        game_id,
+                        player_id,
+                        type,
+                        amount,
+                        balance_before,
+                        balance_after,
+                        metadata
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        'cancel_refund',
+                        $4,
+                        $5,
+                        $6,
+                        $7::jsonb
+                    )
+                    `,
+                    [
+                        transactionId,
+
+                        String(
+                            gameId
+                        ),
+
+                        String(
+                            player.player_id
+                        ),
+
+                        value,
+
+                        balance,
+
+                        balance + value,
+
+                        JSON.stringify({
+
+                            reason:
+                                "game_cancelled",
+
+                            reservedBefore:
+                                reserved,
+
+                            reservedAfter:
+                                reserved - value
+
+                        })
+                    ]
+                );
+
+
+                returnedPlayers.push({
+
+                    playerId:
+                        String(
+                            player.player_id
+                        ),
+
+                    amount:
+                        value,
+
+                    transactionId
+
+                });
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            SETTLEMENT
+            -------------------------------------------------
+            */
+
+            if (settlement) {
+
+                await client.query(
+                    `
+                    UPDATE game_settlements
+                    SET
+                        status = 'cancelled',
+
+                        updated_at =
+                            NOW(),
+
+                        settled_at =
+                            NOW()
+
+                    WHERE game_id = $1
+                    `,
+                    [
+                        String(
+                            gameId
+                        )
+                    ]
+                );
+
+            } else {
+
+                await client.query(
+                    `
+                    INSERT INTO game_settlements (
+                        game_id,
+                        status,
+                        stake,
+                        winner_amount,
+                        loser_amount,
+                        settled_at
+                    )
+                    VALUES (
+                        $1,
+                        'cancelled',
+                        $2,
+                        0,
+                        0,
+                        NOW()
+                    )
+                    `,
+                    [
+                        String(
+                            gameId
+                        ),
+
+                        value
+                    ]
+                );
+
+            }
+
+
+            return {
+
+                ok: true,
+
+                alreadySettled:
+                    false,
+
+                gameId:
+                    String(
+                        gameId
+                    ),
+
+                status:
+                    "cancelled",
+
+                returnedPlayers
+
+            };
+
+        }
     );
 
 }
@@ -764,6 +1712,10 @@ EXPORTS
 
 module.exports = {
 
-    initializeDatabase
+    getSettlement,
+
+    settleGame,
+
+    cancelSettlement
 
 };
