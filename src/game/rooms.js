@@ -33,7 +33,7 @@ const rooms = new Map();
 
 /*
 =========================================================
-ROOM ID
+GENERATE ROOM ID
 =========================================================
 */
 
@@ -54,6 +54,7 @@ function generateRoomId() {
     );
 
     return id;
+
 }
 
 
@@ -90,7 +91,9 @@ function createRoom({
         generateRoomId();
 
 
-    if (rooms.has(id)) {
+    if (
+        rooms.has(id)
+    ) {
 
         return {
 
@@ -159,8 +162,12 @@ function getRoom(
     roomId
 ) {
 
-    if (!roomId) {
+    if (
+        !roomId
+    ) {
+
         return null;
+
     }
 
 
@@ -176,16 +183,29 @@ function getRoom(
 
 /*
 =========================================================
-ROOM EXISTS
+GET ROOMS
 =========================================================
 */
 
-function hasRoom(
-    roomId
-) {
+function getRooms() {
 
-    return rooms.has(
-        String(roomId)
+    return Array.from(
+        rooms.values()
+    );
+
+}
+
+
+/*
+=========================================================
+GET ALL ROOMS
+=========================================================
+*/
+
+function getAllRooms() {
+
+    return Array.from(
+        rooms.values()
     );
 
 }
@@ -200,6 +220,23 @@ ROOM COUNT
 function roomCount() {
 
     return rooms.size;
+
+}
+
+
+/*
+=========================================================
+HAS ROOM
+=========================================================
+*/
+
+function hasRoom(
+    roomId
+) {
+
+    return rooms.has(
+        String(roomId)
+    );
 
 }
 
@@ -223,7 +260,9 @@ function joinRoom({
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
 
         return {
 
@@ -237,7 +276,9 @@ function joinRoom({
     }
 
 
-    if (!playerId) {
+    if (
+        !playerId
+    ) {
 
         return {
 
@@ -253,7 +294,7 @@ function joinRoom({
 
     /*
     -----------------------------------------------------
-    PLAYER ALREADY IN ROOM
+    EXISTING PLAYER / RECONNECT
     -----------------------------------------------------
     */
 
@@ -264,7 +305,9 @@ function joinRoom({
         );
 
 
-    if (existing) {
+    if (
+        existing
+    ) {
 
         existing.name =
             name ||
@@ -288,7 +331,11 @@ function joinRoom({
                 existing,
 
             reconnected:
-                true
+                true,
+
+            gameStarted:
+                room.status ===
+                "playing"
 
         };
 
@@ -362,7 +409,7 @@ function joinRoom({
 
     /*
     -----------------------------------------------------
-    START GAME AUTOMATICALLY
+    START GAME
     -----------------------------------------------------
     */
 
@@ -385,16 +432,11 @@ function joinRoom({
             !result.ok
         ) {
 
-            /*
-            Если старт не удался,
-            удаляем добавленного игрока.
-            */
-
             room.players =
                 room.players.filter(
-                    p =>
+                    currentPlayer =>
                         String(
-                            p.playerId
+                            currentPlayer.playerId
                         ) !==
                         String(
                             playerId
@@ -429,7 +471,8 @@ function joinRoom({
 
         player,
 
-        reconnected: false,
+        reconnected:
+            false,
 
         gameStarted
 
@@ -440,7 +483,7 @@ function joinRoom({
 
 /*
 =========================================================
-LEAVE / DISCONNECT
+DISCONNECT PLAYER
 =========================================================
 */
 
@@ -455,7 +498,9 @@ function disconnectPlayer(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
 
         return {
 
@@ -476,7 +521,9 @@ function disconnectPlayer(
         );
 
 
-    if (!player) {
+    if (
+        !player
+    ) {
 
         return {
 
@@ -499,7 +546,7 @@ function disconnectPlayer(
 
     /*
     -----------------------------------------------------
-    WAITING ROOM
+    WAITING
     -----------------------------------------------------
     */
 
@@ -514,9 +561,11 @@ function disconnectPlayer(
 
             room,
 
-            disconnected: true,
+            disconnected:
+                true,
 
-            finished: false
+            finished:
+                false
 
         };
 
@@ -525,7 +574,7 @@ function disconnectPlayer(
 
     /*
     -----------------------------------------------------
-    ACTIVE GAME
+    PLAYING
     -----------------------------------------------------
     */
 
@@ -544,11 +593,13 @@ function disconnectPlayer(
 
         return {
 
-            ok: result.ok,
+            ok:
+                result.ok,
 
             room,
 
-            disconnected: true,
+            disconnected:
+                true,
 
             finished:
                 result.ok,
@@ -572,7 +623,8 @@ function disconnectPlayer(
 
         room,
 
-        disconnected: true,
+        disconnected:
+            true,
 
         finished:
             room.status ===
@@ -602,7 +654,9 @@ function reconnectPlayer({
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
 
         return {
 
@@ -623,7 +677,9 @@ function reconnectPlayer({
         );
 
 
-    if (!player) {
+    if (
+        !player
+    ) {
 
         return {
 
@@ -640,12 +696,20 @@ function reconnectPlayer({
     player.connected =
         true;
 
-    player.socketId =
-        socketId ||
-        player.socketId;
+
+    if (
+        socketId
+    ) {
+
+        player.socketId =
+            socketId;
+
+    }
 
 
-    if (name !== null) {
+    if (
+        name !== null
+    ) {
 
         player.name =
             name;
@@ -661,7 +725,8 @@ function reconnectPlayer({
 
         player,
 
-        reconnected: true
+        reconnected:
+            true
 
     };
 
@@ -685,7 +750,9 @@ function removePlayer(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
 
         return {
 
@@ -733,11 +800,6 @@ function removePlayer(
     );
 
 
-    /*
-    Если игроков больше нет,
-    удаляем комнату.
-    */
-
     if (
         room.players.length === 0
     ) {
@@ -746,6 +808,15 @@ function removePlayer(
             room.id
         );
 
+        return {
+
+            ok: true,
+
+            room:
+                null
+
+        };
+
     }
 
 
@@ -753,10 +824,7 @@ function removePlayer(
 
         ok: true,
 
-        room:
-            room.players.length > 0
-                ? room
-                : null
+        room
 
     };
 
@@ -765,7 +833,7 @@ function removePlayer(
 
 /*
 =========================================================
-FORFEIT
+FORFEIT PLAYER
 =========================================================
 */
 
@@ -781,7 +849,9 @@ function forfeitPlayer(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
 
         return {
 
@@ -833,7 +903,7 @@ function forfeitPlayer(
 
 /*
 =========================================================
-ROOM PLAYER
+GET ROOM PLAYER
 =========================================================
 */
 
@@ -848,8 +918,12 @@ function getRoomPlayer(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
+
         return null;
+
     }
 
 
@@ -863,7 +937,7 @@ function getRoomPlayer(
 
 /*
 =========================================================
-OTHER PLAYER
+GET OTHER PLAYER
 =========================================================
 */
 
@@ -878,8 +952,12 @@ function getOtherPlayer(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
+
         return null;
+
     }
 
 
@@ -893,7 +971,7 @@ function getOtherPlayer(
 
 /*
 =========================================================
-ROOM GAME STATE
+GET GAME STATE
 =========================================================
 */
 
@@ -908,8 +986,12 @@ function getGameState(
         );
 
 
-    if (!room) {
+    if (
+        !room
+    ) {
+
         return null;
+
     }
 
 
@@ -931,8 +1013,12 @@ function getRoomSummary(
     room
 ) {
 
-    if (!room) {
+    if (
+        !room
+    ) {
+
         return null;
+
     }
 
 
@@ -940,7 +1026,7 @@ function getRoomSummary(
 
         /*
         -------------------------------------------------
-        BASIC
+        IDENTIFICATION
         -------------------------------------------------
         */
 
@@ -949,6 +1035,13 @@ function getRoomSummary(
 
         roomId:
             room.id,
+
+
+        /*
+        -------------------------------------------------
+        ECONOMY
+        -------------------------------------------------
+        */
 
         stake:
             room.stake,
@@ -985,7 +1078,7 @@ function getRoomSummary(
 
         /*
         -------------------------------------------------
-        PLAYER DATA
+        PLAYERS PUBLIC DATA
         -------------------------------------------------
         */
 
@@ -1010,7 +1103,7 @@ function getRoomSummary(
 
         /*
         -------------------------------------------------
-        GAME
+        GAME TIMESTAMPS
         -------------------------------------------------
         */
 
@@ -1077,7 +1170,7 @@ function getWaitingRooms() {
 
 /*
 =========================================================
-PUBLIC ROOM LIST
+PUBLIC ROOMS
 =========================================================
 */
 
@@ -1127,21 +1220,6 @@ function deleteRoom(
 
 /*
 =========================================================
-ALL ROOMS
-=========================================================
-*/
-
-function getAllRooms() {
-
-    return Array.from(
-        rooms.values()
-    );
-
-}
-
-
-/*
-=========================================================
 EXPORTS
 =========================================================
 */
@@ -1151,6 +1229,10 @@ module.exports = {
     createRoom,
 
     getRoom,
+
+    getRooms,
+
+    getAllRooms,
 
     hasRoom,
 
@@ -1180,8 +1262,6 @@ module.exports = {
 
     clearRooms,
 
-    deleteRoom,
-
-    getAllRooms
+    deleteRoom
 
 };
