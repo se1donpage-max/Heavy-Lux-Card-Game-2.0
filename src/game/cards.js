@@ -11,13 +11,16 @@ CARDS
 const crypto = require("crypto");
 
 const {
-    CONFIG
+    SUITS,
+    RANKS,
+    VALUES,
+    DECK_SIZE
 } = require("../config");
 
 
 /*
 =========================================================
-CREATE ID
+CREATE CARD ID
 =========================================================
 */
 
@@ -32,7 +35,7 @@ function createCardId() {
 
 /*
 =========================================================
-CARD VALUES
+CARD VALUE
 =========================================================
 */
 
@@ -41,7 +44,7 @@ function getCardValue(
 ) {
 
     return (
-        CONFIG.CARDS.VALUES[rank] ??
+        VALUES[rank] ??
         0
     );
 
@@ -59,6 +62,32 @@ function createCard(
     rank
 ) {
 
+    if (
+        !SUITS.includes(
+            suit
+        )
+    ) {
+
+        throw new Error(
+            `Invalid card suit: ${suit}`
+        );
+
+    }
+
+
+    if (
+        !RANKS.includes(
+            rank
+        )
+    ) {
+
+        throw new Error(
+            `Invalid card rank: ${rank}`
+        );
+
+    }
+
+
     return {
 
         id:
@@ -71,10 +100,7 @@ function createCard(
         value:
             getCardValue(
                 rank
-            ),
-
-        name:
-            `${rank}${suit}`
+            )
 
     };
 
@@ -94,12 +120,12 @@ function createDeck() {
 
     for (
         const suit
-        of CONFIG.CARDS.SUITS
+        of SUITS
     ) {
 
         for (
             const rank
-            of CONFIG.CARDS.RANKS
+            of RANKS
         ) {
 
             deck.push(
@@ -129,11 +155,28 @@ function shuffleDeck(
     deck
 ) {
 
-    const result =
-        Array.isArray(deck)
-            ? [...deck]
-            : [];
+    if (
+        !Array.isArray(
+            deck
+        )
+    ) {
 
+        return [];
+
+    }
+
+
+    const result =
+        [...deck];
+
+
+    /*
+    Fisher-Yates.
+
+    crypto.randomInt используется вместо
+    Math.random(), чтобы перемешивание было
+    качественным и непредсказуемым.
+    */
 
     for (
         let i =
@@ -183,7 +226,7 @@ function createShuffledDeck() {
 
 /*
 =========================================================
-TRUMP
+TRUMP SUIT
 =========================================================
 */
 
@@ -192,7 +235,9 @@ function getTrumpSuit(
 ) {
 
     if (
-        !Array.isArray(deck) ||
+        !Array.isArray(
+            deck
+        ) ||
         deck.length === 0
     ) {
 
@@ -202,8 +247,9 @@ function getTrumpSuit(
 
 
     return (
-        deck[deck.length - 1]
-            ?.suit ||
+        deck[
+            deck.length - 1
+        ]?.suit ||
         null
     );
 
@@ -212,7 +258,20 @@ function getTrumpSuit(
 
 /*
 =========================================================
-CARD CAN BEAT CARD
+CAN BEAT
+=========================================================
+
+Durak rules:
+
+1. Same suit:
+   higher card beats lower card.
+
+2. Trump beats non-trump.
+
+3. Non-trump cannot beat trump.
+
+4. Trump beats trump only if
+   trump card has higher value.
 =========================================================
 */
 
@@ -224,7 +283,15 @@ function canBeat(
 
     if (
         !attackingCard ||
-        !defendingCard ||
+        !defendingCard
+    ) {
+
+        return false;
+
+    }
+
+
+    if (
         !trumpSuit
     ) {
 
@@ -254,7 +321,7 @@ function canBeat(
 
     /*
     -----------------------------------------------------
-    TRUMP
+    DEFENDING CARD IS TRUMP
     -----------------------------------------------------
     */
 
@@ -273,7 +340,10 @@ function canBeat(
 
     /*
     -----------------------------------------------------
-    NON-TRUMP CANNOT BEAT TRUMP
+    ATTACKING CARD IS TRUMP
+    -----------------------------------------------------
+
+    Another non-trump card cannot beat it.
     -----------------------------------------------------
     */
 
@@ -284,7 +354,7 @@ function canBeat(
 
 /*
 =========================================================
-GET CARD BY ID
+FIND CARD BY ID
 =========================================================
 */
 
@@ -294,7 +364,9 @@ function findCardById(
 ) {
 
     if (
-        !Array.isArray(cards)
+        !Array.isArray(
+            cards
+        )
     ) {
 
         return null;
@@ -306,8 +378,12 @@ function findCardById(
         cards.find(
             card =>
                 card &&
-                card.id ===
-                cardId
+                String(
+                    card.id
+                ) ===
+                String(
+                    cardId
+                )
         ) ||
         null
     );
@@ -327,7 +403,9 @@ function removeCardById(
 ) {
 
     if (
-        !Array.isArray(cards)
+        !Array.isArray(
+            cards
+        )
     ) {
 
         return {
@@ -345,8 +423,12 @@ function removeCardById(
         cards.findIndex(
             card =>
                 card &&
-                card.id ===
-                cardId
+                String(
+                    card.id
+                ) ===
+                String(
+                    cardId
+                )
         );
 
 
@@ -373,13 +455,11 @@ function removeCardById(
         ];
 
 
-    const [
-        card
-    ] =
+    const card =
         next.splice(
             index,
             1
-        );
+        )[0];
 
 
     return {
@@ -441,10 +521,14 @@ function isTrump(
 ) {
 
     return Boolean(
+
         card &&
+
         trumpSuit &&
+
         card.suit ===
             trumpSuit
+
     );
 
 }
@@ -462,7 +546,9 @@ function findLowestCard(
 ) {
 
     if (
-        !Array.isArray(cards) ||
+        !Array.isArray(
+            cards
+        ) ||
         cards.length === 0
     ) {
 
@@ -471,64 +557,90 @@ function findLowestCard(
     }
 
 
-    const sorted =
-        [...cards]
-            .sort(
-                (
-                    a,
-                    b
-                ) => {
-
-                    const aTrump =
-                        isTrump(
-                            a,
-                            trumpSuit
-                        )
-                            ? 1
-                            : 0;
-
-                    const bTrump =
-                        isTrump(
-                            b,
-                            trumpSuit
-                        )
-                            ? 1
-                            : 0;
+    let lowest =
+        null;
 
 
-                    if (
-                        aTrump !==
-                        bTrump
-                    ) {
+    for (
+        const card
+        of cards
+    ) {
 
-                        return (
-                            aTrump -
-                            bTrump
-                        );
+        if (!card) {
 
-                    }
+            continue;
+
+        }
 
 
-                    return (
-                        a.value -
-                        b.value
-                    );
+        if (!lowest) {
 
-                }
+            lowest =
+                card;
+
+            continue;
+
+        }
+
+
+        const cardIsTrump =
+            isTrump(
+                card,
+                trumpSuit
+            );
+
+        const lowestIsTrump =
+            isTrump(
+                lowest,
+                trumpSuit
             );
 
 
-    return (
-        sorted[0] ||
-        null
-    );
+        /*
+        Non-trump is always lower
+        than trump.
+        */
+
+        if (
+            cardIsTrump !==
+            lowestIsTrump
+        ) {
+
+            if (
+                !cardIsTrump
+            ) {
+
+                lowest =
+                    card;
+
+            }
+
+            continue;
+
+        }
+
+
+        if (
+            card.value <
+            lowest.value
+        ) {
+
+            lowest =
+                card;
+
+        }
+
+    }
+
+
+    return lowest;
 
 }
 
 
 /*
 =========================================================
-GET UNIQUE RANKS
+GET UNIQUE CARD VALUES
 =========================================================
 */
 
@@ -537,7 +649,9 @@ function getUniqueRanks(
 ) {
 
     if (
-        !Array.isArray(cards)
+        !Array.isArray(
+            cards
+        )
     ) {
 
         return [];
@@ -548,10 +662,12 @@ function getUniqueRanks(
     return [
         ...new Set(
             cards
-                .filter(Boolean)
+                .filter(
+                    Boolean
+                )
                 .map(
                     card =>
-                        card.rank
+                        card.value
                 )
         )
     ];
@@ -570,7 +686,9 @@ function isValidDeck(
 ) {
 
     if (
-        !Array.isArray(deck)
+        !Array.isArray(
+            deck
+        )
     ) {
 
         return false;
@@ -580,7 +698,7 @@ function isValidDeck(
 
     if (
         deck.length !==
-        CONFIG.GAME.DECK_SIZE
+        DECK_SIZE
     ) {
 
         return false;
@@ -589,6 +707,10 @@ function isValidDeck(
 
 
     const ids =
+        new Set();
+
+
+    const combinations =
         new Set();
 
 
@@ -610,7 +732,31 @@ function isValidDeck(
 
 
         if (
-            ids.has(card.id)
+            !SUITS.includes(
+                card.suit
+            )
+        ) {
+
+            return false;
+
+        }
+
+
+        if (
+            !RANKS.includes(
+                card.rank
+            )
+        ) {
+
+            return false;
+
+        }
+
+
+        if (
+            ids.has(
+                card.id
+            )
         ) {
 
             return false;
@@ -621,6 +767,38 @@ function isValidDeck(
         ids.add(
             card.id
         );
+
+
+        const combination =
+            `${card.suit}:${card.rank}`;
+
+
+        if (
+            combinations.has(
+                combination
+            )
+        ) {
+
+            return false;
+
+        }
+
+
+        combinations.add(
+            combination
+        );
+
+
+        if (
+            card.value !==
+            getCardValue(
+                card.rank
+            )
+        ) {
+
+            return false;
+
+        }
 
     }
 
