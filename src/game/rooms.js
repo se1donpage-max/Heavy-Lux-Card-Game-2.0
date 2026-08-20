@@ -6,32 +6,29 @@ HEAVY LUX CARD
 ROOMS / LOBBY MANAGER
 =========================================================
 
-Этот модуль отвечает только за:
+Отвечает за:
 
 - создание комнат;
-- удаление комнат;
-- поиск комнат;
+- список комнат;
 - вход игроков;
 - выход игроков;
-- лобби;
-- готовность игроков;
-- запуск игры;
-- переподключение игроков;
-- связь комнаты с game.js.
+- переподключение;
+- ограничение количества игроков;
+- запуск game.js;
+- хранение авторитетного состояния игры;
+- удаление пустых комнат.
 
 Этот модуль НЕ знает ничего о:
 
 - Socket.IO;
 - Telegram;
-- балансе;
+- HTTP;
+- балансах;
 - XP;
 - рейтинге;
 - интерфейсе.
 
-Игровая механика находится в:
-
-./game.js
-
+Socket.IO только вызывает функции этого модуля.
 =========================================================
 */
 
@@ -40,11 +37,14 @@ const crypto = require("crypto");
 const {
     MIN_PLAYERS,
     MAX_PLAYERS
-} = require("./rules");
+} = require("./config");
 
 const {
     createGame,
     startGame,
+    getGameState,
+    getPlayer,
+    getActivePlayers,
     GAME_STATUS
 } = require("./game");
 
@@ -57,7 +57,7 @@ ROOM STATUS
 
 const ROOM_STATUS = Object.freeze({
 
-    LOBBY: "LOBBY",
+    WAITING: "WAITING",
 
     PLAYING: "PLAYING",
 
@@ -68,16 +68,57 @@ const ROOM_STATUS = Object.freeze({
 
 /*
 =========================================================
-ROOM PLAYER
+ROOMS STORAGE
 =========================================================
 */
 
-function createRoomPlayer({
-    playerId,
-    name = null,
-    username = null,
-    telegramId = null
-}) {
+const rooms = new Map();
+
+
+/*
+=========================================================
+CONSTANTS
+=========================================================
+*/
+
+const ROOM_ID_LENGTH = 6;
+
+
+/*
+=========================================================
+GENERATE ROOM ID
+=========================================================
+*/
+
+function generateRoomId() {
+
+    let roomId;
+
+    do {
+
+        roomId =
+            crypto
+                .randomBytes(4)
+                .toString("hex")
+                .slice(0, ROOM_ID_LENGTH)
+                .toUpperCase();
+
+    } while (
+        rooms.has(roomId)
+    );
+
+    return roomId;
+
+}
+
+
+/*
+=========================================================
+VALIDATE PLAYER ID
+=========================================================
+*/
+
+function validatePlayerId(playerId) {
 
     if (
         typeof playerId !== "string" ||
@@ -88,49 +129,6 @@ function createRoomPlayer({
         );
     }
 
-    return {
-
-        playerId,
-
-        name,
-
-        username,
-
-        telegramId,
-
-        /*
-        Игрок подключён к комнате.
-        */
-
-        connected: true,
-
-        /*
-        Готов ли игрок к старту.
-
-        Важно:
-
-        Для создания игры все игроки
-        должны быть ready.
-        */
-
-        ready: false,
-
-        /*
-        Время входа.
-        */
-
-        joinedAt:
-            Date.now(),
-
-        /*
-        Время последнего подключения.
-        */
-
-        lastSeenAt:
-            Date.now()
-
-    };
-
 }
 
 
@@ -138,70 +136,89 @@ function createRoomPlayer({
 =========================================================
 CREATE ROOM
 =========================================================
+
+Создаёт новую пустую комнату.
+
+Игрок автоматически становится
+первым игроком комнаты.
+=========================================================
 */
 
-function createRoom({
-    roomId = null,
-    hostPlayer
-}) {
+function createRoom(playerId) {
 
-    if (!hostPlayer) {
+    validatePlayerId(playerId);
+
+    /*
+    Один игрок не может одновременно
+    находиться в нескольких комнатах.
+    */
+
+    const existing =
+        findRoomByPlayerId(playerId);
+
+    if (existing) {
+
         throw new Error(
-            "hostPlayer is required"
+            "Player is already in a room"
         );
+
     }
 
-    const player =
-        createRoomPlayer(
-            hostPlayer
-        );
-
-    const id =
-        roomId ||
+    const roomId =
         generateRoomId();
 
-    return {
+    const game =
+        createGame({
 
-        roomId: id,
+            gameId:
+                roomId,
 
-        /*
-        Комната начинается
-        в лобби.
-        */
+            playerIds:
+                [playerId]
+
+        });
+
+    /*
+    ВАЖНО:
+
+    createGame() требует минимум
+    MIN_PLAYERS игроков.
+
+    Поэтому для комнаты ожидания
+    создаём game только после того,
+    как набралось необходимое
+    количество игроков.
+
+    Здесь game пока не используется
+    как запущенная партия.
+    */
+
+    const room = {
+
+        roomId,
 
         status:
-            ROOM_STATUS.LOBBY,
-
-        /*
-        Первый игрок —
-        создатель комнаты.
-        */
-
-        hostPlayerId:
-            player.playerId,
-
-        /*
-        Игроки комнаты.
-
-        Максимум 3.
-        */
+            ROOM_STATUS.WAITING,
 
         players: [
-            player
+
+            {
+
+                playerId,
+
+                connected: true,
+
+                joinedAt:
+                    Date.now(),
+
+                socketId:
+                    null
+
+            }
+
         ],
 
-        /*
-        Игровой движок.
-
-        Пока игра не запущена —
-        null.
-        */
-
         game: null,
-
-        /*
-        Служебные timestamps.
-        */
 
         createdAt:
             Date.now(),
@@ -214,1292 +231,1078 @@ function createRoom({
 
     };
 
+    /*
+    Убираем созданную временную игру.
+
+    Она была создана только потому,
+    что game.js является авторитетным
+    объектом партии и требует
+    playerIds.
+
+    Реальная game создаётся,
+    когда комната заполнена.
+    */
+
+    room.game = null;
+
+    rooms.set(
+        roomId,
+        room
+    );
+
+    return room;
+
 }
 
 
 /*
 =========================================================
-GENERATE ROOM ID
+JOIN ROOM
 =========================================================
 */
 
-function generateRoomId() {
+function joinRoom(
+    roomId,
+    playerId
+) {
 
-    return crypto
-        .randomBytes(4)
-        .toString("hex")
-        .toUpperCase();
+    validatePlayerId(playerId);
 
-}
+    if (
+        typeof roomId !== "string" ||
+        roomId.length === 0
+    ) {
+        throw new Error(
+            "Invalid roomId"
+        );
+    }
 
+    const normalizedRoomId =
+        roomId.trim().toUpperCase();
 
-/*
-=========================================================
-ROOM MANAGER
-=========================================================
+    const room =
+        rooms.get(
+            normalizedRoomId
+        );
 
-Основной объект управления всеми
-комнатами сервера.
-=========================================================
-*/
+    if (!room) {
 
-class RoomManager {
-
-    constructor() {
-
-        /*
-        Map:
-
-        roomId → room
-        */
-
-        this.rooms =
-            new Map();
-
-        /*
-        playerId → roomId
-
-        Позволяет быстро определить,
-        в какой комнате находится игрок.
-        */
-
-        this.playerRooms =
-            new Map();
+        throw new Error(
+            "Room not found"
+        );
 
     }
 
-
     /*
-    =====================================================
-    CREATE ROOM
-    =====================================================
+    Игрок уже находится
+    в этой комнате.
+
+    Это не ошибка.
+
+    Возвращаем существующую
+    запись.
     */
 
-    createRoom(playerData) {
-
-        if (!playerData) {
-            throw new Error(
-                "Player data is required"
-            );
-        }
-
-        const playerId =
-            playerData.playerId;
-
-        if (
-            typeof playerId !== "string" ||
-            playerId.length === 0
-        ) {
-            throw new Error(
-                "Invalid playerId"
-            );
-        }
-
-        /*
-        Игрок не может находиться
-        одновременно в двух комнатах.
-        */
-
-        if (
-            this.playerRooms.has(playerId)
-        ) {
-            throw new Error(
-                "Player is already in a room"
-            );
-        }
-
-        let roomId;
-
-        /*
-        Практически исключаем
-        повторение ID.
-        */
-
-        do {
-
-            roomId =
-                generateRoomId();
-
-        } while (
-            this.rooms.has(roomId)
+    const existingPlayer =
+        room.players.find(
+            player =>
+                player.playerId ===
+                playerId
         );
 
-        const room =
-            createRoom({
+    if (existingPlayer) {
 
-                roomId,
-
-                hostPlayer:
-                    playerData
-
-            });
-
-        this.rooms.set(
-            roomId,
-            room
-        );
-
-        this.playerRooms.set(
-            playerId,
-            roomId
-        );
+        existingPlayer.connected =
+            true;
 
         return room;
 
     }
 
-
     /*
-    =====================================================
-    GET ROOM
-    =====================================================
+    Нельзя войти в завершённую
+    или играющую комнату новым
+    игроком.
     */
 
-    getRoom(roomId) {
-
-        if (
-            typeof roomId !== "string"
-        ) {
-            return null;
-        }
-
-        return (
-            this.rooms.get(roomId) ||
-            null
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    GET PLAYER ROOM
-    =====================================================
-    */
-
-    getPlayerRoom(playerId) {
-
-        if (
-            typeof playerId !== "string"
-        ) {
-            return null;
-        }
-
-        const roomId =
-            this.playerRooms.get(
-                playerId
-            );
-
-        if (!roomId) {
-            return null;
-        }
-
-        return this.getRoom(
-            roomId
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    HAS PLAYER IN ROOM
-    =====================================================
-    */
-
-    hasPlayer(playerId) {
-
-        return this.playerRooms.has(
-            playerId
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    GET PLAYER
-    =====================================================
-    */
-
-    getPlayer(
-        room,
-        playerId
+    if (
+        room.status !==
+        ROOM_STATUS.WAITING
     ) {
 
-        if (!room) {
-            return null;
-        }
+        throw new Error(
+            "Room is not accepting new players"
+        );
 
-        return (
-            room.players.find(
-                player =>
-                    player.playerId ===
+    }
+
+    /*
+    Один игрок —
+    одна комната.
+    */
+
+    const currentRoom =
+        findRoomByPlayerId(playerId);
+
+    if (currentRoom) {
+
+        throw new Error(
+            "Player is already in another room"
+        );
+
+    }
+
+    /*
+    Проверяем максимальное
+    количество игроков.
+    */
+
+    if (
+        room.players.length >=
+        MAX_PLAYERS
+    ) {
+
+        throw new Error(
+            "Room is full"
+        );
+
+    }
+
+    room.players.push({
+
+        playerId,
+
+        connected: true,
+
+        joinedAt:
+            Date.now(),
+
+        socketId:
+            null
+
+    });
+
+    /*
+    Если игроков достаточно —
+    запускаем игру.
+    */
+
+    if (
+        room.players.length >=
+        MIN_PLAYERS
+    ) {
+
+        startRoomGame(room);
+
+    }
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+START ROOM GAME
+=========================================================
+*/
+
+function startRoomGame(room) {
+
+    if (!room) {
+
+        throw new Error(
+            "Room is required"
+        );
+
+    }
+
+    if (
+        room.status !==
+        ROOM_STATUS.WAITING
+    ) {
+
+        throw new Error(
+            "Room is not waiting"
+        );
+
+    }
+
+    if (
+        room.players.length <
+        MIN_PLAYERS
+    ) {
+
+        throw new Error(
+            "Not enough players"
+        );
+
+    }
+
+    if (
+        room.players.length >
+        MAX_PLAYERS
+    ) {
+
+        throw new Error(
+            "Too many players"
+        );
+
+    }
+
+    /*
+    Получаем ID игроков
+    в фиксированном порядке.
+    */
+
+    const playerIds =
+        room.players.map(
+            player =>
+                player.playerId
+        );
+
+    /*
+    Создаём авторитетную игру.
+    */
+
+    const game =
+        createGame({
+
+            gameId:
+                room.roomId,
+
+            playerIds
+
+        });
+
+    /*
+    Запускаем раздачу,
+    определение козыря,
+    первого атакующего
+    и остальные механики game.js.
+    */
+
+    startGame(game);
+
+    room.game =
+        game;
+
+    room.status =
+        ROOM_STATUS.PLAYING;
+
+    room.startedAt =
+        Date.now();
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+LEAVE ROOM
+=========================================================
+
+Игрок покидает комнату ожидания.
+
+Если игра уже началась,
+игрок НЕ удаляется из game.players.
+
+Вместо этого он помечается
+как disconnected.
+
+Это важно для будущего
+переподключения.
+=========================================================
+*/
+
+function leaveRoom(
+    roomId,
+    playerId
+) {
+
+    validatePlayerId(playerId);
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return null;
+    }
+
+    const playerIndex =
+        room.players.findIndex(
+            player =>
+                player.playerId ===
+                playerId
+        );
+
+    if (
+        playerIndex === -1
+    ) {
+
+        return room;
+
+    }
+
+    /*
+    Если игра уже идёт,
+    сохраняем игрока.
+    */
+
+    if (
+        room.status ===
+        ROOM_STATUS.PLAYING
+    ) {
+
+        room.players[
+            playerIndex
+        ].connected = false;
+
+        room.players[
+            playerIndex
+        ].socketId = null;
+
+        /*
+        Синхронизируем состояние
+        game.js.
+        */
+
+        if (room.game) {
+
+            const gamePlayer =
+                getPlayer(
+                    room.game,
                     playerId
-            ) ||
-            null
-        );
+                );
 
-    }
+            if (gamePlayer) {
 
-
-    /*
-    =====================================================
-    JOIN ROOM
-    =====================================================
-    */
-
-    joinRoom(
-        roomId,
-        playerData
-    ) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            throw new Error(
-                "Room not found"
-            );
-        }
-
-        /*
-        В работающую игру
-        через обычный join входить нельзя.
-
-        Для этого существует
-        reconnectPlayer().
-        */
-
-        if (
-            room.status !==
-            ROOM_STATUS.LOBBY
-        ) {
-            throw new Error(
-                "Room is not in lobby"
-            );
-        }
-
-        if (!playerData) {
-            throw new Error(
-                "Player data is required"
-            );
-        }
-
-        const playerId =
-            playerData.playerId;
-
-        if (
-            typeof playerId !== "string" ||
-            playerId.length === 0
-        ) {
-            throw new Error(
-                "Invalid playerId"
-            );
-        }
-
-        /*
-        Игрок уже где-то находится.
-        */
-
-        const existingRoom =
-            this.getPlayerRoom(
-                playerId
-            );
-
-        if (existingRoom) {
-
-            /*
-            Если это та же комната —
-            просто возвращаем игрока.
-            */
-
-            if (
-                existingRoom.roomId ===
-                room.roomId
-            ) {
-
-                const existingPlayer =
-                    this.getPlayer(
-                        room,
-                        playerId
-                    );
-
-                if (existingPlayer) {
-
-                    existingPlayer.connected =
-                        true;
-
-                    existingPlayer.lastSeenAt =
-                        Date.now();
-
-                    return room;
-
-                }
+                gamePlayer.connected =
+                    false;
 
             }
 
-            throw new Error(
-                "Player is already in another room"
-            );
-
         }
-
-        /*
-        Проверяем лимит игроков.
-        */
-
-        if (
-            room.players.length >=
-            MAX_PLAYERS
-        ) {
-            throw new Error(
-                "Room is full"
-            );
-        }
-
-        const player =
-            createRoomPlayer(
-                playerData
-            );
-
-        room.players.push(
-            player
-        );
-
-        this.playerRooms.set(
-            playerId,
-            room.roomId
-        );
 
         return room;
 
     }
 
-
     /*
-    =====================================================
-    RECONNECT PLAYER
-    =====================================================
-
-    Позволяет игроку вернуться
-    в свою комнату.
-
-    Важно:
-
-    reconnect не создаёт нового игрока.
-    =====================================================
+    В лобби игрок действительно
+    удаляется из комнаты.
     */
 
-    reconnectPlayer(
-        roomId,
-        playerId
+    room.players.splice(
+        playerIndex,
+        1
+    );
+
+    /*
+    Если комната стала пустой —
+    удаляем её.
+    */
+
+    if (
+        room.players.length === 0
     ) {
 
-        const room =
-            this.getRoom(
-                roomId
-            );
+        rooms.delete(
+            room.roomId
+        );
 
-        if (!room) {
-            throw new Error(
-                "Room not found"
-            );
-        }
+        return null;
 
-        const player =
-            this.getPlayer(
-                room,
+    }
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+DISCONNECT PLAYER
+=========================================================
+
+Используется Socket.IO при
+физическом отключении соединения.
+
+Игрок остаётся в комнате,
+но становится disconnected.
+=========================================================
+*/
+
+function disconnectPlayer(
+    playerId
+) {
+
+    validatePlayerId(playerId);
+
+    const room =
+        findRoomByPlayerId(playerId);
+
+    if (!room) {
+        return null;
+    }
+
+    const roomPlayer =
+        room.players.find(
+            player =>
+                player.playerId ===
+                playerId
+        );
+
+    if (roomPlayer) {
+
+        roomPlayer.connected =
+            false;
+
+        roomPlayer.socketId =
+            null;
+
+    }
+
+    /*
+    Если игра идёт —
+    обновляем game.js.
+    */
+
+    if (room.game) {
+
+        const gamePlayer =
+            getPlayer(
+                room.game,
                 playerId
             );
 
-        if (!player) {
-            throw new Error(
-                "Player is not a member of this room"
-            );
+        if (gamePlayer) {
+
+            gamePlayer.connected =
+                false;
+
         }
+
+    }
+
+    /*
+    Если это лобби и игрок
+    отключился — пока оставляем
+    его в комнате.
+
+    Это позволяет обработать
+    reconnect.
+    */
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+RECONNECT PLAYER
+=========================================================
+*/
+
+function reconnectPlayer(
+    roomId,
+    playerId
+) {
+
+    validatePlayerId(playerId);
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+
+        throw new Error(
+            "Room not found"
+        );
+
+    }
+
+    const roomPlayer =
+        room.players.find(
+            player =>
+                player.playerId ===
+                playerId
+        );
+
+    if (!roomPlayer) {
+
+        throw new Error(
+            "Player is not a member of this room"
+        );
+
+    }
+
+    roomPlayer.connected =
+        true;
+
+    /*
+    Синхронизируем game.js.
+    */
+
+    if (room.game) {
+
+        const gamePlayer =
+            getPlayer(
+                room.game,
+                playerId
+        );
+
+        if (gamePlayer) {
+
+            gamePlayer.connected =
+                true;
+
+        }
+
+    }
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+SET SOCKET ID
+=========================================================
+*/
+
+function setPlayerSocket(
+    playerId,
+    socketId
+) {
+
+    validatePlayerId(playerId);
+
+    if (
+        typeof socketId !== "string" ||
+        socketId.length === 0
+    ) {
+
+        throw new Error(
+            "Invalid socketId"
+        );
+
+    }
+
+    const room =
+        findRoomByPlayerId(playerId);
+
+    if (!room) {
+        return null;
+    }
+
+    const player =
+        room.players.find(
+            item =>
+                item.playerId ===
+                playerId
+        );
+
+    if (player) {
+
+        player.socketId =
+            socketId;
 
         player.connected =
             true;
 
-        player.lastSeenAt =
-            Date.now();
+    }
 
-        /*
-        Восстанавливаем индекс.
-        */
+    return room;
 
-        this.playerRooms.set(
-            playerId,
-            room.roomId
-        );
+}
 
-        return room;
+
+/*
+=========================================================
+GET ROOM
+=========================================================
+*/
+
+function getRoom(roomId) {
+
+    if (
+        typeof roomId !== "string" ||
+        roomId.length === 0
+    ) {
+
+        return null;
 
     }
 
+    return (
+        rooms.get(
+            roomId.trim().toUpperCase()
+        ) || null
+    );
 
-    /*
-    =====================================================
-    DISCONNECT PLAYER
-    =====================================================
+}
 
-    Игрок не удаляется моментально.
 
-    Это важно для переподключения.
-    =====================================================
-    */
+/*
+=========================================================
+GET ROOM BY PLAYER
+=========================================================
+*/
 
-    disconnectPlayer(
-        playerId
+function findRoomByPlayerId(
+    playerId
+) {
+
+    if (
+        typeof playerId !== "string" ||
+        playerId.length === 0
     ) {
 
-        const room =
-            this.getPlayerRoom(
-                playerId
-            );
-
-        if (!room) {
-            return null;
-        }
-
-        const player =
-            this.getPlayer(
-                room,
-                playerId
-            );
-
-        if (!player) {
-            return null;
-        }
-
-        player.connected =
-            false;
-
-        player.lastSeenAt =
-            Date.now();
-
-        /*
-        В лобби отключённый игрок
-        остаётся участником комнаты.
-
-        Это позволяет ему
-        переподключиться.
-        */
-
-        return room;
+        return null;
 
     }
 
+    for (const room of rooms.values()) {
 
-    /*
-    =====================================================
-    LEAVE ROOM
-    =====================================================
-
-    Полностью удаляет игрока
-    из комнаты.
-
-    Это отличается от disconnect.
-    =====================================================
-    */
-
-    leaveRoom(
-        playerId
-    ) {
-
-        const room =
-            this.getPlayerRoom(
-                playerId
-            );
-
-        if (!room) {
-            return null;
-        }
-
-        const index =
-            room.players.findIndex(
+        if (
+            room.players.some(
                 player =>
                     player.playerId ===
                     playerId
-            );
-
-        if (index === -1) {
-
-            this.playerRooms.delete(
-                playerId
-            );
+            )
+        ) {
 
             return room;
 
         }
 
-        room.players.splice(
-            index,
-            1
-        );
-
-        this.playerRooms.delete(
-            playerId
-        );
-
-        /*
-        Если игроков не осталось —
-        удаляем комнату.
-        */
-
-        if (
-            room.players.length === 0
-        ) {
-
-            this.deleteRoom(
-                room.roomId
-            );
-
-            return null;
-
-        }
-
-        /*
-        Если вышел хост —
-        передаём хостство следующему
-        игроку.
-
-        В приоритете подключённый
-        игрок.
-        */
-
-        if (
-            room.hostPlayerId ===
-            playerId
-        ) {
-
-            const nextHost =
-                room.players.find(
-                    player =>
-                        player.connected
-                ) ||
-                room.players[0];
-
-            room.hostPlayerId =
-                nextHost.playerId;
-
-        }
-
-        /*
-        Если комната ещё в лобби,
-        ничего больше делать не нужно.
-        */
-
-        return room;
-
     }
 
-
-    /*
-    =====================================================
-    SET READY
-    =====================================================
-    */
-
-    setReady(
-        roomId,
-        playerId,
-        ready
-    ) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            throw new Error(
-                "Room not found"
-            );
-        }
-
-        if (
-            room.status !==
-            ROOM_STATUS.LOBBY
-        ) {
-            throw new Error(
-                "Room is not in lobby"
-            );
-        }
-
-        const player =
-            this.getPlayer(
-                room,
-                playerId
-            );
-
-        if (!player) {
-            throw new Error(
-                "Player not found in room"
-            );
-        }
-
-        if (!player.connected) {
-            throw new Error(
-                "Disconnected player cannot ready"
-            );
-        }
-
-        player.ready =
-            Boolean(ready);
-
-        return room;
-
-    }
-
-
-    /*
-    =====================================================
-    TOGGLE READY
-    =====================================================
-    */
-
-    toggleReady(
-        roomId,
-        playerId
-    ) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            throw new Error(
-                "Room not found"
-            );
-        }
-
-        const player =
-            this.getPlayer(
-                room,
-                playerId
-            );
-
-        if (!player) {
-            throw new Error(
-                "Player not found in room"
-            );
-        }
-
-        return this.setReady(
-            roomId,
-            playerId,
-            !player.ready
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    ARE PLAYERS READY
-    =====================================================
-
-    Для старта нужны:
-
-    минимум 2 игрока;
-    максимум 3;
-    все подключены;
-    все готовы.
-    =====================================================
-    */
-
-    arePlayersReady(room) {
-
-        if (!room) {
-            return false;
-        }
-
-        if (
-            room.players.length <
-            MIN_PLAYERS
-        ) {
-            return false;
-        }
-
-        if (
-            room.players.length >
-            MAX_PLAYERS
-        ) {
-            return false;
-        }
-
-        return room.players.every(
-            player =>
-                player.connected &&
-                player.ready
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    CAN START ROOM
-    =====================================================
-    */
-
-    canStartRoom(room) {
-
-        if (!room) {
-            return false;
-        }
-
-        if (
-            room.status !==
-            ROOM_STATUS.LOBBY
-        ) {
-            return false;
-        }
-
-        return this.arePlayersReady(
-            room
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    START ROOM
-    =====================================================
-    */
-
-    startRoom(
-        roomId,
-        playerId
-    ) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            throw new Error(
-                "Room not found"
-            );
-        }
-
-        if (
-            room.status !==
-            ROOM_STATUS.LOBBY
-        ) {
-            throw new Error(
-                "Room has already started"
-            );
-        }
-
-        /*
-        Только хост может
-        запустить комнату.
-        */
-
-        if (
-            room.hostPlayerId !==
-            playerId
-        ) {
-            throw new Error(
-                "Only room host can start the game"
-            );
-        }
-
-        /*
-        Проверяем игроков.
-        */
-
-        if (
-            !this.canStartRoom(room)
-        ) {
-            throw new Error(
-                "Not enough ready players"
-            );
-        }
-
-        /*
-        Передаём игроков
-        в игровой движок.
-        */
-
-        const playerIds =
-            room.players.map(
-                player =>
-                    player.playerId
-            );
-
-        const game =
-            createGame({
-
-                gameId:
-                    room.roomId,
-
-                playerIds
-
-            });
-
-        /*
-        Запускаем игру.
-        */
-
-        startGame(
-            game
-        );
-
-        room.game =
-            game;
-
-        room.status =
-            ROOM_STATUS.PLAYING;
-
-        room.startedAt =
-            Date.now();
-
-        /*
-        После старта готовность
-        больше не имеет значения.
-        */
-
-        for (
-            const player of room.players
-        ) {
-
-            player.ready =
-                false;
-
-        }
-
-        return room;
-
-    }
-
-
-    /*
-    =====================================================
-    FINISH ROOM
-    =====================================================
-    */
-
-    updateRoomStatus(room) {
-
-        if (!room) {
-            return null;
-        }
-
-        if (
-            room.game &&
-            room.game.status ===
-            GAME_STATUS.FINISHED
-        ) {
-
-            room.status =
-                ROOM_STATUS.FINISHED;
-
-            room.finishedAt =
-                room.game.finishedAt ||
-                Date.now();
-
-        }
-
-        return room;
-
-    }
-
-
-    /*
-    =====================================================
-    GET LOBBY STATE
-    =====================================================
-    */
-
-    getLobbyState(room) {
-
-        if (!room) {
-            return null;
-        }
-
-        return {
-
-            roomId:
-                room.roomId,
-
-            status:
-                room.status,
-
-            hostPlayerId:
-                room.hostPlayerId,
-
-            players:
-                room.players.map(
-                    player => ({
-
-                        playerId:
-                            player.playerId,
-
-                        name:
-                            player.name,
-
-                        username:
-                            player.username,
-
-                        connected:
-                            player.connected,
-
-                        ready:
-                            player.ready,
-
-                        joinedAt:
-                            player.joinedAt
-
-                    })
-                ),
-
-            playerCount:
-                room.players.length,
-
-            minPlayers:
-                MIN_PLAYERS,
-
-            maxPlayers:
-                MAX_PLAYERS,
-
-            canStart:
-                this.canStartRoom(
-                    room
-                )
-
-        };
-
-    }
-
-
-    /*
-    =====================================================
-    GET ROOM STATE
-    =====================================================
-
-    Универсальное безопасное
-    состояние комнаты.
-    =====================================================
-    */
-
-    getRoomState(roomId) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            return null;
-        }
-
-        this.updateRoomStatus(
-            room
-        );
-
-        const state = {
-
-            roomId:
-                room.roomId,
-
-            status:
-                room.status,
-
-            hostPlayerId:
-                room.hostPlayerId,
-
-            players:
-                room.players.map(
-                    player => ({
-
-                        playerId:
-                            player.playerId,
-
-                        name:
-                            player.name,
-
-                        username:
-                            player.username,
-
-                        connected:
-                            player.connected,
-
-                        ready:
-                            player.ready,
-
-                        joinedAt:
-                            player.joinedAt
-
-                    })
-                ),
-
-            playerCount:
-                room.players.length,
-
-            minPlayers:
-                MIN_PLAYERS,
-
-            maxPlayers:
-                MAX_PLAYERS
-
-        };
-
-        /*
-        Если игра уже запущена,
-        добавляем безопасное состояние
-        game engine.
-        */
-
-        if (
-            room.game
-        ) {
-
-            const {
-                getGameState
-            } = require("./game");
-
-            state.game =
-                getGameState(
-                    room.game
-                );
-
-        }
-
-        return state;
-
-    }
-
-
-    /*
-    =====================================================
-    GET ALL ROOMS
-    =====================================================
-    */
-
-    getAllRooms() {
-
-        return Array.from(
-            this.rooms.values()
-        );
-
-    }
-
-
-    /*
-    =====================================================
-    GET LOBBY ROOMS
-    =====================================================
-    */
-
-    getLobbyRooms() {
-
-        return this.getAllRooms()
-            .filter(
-                room =>
-                    room.status ===
-                    ROOM_STATUS.LOBBY
-            );
-
-    }
-
-
-    /*
-    =====================================================
-    GET PUBLIC ROOM LIST
-    =====================================================
-
-    Без внутренних данных.
-    =====================================================
-    */
-
-    getPublicRooms() {
-
-        return this.getLobbyRooms()
-            .map(
-                room => ({
-
-                    roomId:
-                        room.roomId,
-
-                    playerCount:
-                        room.players.length,
-
-                    maxPlayers:
-                        MAX_PLAYERS,
-
-                    hostPlayerId:
-                        room.hostPlayerId,
-
-                    status:
-                        room.status,
-
-                    canJoin:
-                        room.players.length <
-                        MAX_PLAYERS
-
-                })
-            );
-
-    }
-
-
-    /*
-    =====================================================
-    DELETE ROOM
-    =====================================================
-    */
-
-    deleteRoom(roomId) {
-
-        const room =
-            this.getRoom(
-                roomId
-            );
-
-        if (!room) {
-            return false;
-        }
-
-        /*
-        Удаляем игроков
-        из индекса комнат.
-        */
-
-        for (
-            const player of room.players
-        ) {
-
-            this.playerRooms.delete(
-                player.playerId
-            );
-
-        }
-
-        /*
-        Удаляем комнату.
-        */
-
-        this.rooms.delete(
-            roomId
-        );
-
-        return true;
-
-    }
-
-
-    /*
-    =====================================================
-    REMOVE EMPTY ROOMS
-    =====================================================
-    */
-
-    cleanupEmptyRooms() {
-
-        const deleted = [];
-
-        for (
-            const room of this.rooms.values()
-        ) {
-
-            if (
-                room.players.length === 0
-            ) {
-
-                deleted.push(
-                    room.roomId
-                );
-
-            }
-
-        }
-
-        for (
-            const roomId of deleted
-        ) {
-
-            this.deleteRoom(
-                roomId
-            );
-
-        }
-
-        return deleted;
-
-    }
-
-
-    /*
-    =====================================================
-    GET ROOM COUNT
-    =====================================================
-    */
-
-    getRoomCount() {
-
-        return this.rooms.size;
-
-    }
-
-
-    /*
-    =====================================================
-    GET ONLINE PLAYER COUNT
-    =====================================================
-    */
-
-    getOnlinePlayerCount() {
-
-        let count = 0;
-
-        for (
-            const room of this.rooms.values()
-        ) {
-
-            for (
-                const player of room.players
-            ) {
-
-                if (
-                    player.connected
-                ) {
-
-                    count++;
-
-                }
-
-            }
-
-        }
-
-        return count;
-
-    }
+    return null;
 
 }
 
 
 /*
 =========================================================
-SINGLE ROOM MANAGER
-=========================================================
-
-Один экземпляр используется
-всей серверной частью.
+GET ALL ROOMS
 =========================================================
 */
 
-const rooms =
-    new RoomManager();
+function getRooms() {
+
+    return Array.from(
+        rooms.values()
+    );
+
+}
+
+
+/*
+=========================================================
+GET LOBBY
+=========================================================
+
+Возвращает только комнаты,
+к которым можно присоединиться.
+
+Внутренний game object
+не раскрывается.
+=========================================================
+*/
+
+function getLobby() {
+
+    return getRooms()
+        .filter(
+            room =>
+                room.status ===
+                ROOM_STATUS.WAITING
+        )
+        .map(
+            room =>
+                ({
+                    roomId:
+                        room.roomId,
+
+                    status:
+                        room.status,
+
+                    players:
+                        room.players.length,
+
+                    minPlayers:
+                        MIN_PLAYERS,
+
+                    maxPlayers:
+                        MAX_PLAYERS,
+
+                    createdAt:
+                        room.createdAt
+                })
+        );
+
+}
+
+
+/*
+=========================================================
+GET ROOM STATE
+=========================================================
+*/
+
+function getRoomState(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return null;
+    }
+
+    const state = {
+
+        roomId:
+            room.roomId,
+
+        status:
+            room.status,
+
+        players:
+            room.players.map(
+                player =>
+                    ({
+
+                        playerId:
+                            player.playerId,
+
+                        connected:
+                            player.connected,
+
+                        joinedAt:
+                            player.joinedAt
+
+                    })
+            ),
+
+        createdAt:
+            room.createdAt,
+
+        startedAt:
+            room.startedAt,
+
+        finishedAt:
+            room.finishedAt
+
+    };
+
+    /*
+    Если игра уже существует,
+    добавляем безопасное состояние.
+    */
+
+    if (room.game) {
+
+        state.game =
+            getGameState(
+                room.game
+            );
+
+    } else {
+
+        state.game = null;
+
+    }
+
+    return state;
+
+}
+
+
+/*
+=========================================================
+GET PLAYER GAME
+=========================================================
+*/
+
+function getPlayerGame(
+    roomId,
+    playerId
+) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return null;
+    }
+
+    if (!room.game) {
+        return null;
+    }
+
+    const player =
+        getPlayer(
+            room.game,
+            playerId
+        );
+
+    if (!player) {
+        return null;
+    }
+
+    return room.game;
+
+}
+
+
+/*
+=========================================================
+GET GAME
+=========================================================
+*/
+
+function getRoomGame(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return null;
+    }
+
+    return room.game || null;
+
+}
+
+
+/*
+=========================================================
+IS PLAYER IN ROOM
+=========================================================
+*/
+
+function isPlayerInRoom(
+    roomId,
+    playerId
+) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return false;
+    }
+
+    return room.players.some(
+        player =>
+            player.playerId ===
+            playerId
+    );
+
+}
+
+
+/*
+=========================================================
+IS ROOM FULL
+=========================================================
+*/
+
+function isRoomFull(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return false;
+    }
+
+    return (
+        room.players.length >=
+        MAX_PLAYERS
+    );
+
+}
+
+
+/*
+=========================================================
+IS ROOM READY
+=========================================================
+*/
+
+function isRoomReady(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return false;
+    }
+
+    return (
+        room.status ===
+        ROOM_STATUS.WAITING &&
+        room.players.length >=
+        MIN_PLAYERS
+    );
+
+}
+
+
+/*
+=========================================================
+UPDATE ROOM STATUS
+=========================================================
+
+Синхронизация статуса комнаты
+с game.js.
+
+Вызывается server.js после
+игрового действия.
+=========================================================
+*/
+
+function syncRoomStatus(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return null;
+    }
+
+    if (!room.game) {
+        return room;
+    }
+
+    /*
+    Если игра закончилась —
+    комната становится FINISHED.
+    */
+
+    if (
+        room.game.status ===
+        GAME_STATUS.FINISHED
+    ) {
+
+        room.status =
+            ROOM_STATUS.FINISHED;
+
+        room.finishedAt =
+            room.game.finishedAt ||
+            Date.now();
+
+    }
+
+    return room;
+
+}
+
+
+/*
+=========================================================
+REMOVE ROOM
+=========================================================
+*/
+
+function removeRoom(roomId) {
+
+    const room =
+        getRoom(roomId);
+
+    if (!room) {
+        return false;
+    }
+
+    rooms.delete(
+        room.roomId
+    );
+
+    return true;
+
+}
+
+
+/*
+=========================================================
+CLEAN EMPTY ROOMS
+=========================================================
+*/
+
+function cleanupEmptyRooms() {
+
+    const removed = [];
+
+    for (const room of rooms.values()) {
+
+        /*
+        Удаляем только комнаты
+        ожидания, в которых вообще
+        нет игроков.
+        */
+
+        if (
+            room.status ===
+                ROOM_STATUS.WAITING &&
+            room.players.length === 0
+        ) {
+
+            rooms.delete(
+                room.roomId
+            );
+
+            removed.push(
+                room.roomId
+            );
+
+        }
+
+    }
+
+    return removed;
+
+}
+
+
+/*
+=========================================================
+ROOM COUNT
+=========================================================
+*/
+
+function getRoomCount() {
+
+    return rooms.size;
+
+}
+
+
+/*
+=========================================================
+PLAYER COUNT
+=========================================================
+*/
+
+function getPlayerCount() {
+
+    let count = 0;
+
+    for (const room of rooms.values()) {
+
+        count +=
+            room.players.length;
+
+    }
+
+    return count;
+
+}
 
 
 /*
@@ -1512,14 +1315,48 @@ module.exports = {
 
     ROOM_STATUS,
 
-    createRoomPlayer,
-
     createRoom,
 
-    generateRoomId,
+    joinRoom,
 
-    RoomManager,
+    startRoomGame,
 
-    rooms
+    leaveRoom,
+
+    disconnectPlayer,
+
+    reconnectPlayer,
+
+    setPlayerSocket,
+
+    getRoom,
+
+    findRoomByPlayerId,
+
+    getRooms,
+
+    getLobby,
+
+    getRoomState,
+
+    getPlayerGame,
+
+    getRoomGame,
+
+    isPlayerInRoom,
+
+    isRoomFull,
+
+    isRoomReady,
+
+    syncRoomStatus,
+
+    removeRoom,
+
+    cleanupEmptyRooms,
+
+    getRoomCount,
+
+    getPlayerCount
 
 };
