@@ -3,7 +3,6 @@
 /*
 =========================================================
 HEAVY LUX CARD
-GAME
 CARDS
 =========================================================
 */
@@ -20,39 +19,6 @@ const {
 
 /*
 =========================================================
-CREATE CARD ID
-=========================================================
-*/
-
-function createCardId() {
-
-    return crypto
-        .randomBytes(8)
-        .toString("hex");
-
-}
-
-
-/*
-=========================================================
-CARD VALUE
-=========================================================
-*/
-
-function getCardValue(
-    rank
-) {
-
-    return (
-        VALUES[rank] ??
-        0
-    );
-
-}
-
-
-/*
-=========================================================
 CREATE CARD
 =========================================================
 */
@@ -63,44 +29,36 @@ function createCard(
 ) {
 
     if (
-        !SUITS.includes(
-            suit
-        )
+        !SUITS.includes(suit)
     ) {
-
         throw new Error(
-            `Invalid card suit: ${suit}`
+            `Invalid suit: ${suit}`
         );
-
     }
 
 
     if (
-        !RANKS.includes(
-            rank
-        )
+        !RANKS.includes(rank)
     ) {
-
         throw new Error(
-            `Invalid card rank: ${rank}`
+            `Invalid rank: ${rank}`
         );
-
     }
 
 
     return {
 
         id:
-            createCardId(),
+            crypto
+                .randomBytes(8)
+                .toString("hex"),
 
         suit,
 
         rank,
 
         value:
-            getCardValue(
-                rank
-            )
+            VALUES[rank]
 
     };
 
@@ -151,32 +109,14 @@ SHUFFLE
 =========================================================
 */
 
-function shuffleDeck(
+function shuffle(
     deck
 ) {
 
-    if (
-        !Array.isArray(
-            deck
-        )
-    ) {
+    const result = [
+        ...deck
+    ];
 
-        return [];
-
-    }
-
-
-    const result =
-        [...deck];
-
-
-    /*
-    Fisher-Yates.
-
-    crypto.randomInt используется вместо
-    Math.random(), чтобы перемешивание было
-    качественным и непредсказуемым.
-    */
 
     for (
         let i =
@@ -217,293 +157,8 @@ CREATE SHUFFLED DECK
 
 function createShuffledDeck() {
 
-    return shuffleDeck(
+    return shuffle(
         createDeck()
-    );
-
-}
-
-
-/*
-=========================================================
-TRUMP SUIT
-=========================================================
-*/
-
-function getTrumpSuit(
-    deck
-) {
-
-    if (
-        !Array.isArray(
-            deck
-        ) ||
-        deck.length === 0
-    ) {
-
-        return null;
-
-    }
-
-
-    return (
-        deck[
-            deck.length - 1
-        ]?.suit ||
-        null
-    );
-
-}
-
-
-/*
-=========================================================
-CAN BEAT
-=========================================================
-
-Durak rules:
-
-1. Same suit:
-   higher card beats lower card.
-
-2. Trump beats non-trump.
-
-3. Non-trump cannot beat trump.
-
-4. Trump beats trump only if
-   trump card has higher value.
-=========================================================
-*/
-
-function canBeat(
-    attackingCard,
-    defendingCard,
-    trumpSuit
-) {
-
-    if (
-        !attackingCard ||
-        !defendingCard
-    ) {
-
-        return false;
-
-    }
-
-
-    if (
-        !trumpSuit
-    ) {
-
-        return false;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    SAME SUIT
-    -----------------------------------------------------
-    */
-
-    if (
-        attackingCard.suit ===
-        defendingCard.suit
-    ) {
-
-        return (
-            defendingCard.value >
-            attackingCard.value
-        );
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    DEFENDING CARD IS TRUMP
-    -----------------------------------------------------
-    */
-
-    if (
-        defendingCard.suit ===
-        trumpSuit
-    ) {
-
-        return (
-            attackingCard.suit !==
-            trumpSuit
-        );
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    ATTACKING CARD IS TRUMP
-    -----------------------------------------------------
-
-    Another non-trump card cannot beat it.
-    -----------------------------------------------------
-    */
-
-    return false;
-
-}
-
-
-/*
-=========================================================
-FIND CARD BY ID
-=========================================================
-*/
-
-function findCardById(
-    cards,
-    cardId
-) {
-
-    if (
-        !Array.isArray(
-            cards
-        )
-    ) {
-
-        return null;
-
-    }
-
-
-    return (
-        cards.find(
-            card =>
-                card &&
-                String(
-                    card.id
-                ) ===
-                String(
-                    cardId
-                )
-        ) ||
-        null
-    );
-
-}
-
-
-/*
-=========================================================
-REMOVE CARD BY ID
-=========================================================
-*/
-
-function removeCardById(
-    cards,
-    cardId
-) {
-
-    if (
-        !Array.isArray(
-            cards
-        )
-    ) {
-
-        return {
-
-            card: null,
-
-            cards: []
-
-        };
-
-    }
-
-
-    const index =
-        cards.findIndex(
-            card =>
-                card &&
-                String(
-                    card.id
-                ) ===
-                String(
-                    cardId
-                )
-        );
-
-
-    if (
-        index === -1
-    ) {
-
-        return {
-
-            card: null,
-
-            cards: [
-                ...cards
-            ]
-
-        };
-
-    }
-
-
-    const next =
-        [
-            ...cards
-        ];
-
-
-    const card =
-        next.splice(
-            index,
-            1
-        )[0];
-
-
-    return {
-
-        card,
-
-        cards: next
-
-    };
-
-}
-
-
-/*
-=========================================================
-GET RANK
-=========================================================
-*/
-
-function getRank(
-    card
-) {
-
-    return (
-        card?.rank ||
-        null
-    );
-
-}
-
-
-/*
-=========================================================
-GET SUIT
-=========================================================
-*/
-
-function getSuit(
-    card
-) {
-
-    return (
-        card?.suit ||
-        null
     );
 
 }
@@ -536,20 +191,82 @@ function isTrump(
 
 /*
 =========================================================
-FIND LOWEST CARD
+CAN BEAT
 =========================================================
 */
 
-function findLowestCard(
-    cards,
+function canBeat(
+    attackCard,
+    defenseCard,
     trumpSuit
 ) {
 
     if (
-        !Array.isArray(
-            cards
-        ) ||
-        cards.length === 0
+        !attackCard ||
+        !defenseCard ||
+        !trumpSuit
+    ) {
+
+        return false;
+
+    }
+
+
+    /*
+    Same suit:
+    higher value wins.
+    */
+
+    if (
+        attackCard.suit ===
+        defenseCard.suit
+    ) {
+
+        return (
+            defenseCard.value >
+            attackCard.value
+        );
+
+    }
+
+
+    /*
+    Different suits:
+    only trump can beat
+    a non-trump card.
+    */
+
+    if (
+        defenseCard.suit ===
+        trumpSuit
+    ) {
+
+        return (
+            attackCard.suit !==
+            trumpSuit
+        );
+
+    }
+
+
+    return false;
+
+}
+
+
+/*
+=========================================================
+GET TRUMP SUIT
+=========================================================
+*/
+
+function getTrumpSuit(
+    deck
+) {
+
+    if (
+        !Array.isArray(deck) ||
+        deck.length === 0
     ) {
 
         return null;
@@ -557,120 +274,119 @@ function findLowestCard(
     }
 
 
-    let lowest =
-        null;
-
-
-    for (
-        const card
-        of cards
-    ) {
-
-        if (!card) {
-
-            continue;
-
-        }
-
-
-        if (!lowest) {
-
-            lowest =
-                card;
-
-            continue;
-
-        }
-
-
-        const cardIsTrump =
-            isTrump(
-                card,
-                trumpSuit
-            );
-
-        const lowestIsTrump =
-            isTrump(
-                lowest,
-                trumpSuit
-            );
-
-
-        /*
-        Non-trump is always lower
-        than trump.
-        */
-
-        if (
-            cardIsTrump !==
-            lowestIsTrump
-        ) {
-
-            if (
-                !cardIsTrump
-            ) {
-
-                lowest =
-                    card;
-
-            }
-
-            continue;
-
-        }
-
-
-        if (
-            card.value <
-            lowest.value
-        ) {
-
-            lowest =
-                card;
-
-        }
-
-    }
-
-
-    return lowest;
+    return (
+        deck[
+            deck.length - 1
+        ]?.suit ||
+        null
+    );
 
 }
 
 
 /*
 =========================================================
-GET UNIQUE CARD VALUES
+FIND CARD
 =========================================================
 */
 
-function getUniqueRanks(
-    cards
+function findCardById(
+    cards,
+    cardId
 ) {
 
     if (
-        !Array.isArray(
-            cards
-        )
+        !Array.isArray(cards)
     ) {
 
-        return [];
+        return null;
 
     }
 
 
-    return [
-        ...new Set(
-            cards
-                .filter(
-                    Boolean
-                )
-                .map(
-                    card =>
-                        card.value
-                )
-        )
+    return (
+        cards.find(
+            card =>
+                String(card.id) ===
+                String(cardId)
+        ) ||
+        null
+    );
+
+}
+
+
+/*
+=========================================================
+REMOVE CARD
+=========================================================
+*/
+
+function removeCardById(
+    cards,
+    cardId
+) {
+
+    if (
+        !Array.isArray(cards)
+    ) {
+
+        return {
+
+            card: null,
+
+            cards: []
+
+        };
+
+    }
+
+
+    const index =
+        cards.findIndex(
+            card =>
+                String(card.id) ===
+                String(cardId)
+        );
+
+
+    if (
+        index === -1
+    ) {
+
+        return {
+
+            card: null,
+
+            cards: [
+                ...cards
+            ]
+
+        };
+
+    }
+
+
+    const result = [
+        ...cards
     ];
+
+
+    const card =
+        result.splice(
+            index,
+            1
+        )[0];
+
+
+    return {
+
+        card,
+
+        cards:
+            result
+
+    };
 
 }
 
@@ -686,9 +402,7 @@ function isValidDeck(
 ) {
 
     if (
-        !Array.isArray(
-            deck
-        )
+        !Array.isArray(deck)
     ) {
 
         return false;
@@ -706,10 +420,6 @@ function isValidDeck(
     }
 
 
-    const ids =
-        new Set();
-
-
     const combinations =
         new Set();
 
@@ -722,8 +432,8 @@ function isValidDeck(
         if (
             !card ||
             !card.id ||
-            !card.suit ||
-            !card.rank
+            !SUITS.includes(card.suit) ||
+            !RANKS.includes(card.rank)
         ) {
 
             return false;
@@ -731,52 +441,12 @@ function isValidDeck(
         }
 
 
-        if (
-            !SUITS.includes(
-                card.suit
-            )
-        ) {
-
-            return false;
-
-        }
-
-
-        if (
-            !RANKS.includes(
-                card.rank
-            )
-        ) {
-
-            return false;
-
-        }
-
-
-        if (
-            ids.has(
-                card.id
-            )
-        ) {
-
-            return false;
-
-        }
-
-
-        ids.add(
-            card.id
-        );
-
-
-        const combination =
+        const key =
             `${card.suit}:${card.rank}`;
 
 
         if (
-            combinations.has(
-                combination
-            )
+            combinations.has(key)
         ) {
 
             return false;
@@ -784,16 +454,12 @@ function isValidDeck(
         }
 
 
-        combinations.add(
-            combination
-        );
+        combinations.add(key);
 
 
         if (
             card.value !==
-            getCardValue(
-                card.rank
-            )
+            VALUES[card.rank]
         ) {
 
             return false;
@@ -803,7 +469,10 @@ function isValidDeck(
     }
 
 
-    return true;
+    return (
+        combinations.size ===
+        DECK_SIZE
+    );
 
 }
 
@@ -820,29 +489,22 @@ module.exports = {
 
     createDeck,
 
-    shuffleDeck,
+    shuffle,
+
+    shuffleDeck:
+        shuffle,
 
     createShuffledDeck,
 
-    getTrumpSuit,
+    isTrump,
 
     canBeat,
+
+    getTrumpSuit,
 
     findCardById,
 
     removeCardById,
-
-    getCardValue,
-
-    getRank,
-
-    getSuit,
-
-    isTrump,
-
-    findLowestCard,
-
-    getUniqueRanks,
 
     isValidDeck
 
