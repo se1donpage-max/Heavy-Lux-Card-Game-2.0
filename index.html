@@ -3095,10 +3095,31 @@ function getPlayersFromState(
 
 }
 
+function getMyPlayer(roomState) {
 
-function getMyPlayer(
-    roomState
-) {
+    if (!roomState) {
+        return null;
+    }
+
+    if (roomState.me) {
+        return roomState.me;
+    }
+
+    const players =
+        Array.isArray(roomState.players)
+            ? roomState.players
+            : [];
+
+    return (
+        players.find(
+            player =>
+                String(
+                    player.playerId || player.id
+                ) ===
+                String(state.playerId)
+        ) || null
+    );
+}
 
     const players =
         getPlayersFromState(
