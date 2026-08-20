@@ -42,6 +42,31 @@ const HAND_SIZE = 6;
 =========================================================
 GET TABLE RANKS
 =========================================================
+
+game.table имеет структуру:
+
+[
+    {
+        attack: Card,
+        defense: Card | null
+    }
+]
+
+Для подкидывания учитываются
+И атакующие, И защищающие карты.
+
+Пример:
+
+6♠ / 10♠
+K♥ / A♥
+
+Доступные достоинства:
+
+6
+10
+K
+A
+=========================================================
 */
 
 function getTableRanks(table) {
@@ -52,15 +77,51 @@ function getTableRanks(table) {
 
     const ranks = new Set();
 
-    for (const card of table) {
+    for (const pair of table) {
 
-        if (isCard(card)) {
-            ranks.add(card.rank);
+        if (!pair) {
+            continue;
+        }
+
+        /*
+        Поддерживаем также обычный массив
+        карт для безопасности.
+        */
+
+        if (isCard(pair)) {
+
+            ranks.add(
+                pair.rank
+            );
+
+            continue;
+
+        }
+
+        if (
+            isCard(pair.attack)
+        ) {
+
+            ranks.add(
+                pair.attack.rank
+            );
+
+        }
+
+        if (
+            isCard(pair.defense)
+        ) {
+
+            ranks.add(
+                pair.defense.rank
+            );
+
         }
 
     }
 
     return [...ranks];
+
 }
 
 
@@ -77,6 +138,7 @@ CAN ATTACK
 function canAttack(card) {
 
     return isCard(card);
+
 }
 
 
@@ -87,15 +149,24 @@ CAN ADD ATTACK CARD
 
 Подкинуть можно:
 
-1. только карту достоинства,
-   которое уже есть на столе;
+1. только корректную карту;
 
-2. пока не достигнут лимит захода;
+2. только карту достоинства,
+   которое уже присутствует на столе;
 
-3. лимит определяется количеством
-   карт защитника НА МОМЕНТ НАЧАЛА ЗАХОДА;
+3. пока не достигнут лимит захода;
 
-4. максимум 6 атакующих карт.
+4. лимит фиксируется engine
+   в начале текущего захода;
+
+5. максимум 6 атакующих карт.
+
+Важно:
+
+table.length =
+количество атакующих пар,
+
+а не количество физических карт.
 =========================================================
 */
 
@@ -114,27 +185,36 @@ function canAddAttackCard(
     }
 
     if (
-        !Number.isInteger(attackLimit) ||
+        !Number.isInteger(
+            attackLimit
+        ) ||
         attackLimit <= 0
     ) {
         return false;
     }
 
     /*
-    Первая карта.
+    Первый атакующий.
     */
 
     if (table.length === 0) {
+
         return canAttack(card);
+
     }
 
     /*
-    Нельзя превышать зафиксированный
-    лимит текущего захода.
+    Нельзя превышать лимит
+    текущего захода.
     */
 
-    if (table.length >= attackLimit) {
+    if (
+        table.length >=
+        attackLimit
+    ) {
+
         return false;
+
     }
 
     const tableRanks =
@@ -143,6 +223,7 @@ function canAddAttackCard(
     return tableRanks.includes(
         card.rank
     );
+
 }
 
 
@@ -162,7 +243,9 @@ function canDefend(
         !isCard(attackingCard) ||
         !isCard(defendingCard)
     ) {
+
         return false;
+
     }
 
     return canBeat(
@@ -170,6 +253,7 @@ function canDefend(
         defendingCard,
         trumpSuit
     );
+
 }
 
 
@@ -201,6 +285,7 @@ function getDefendableCards(
                 trumpSuit
             )
     );
+
 }
 
 
@@ -228,6 +313,7 @@ function getAttackableCards(
                 attackLimit
             )
     );
+
 }
 
 
@@ -237,14 +323,15 @@ CAN TAKE
 =========================================================
 
 Защитник может взять карты,
-если на столе существует хотя бы
-одна атакующая карта.
+если:
 
-Важно:
+1. он действительно защитник;
+2. стол не пуст;
+3. существует хотя бы одна
+   НЕПОБИТАЯ атакующая карта.
 
-Game Engine дополнительно проверяет,
-что действие выполняет именно защитник
-и что сейчас фаза защиты.
+Полностью отбившийся стол
+взять нельзя.
 =========================================================
 */
 
@@ -261,7 +348,23 @@ function canTake(
         return false;
     }
 
-    return table.length > 0;
+    if (table.length === 0) {
+        return false;
+    }
+
+    /*
+    Если есть хотя бы одна
+    атакующая карта без защиты —
+    защитник может взять.
+    */
+
+    return table.some(
+        pair =>
+            pair &&
+            isCard(pair.attack) &&
+            !isCard(pair.defense)
+    );
+
 }
 
 
@@ -273,7 +376,8 @@ CAN END ATTACK
 Атаку можно закончить только если:
 
 - стол не пуст;
-- все атакующие карты побиты.
+- каждая атакующая карта существует;
+- каждая атакующая карта побита.
 =========================================================
 */
 
@@ -297,15 +401,26 @@ function canEndAttack(
     return table.every(
         pair =>
             pair &&
-            pair.attack &&
-            pair.defense
+            isCard(pair.attack) &&
+            isCard(pair.defense)
     );
+
 }
 
 
 /*
 =========================================================
 GET MAX ATTACK CARDS
+=========================================================
+
+Количество атакующих карт
+не может превышать:
+
+- количество карт защитника
+  на момент начала захода;
+
+- 6 карт.
+
 =========================================================
 */
 
@@ -319,13 +434,16 @@ function getMaxAttackCards(
         ) ||
         defenderHandSize <= 0
     ) {
+
         return 0;
+
     }
 
     return Math.min(
         defenderHandSize,
         HAND_SIZE
     );
+
 }
 
 
@@ -340,10 +458,13 @@ function canStartGame(
 ) {
 
     return (
-        Number.isInteger(playerCount) &&
+        Number.isInteger(
+            playerCount
+        ) &&
         playerCount >= MIN_PLAYERS &&
         playerCount <= MAX_PLAYERS
     );
+
 }
 
 
@@ -362,13 +483,16 @@ function canDraw(
         !Number.isInteger(handSize) ||
         !Number.isInteger(deckSize)
     ) {
+
         return false;
+
     }
 
     return (
         handSize < HAND_SIZE &&
         deckSize > 0
     );
+
 }
 
 
@@ -384,7 +508,11 @@ function isHandFull(hand) {
         return false;
     }
 
-    return hand.length >= HAND_SIZE;
+    return (
+        hand.length >=
+        HAND_SIZE
+    );
+
 }
 
 
@@ -403,6 +531,7 @@ function isTrumpCard(
         card,
         trumpSuit
     );
+
 }
 
 
