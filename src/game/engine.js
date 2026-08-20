@@ -3,7 +3,47 @@
 /*
 =========================================================
 HEAVY LUX CARD
-GAME ENGINE
+GAME ENGINE 2.0
+AUTHORITATIVE DURAK ENGINE
+36 CARDS
+2 PLAYERS
+NO AI
+=========================================================
+
+ЛОГИКА:
+
+1. Начало:
+   - 36 карт
+   - по 6 карт каждому
+   - определяется козырь
+   - первый ход у игрока с младшим козырем
+
+2. Атака:
+   - атакующий кладёт карту
+   - защитник отбивается
+
+3. После успешного отбивания:
+   - если есть место для следующей атаки:
+     атакующий снова может подкинуть
+   - если все карты отбиты:
+     атакующий может нажать БИТО
+
+4. БИТО:
+   - стол очищается
+   - сначала карты добирает предыдущий атакующий
+   - затем предыдущий защитник
+   - роли меняются
+
+5. ВЗЯТЬ:
+   - защитник забирает все карты со стола
+   - атакующий остаётся атакующим
+   - сначала добирает атакующий
+   - затем защитник
+
+6. Когда колода закончилась:
+   - игрок с пустой рукой может победить
+   - если пустые руки у обоих одновременно — ничья
+
 =========================================================
 */
 
@@ -38,8 +78,11 @@ function createGameState({
         id:
             roomId,
 
+        roomId:
+            roomId,
+
         stake:
-            Number(stake),
+            Number(stake || 0),
 
         pot:
             0,
@@ -49,6 +92,14 @@ function createGameState({
         status:
             "waiting",
 
+        /*
+         * Возможные фазы:
+         *
+         * waiting
+         * attack
+         * defense
+         * finished
+         */
         phase:
             "waiting",
 
@@ -63,6 +114,10 @@ function createGameState({
         defenderId:
             null,
 
+        /*
+         * Максимальное количество
+         * атак в текущем заходе.
+         */
         roundMaxCards:
             0,
 
@@ -95,7 +150,7 @@ function createGameState({
 
 /*
 =========================================================
-CREATE PLAYER
+CREATE ROOM PLAYER
 =========================================================
 */
 
@@ -111,7 +166,7 @@ function createRoomPlayer({
         playerId,
 
         name:
-            name || "",
+            name || "Игрок",
 
         socketId,
 
@@ -139,12 +194,15 @@ function roomPlayerById(
         return null;
     }
 
-
     return (
         room.players.find(
             player =>
-                String(player.playerId) ===
-                String(playerId)
+                String(
+                    player.playerId
+                ) ===
+                String(
+                    playerId
+                )
         ) ||
         null
     );
@@ -167,12 +225,15 @@ function otherPlayer(
         return null;
     }
 
-
     return (
         room.players.find(
             player =>
-                String(player.playerId) !==
-                String(playerId)
+                String(
+                    player.playerId
+                ) !==
+                String(
+                    playerId
+                )
         ) ||
         null
     );
@@ -193,19 +254,22 @@ function findCard(
 
     if (
         !player ||
-        !Array.isArray(player.hand)
+        !Array.isArray(
+            player.hand
+        )
     ) {
-
         return null;
-
     }
-
 
     return (
         player.hand.find(
             card =>
-                String(card.id) ===
-                String(cardId)
+                String(
+                    card.id
+                ) ===
+                String(
+                    cardId
+                )
         ) ||
         null
     );
@@ -226,30 +290,29 @@ function removeCard(
 
     if (
         !player ||
-        !Array.isArray(player.hand)
+        !Array.isArray(
+            player.hand
+        )
     ) {
-
         return null;
-
     }
-
 
     const index =
         player.hand.findIndex(
             card =>
-                String(card.id) ===
-                String(cardId)
+                String(
+                    card.id
+                ) ===
+                String(
+                    cardId
+                )
         );
-
 
     if (
         index === -1
     ) {
-
         return null;
-
     }
-
 
     return player.hand.splice(
         index,
@@ -272,16 +335,12 @@ function startGame(
     if (!room) {
 
         return {
-
             ok: false,
-
             error:
                 "Комната не найдена."
-
         };
 
     }
-
 
     if (
         room.players.length !==
@@ -289,26 +348,26 @@ function startGame(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Для начала игры нужны два игрока."
-
         };
 
     }
 
 
+    /*
+    -----------------------------------------------------
+    RESET
+    -----------------------------------------------------
+    */
+
     room.deck =
         createShuffledDeck();
 
+    room.table = [];
 
-    room.table =
-        [];
-
-    room.moves =
-        [];
+    room.moves = [];
 
     room.winnerId =
         null;
@@ -331,24 +390,20 @@ function startGame(
         of room.players
     ) {
 
-        player.hand =
-            [];
+        player.hand = [];
 
     }
 
 
     /*
     -----------------------------------------------------
-    DEAL SIX EACH
+    DEAL 6 EACH
     -----------------------------------------------------
     */
 
     for (
         let i = 0;
-
-        i <
-            STARTING_HAND_SIZE;
-
+        i < STARTING_HAND_SIZE;
         i++
     ) {
 
@@ -358,7 +413,7 @@ function startGame(
         ) {
 
             if (
-                room.deck.length
+                room.deck.length > 0
             ) {
 
                 player.hand.push(
@@ -396,7 +451,6 @@ function startGame(
     let lowestTrump =
         null;
 
-
     for (
         const player
         of room.players
@@ -411,16 +465,13 @@ function startGame(
                 card.suit !==
                 room.trumpSuit
             ) {
-
                 continue;
-
             }
-
 
             if (
                 !lowestTrump ||
-                card.value <
-                    lowestTrump.value
+                Number(card.value) <
+                Number(lowestTrump.value)
             ) {
 
                 lowestTrump =
@@ -437,8 +488,8 @@ function startGame(
 
 
     /*
-    Если ни у кого нет козыря,
-    используем первого игрока.
+    Если козырей нет —
+    первый игрок.
     */
 
     if (!attacker) {
@@ -475,22 +526,22 @@ function startGame(
         Date.now();
 
 
+    /*
+     * Максимум атак определяется
+     * количеством карт защитника
+     * НА НАЧАЛО захода.
+     */
     room.roundMaxCards =
         Math.min(
-
             MAX_ATTACK_CARDS,
-
             defender
                 ? defender.hand.length
                 : 0
-
         );
 
 
     return {
-
         ok: true
-
     };
 
 }
@@ -511,42 +562,55 @@ function validAttackCard(
         !room ||
         !card
     ) {
-
         return false;
-
     }
 
+
+    /*
+     * Первая карта может быть любой.
+     */
 
     if (
         room.table.length === 0
     ) {
-
         return true;
-
     }
 
 
+    /*
+     * Подкидывать можно только
+     * достоинства, уже находящиеся
+     * на столе.
+     */
+
     const values =
         new Set();
-
 
     for (
         const pair
         of room.table
     ) {
 
-        if (pair.attack) {
+        if (
+            pair.attack
+        ) {
 
             values.add(
-                pair.attack.value
+                Number(
+                    pair.attack.value
+                )
             );
 
         }
 
-        if (pair.defense) {
+        if (
+            pair.defense
+        ) {
 
             values.add(
-                pair.defense.value
+                Number(
+                    pair.defense.value
+                )
             );
 
         }
@@ -555,7 +619,35 @@ function validAttackCard(
 
 
     return values.has(
-        card.value
+        Number(
+            card.value
+        )
+    );
+
+}
+
+
+/*
+=========================================================
+CAN BITE
+=========================================================
+*/
+
+function allCardsDefended(
+    room
+) {
+
+    return (
+        Array.isArray(
+            room.table
+        ) &&
+        room.table.length > 0 &&
+        room.table.every(
+            pair =>
+                Boolean(
+                    pair.defense
+                )
+        )
     );
 
 }
@@ -580,50 +672,54 @@ function attackCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Игра не идёт."
-
         };
 
     }
 
 
+    /*
+     * Только атакующий.
+     */
+
     if (
-        room.attackerId !==
-        playerId
+        String(room.attackerId) !==
+        String(playerId)
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Сейчас ход противника."
-
         };
 
     }
 
+
+    /*
+     * Атаковать можно только
+     * в фазе атаки.
+     */
 
     if (
         room.phase !==
-            "attack"
+        "attack"
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Сейчас нельзя атаковать."
-
         };
 
     }
 
+
+    /*
+     * Максимум атак.
+     */
 
     if (
         room.table.length >=
@@ -631,12 +727,9 @@ function attackCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Достигнут максимум карт."
-
         };
 
     }
@@ -648,6 +741,16 @@ function attackCard(
             playerId
         );
 
+    if (!player) {
+
+        return {
+            ok: false,
+            error:
+                "Игрок не найден."
+        };
+
+    }
+
 
     const card =
         findCard(
@@ -655,20 +758,21 @@ function attackCard(
             cardId
         );
 
-
     if (!card) {
 
         return {
-
             ok: false,
-
             error:
                 "Карта не найдена."
-
         };
 
     }
 
+
+    /*
+     * Проверяем возможность
+     * подкидывания.
+     */
 
     if (
         !validAttackCard(
@@ -678,27 +782,43 @@ function attackCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Эту карту нельзя подкинуть."
-
         };
 
     }
 
 
-    removeCard(
-        player,
-        cardId
-    );
+    /*
+     * Удаляем карту из руки.
+     */
 
+    const removed =
+        removeCard(
+            player,
+            cardId
+        );
+
+    if (!removed) {
+
+        return {
+            ok: false,
+            error:
+                "Не удалось взять карту из руки."
+        };
+
+    }
+
+
+    /*
+     * Добавляем на стол.
+     */
 
     room.table.push({
 
         attack:
-            card,
+            removed,
 
         defense:
             null
@@ -706,14 +826,17 @@ function attackCard(
     });
 
 
+    /*
+     * Теперь защищается
+     * второй игрок.
+     */
+
     room.phase =
         "defense";
 
 
     return {
-
         ok: true
-
     };
 
 }
@@ -739,16 +862,18 @@ function defendCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Игра не идёт."
-
         };
 
     }
 
+
+    /*
+     * Защищаться можно только
+     * в defense.
+     */
 
     if (
         room.phase !==
@@ -756,29 +881,27 @@ function defendCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Сейчас нельзя отбиваться."
-
         };
 
     }
 
 
+    /*
+     * Только защитник.
+     */
+
     if (
-        room.defenderId !==
-        playerId
+        String(room.defenderId) !==
+        String(playerId)
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Сейчас ход противника."
-
         };
 
     }
@@ -791,9 +914,9 @@ function defendCard(
                 String(
                     item.attack.id
                 ) ===
-                    String(
-                        attackId
-                    ) &&
+                String(
+                    attackId
+                ) &&
                 !item.defense
         );
 
@@ -801,44 +924,52 @@ function defendCard(
     if (!pair) {
 
         return {
-
             ok: false,
-
             error:
                 "Карта атаки не найдена."
-
         };
 
     }
 
 
-    const player =
+    const defender =
         roomPlayerById(
             room,
             playerId
         );
 
-
-    const defense =
-        findCard(
-            player,
-            defenseId
-        );
-
-
-    if (!defense) {
+    if (!defender) {
 
         return {
-
             ok: false,
-
             error:
-                "Карта не найдена."
-
+                "Игрок не найден."
         };
 
     }
 
+
+    const defense =
+        findCard(
+            defender,
+            defenseId
+        );
+
+    if (!defense) {
+
+        return {
+            ok: false,
+            error:
+                "Карта защиты не найдена."
+        };
+
+    }
+
+
+    /*
+     * Проверяем реальное правило
+     * отбивания.
+     */
 
     if (
         !canBeat(
@@ -849,50 +980,76 @@ function defendCard(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Этой картой нельзя отбиться."
-
         };
 
     }
 
 
-    removeCard(
-        player,
-        defenseId
-    );
+    /*
+     * Удаляем карту защиты.
+     */
+
+    const removed =
+        removeCard(
+            defender,
+            defenseId
+        );
+
+    if (!removed) {
+
+        return {
+            ok: false,
+            error:
+                "Не удалось убрать карту защиты."
+        };
+
+    }
 
 
     pair.defense =
-        defense;
+        removed;
 
 
-    const allDefended =
-        room.table.every(
-            item =>
-                Boolean(
-                    item.defense
-                )
-        );
-
+    /*
+     * КЛЮЧЕВОЙ МОМЕНТ:
+     *
+     * После успешного отбивания
+     * атакующий получает возможность
+     * либо:
+     *
+     * 1. подкинуть ещё карту
+     * 2. нажать БИТО
+     *
+     * Если ещё есть место —
+     * возвращаем фазу attack.
+     */
 
     if (
-        allDefended
+        room.table.length <
+        room.roundMaxCards
     ) {
 
         room.phase =
-            "bito";
+            "attack";
+
+    } else {
+
+        /*
+         * Максимум достигнут.
+         * Все карты отбиты —
+         * остаётся только БИТО.
+         */
+        room.phase =
+            "attack";
 
     }
 
 
     return {
-
         ok: true
-
     };
 
 }
@@ -900,7 +1057,7 @@ function defendCard(
 
 /*
 =========================================================
-TAKE
+TAKE CARDS
 =========================================================
 */
 
@@ -916,33 +1073,35 @@ function takeCards(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Игра не идёт."
-
         };
 
     }
 
 
+    /*
+     * Только защитник.
+     */
+
     if (
-        room.defenderId !==
-        playerId
+        String(room.defenderId) !==
+        String(playerId)
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Только защитник может взять карты."
-
         };
 
     }
 
+
+    /*
+     * Только во время защиты.
+     */
 
     if (
         room.phase !==
@@ -950,12 +1109,9 @@ function takeCards(
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Сейчас нельзя взять карты."
-
         };
 
     }
@@ -967,6 +1123,21 @@ function takeCards(
             playerId
         );
 
+    if (!defender) {
+
+        return {
+            ok: false,
+            error:
+                "Игрок не найден."
+        };
+
+    }
+
+
+    /*
+     * Должна быть хотя бы
+     * одна неотбитая карта.
+     */
 
     const hasUnbeaten =
         room.table.some(
@@ -974,27 +1145,30 @@ function takeCards(
                 !pair.defense
         );
 
-
     if (!hasUnbeaten) {
 
         return {
-
             ok: false,
-
             error:
                 "Все карты отбиты. Нажмите БИТО."
-
         };
 
     }
 
+
+    /*
+     * Забираем абсолютно всё
+     * со стола.
+     */
 
     for (
         const pair
         of room.table
     ) {
 
-        if (pair.attack) {
+        if (
+            pair.attack
+        ) {
 
             defender.hand.push(
                 pair.attack
@@ -1002,7 +1176,9 @@ function takeCards(
 
         }
 
-        if (pair.defense) {
+        if (
+            pair.defense
+        ) {
 
             defender.hand.push(
                 pair.defense
@@ -1013,55 +1189,85 @@ function takeCards(
     }
 
 
-    room.table =
-        [];
-
-    room.phase =
-        "draw";
+    room.table = [];
 
 
-    drawCards(
-        room
+    /*
+     * Запоминаем текущие роли.
+     *
+     * Они НЕ меняются.
+     */
+
+    const attacker =
+        roomPlayerById(
+            room,
+            room.attackerId
+        );
+
+    const currentDefender =
+        roomPlayerById(
+            room,
+            room.defenderId
+        );
+
+
+    /*
+     * Сначала добирает атакующий,
+     * потом защитник.
+     */
+
+    drawCardsInOrder(
+        room,
+        [
+            attacker,
+            currentDefender
+        ]
     );
 
 
+    /*
+     * Проверяем окончание игры.
+     */
+
     if (
-        checkGameOver(room)
+        checkGameOver(
+            room
+        )
     ) {
 
         return {
-
             ok: true,
-
-            gameOver:
-                true
-
+            gameOver: true
         };
 
     }
 
 
-    room.roundMaxCards =
-        Math.min(
-
-            MAX_ATTACK_CARDS,
-
-            defender.hand.length
-
-        );
-
+    /*
+     * Атакующий НЕ меняется.
+     */
 
     room.phase =
         "attack";
 
 
+    /*
+     * Новый максимум зависит
+     * от текущего защитника.
+     */
+
+    room.roundMaxCards =
+        Math.min(
+            MAX_ATTACK_CARDS,
+            currentDefender
+                ? currentDefender.hand.length
+                : 0
+        );
+
+
     return {
-
         ok: true,
-
-        gameOver:
-            false
-
+        gameOver: false
     };
 
 }
@@ -1081,119 +1287,149 @@ function bito(
     if (
         !room ||
         room.status !==
-            "playing"
+        "playing"
     ) {
 
         return {
-
             ok: false,
-
             error:
                 "Игра не идёт."
-
         };
 
     }
 
+
+    /*
+     * БИТО может нажать атакующий.
+     */
+
+    if (
+        String(room.attackerId) !==
+        String(playerId)
+    ) {
+
+        return {
+            ok: false,
+            error:
+                "Только атакующий может нажать БИТО."
+        };
+
+    }
+
+
+    /*
+     * БИТО доступно только
+     * когда все карты отбиты.
+     */
 
     if (
         room.phase !==
-        "bito"
+        "attack"
     ) {
 
         return {
-
             ok: false,
-
             error:
-                "Нельзя нажать БИТО."
-
+                "Сейчас нельзя нажать БИТО."
         };
 
     }
 
 
     if (
-        room.attackerId !==
-        playerId
+        !allCardsDefended(
+            room
+        )
     ) {
 
         return {
-
             ok: false,
-
             error:
-                "Неверный игрок."
-
+                "Не все карты отбиты."
         };
 
     }
 
 
-    const allDefended =
-        room.table.length > 0 &&
-        room.table.every(
-            pair =>
-                Boolean(
-                    pair.defense
-                )
+    /*
+     * Запоминаем старые роли.
+     */
+
+    const oldAttacker =
+        roomPlayerById(
+            room,
+            room.attackerId
+        );
+
+    const oldDefender =
+        roomPlayerById(
+            room,
+            room.defenderId
         );
 
 
-    if (!allDefended) {
+    /*
+     * Очищаем стол.
+     */
 
-        return {
-
-            ok: false,
-
-            error:
-                "Не все карты отбиты."
-
-        };
-
-    }
+    room.table = [];
 
 
-    room.table =
-        [];
+    /*
+     * ВАЖНО:
+     *
+     * При успешном отбивании
+     * сначала добирает предыдущий
+     * атакующий, затем предыдущий
+     * защитник.
+     */
 
-
-    const oldAttacker =
-        room.attackerId;
-
-    room.attackerId =
-        room.defenderId;
-
-    room.defenderId =
-        oldAttacker;
-
-
-    room.phase =
-        "draw";
-
-
-    drawCards(
-        room
+    drawCardsInOrder(
+        room,
+        [
+            oldAttacker,
+            oldDefender
+        ]
     );
 
 
+    /*
+     * Проверяем окончание игры.
+     */
+
     if (
-        checkGameOver(room)
+        checkGameOver(
+            room
+        )
     ) {
 
         return {
-
             ok: true,
-
-            gameOver:
-                true
-
+            gameOver: true
         };
 
     }
 
 
-    const defender =
+    /*
+     * Теперь роли меняются.
+     *
+     * Старый защитник становится
+     * новым атакующим.
+     */
+
+    room.attackerId =
+        oldDefender
+            ? oldDefender.playerId
+            : null;
+
+    room.defenderId =
+        oldAttacker
+            ? oldAttacker.playerId
+            : null;
+
+
+    const newDefender =
         roomPlayerById(
             room,
             room.defenderId
@@ -1202,13 +1438,10 @@ function bito(
 
     room.roundMaxCards =
         Math.min(
-
             MAX_ATTACK_CARDS,
-
-            defender
-                ? defender.hand.length
+            newDefender
+                ? newDefender.hand.length
                 : 0
-
         );
 
 
@@ -1217,12 +1450,8 @@ function bito(
 
 
     return {
-
         ok: true,
-
-        gameOver:
-            false
-
+        gameOver: false
     };
 
 }
@@ -1230,43 +1459,28 @@ function bito(
 
 /*
 =========================================================
-DRAW
+DRAW CARDS
 =========================================================
 */
 
-function drawCards(
-    room
+function drawCardsInOrder(
+    room,
+    players
 ) {
 
     if (
         !room ||
-        !room.deck.length
+        !Array.isArray(
+            players
+        )
     ) {
-
         return;
-
     }
-
-
-    const attacker =
-        roomPlayerById(
-            room,
-            room.attackerId
-        );
-
-    const defender =
-        roomPlayerById(
-            room,
-            room.defenderId
-        );
 
 
     for (
         const player
-        of [
-            attacker,
-            defender
-        ]
+        of players
     ) {
 
         if (!player) {
@@ -1301,8 +1515,18 @@ function checkGameOver(
     room
 ) {
 
+    if (!room) {
+        return false;
+    }
+
+
+    /*
+     * Пока колода не закончилась,
+     * наличие пустой руки само по себе
+     * не завершает игру.
+     */
+
     if (
-        !room ||
         room.deck.length > 0
     ) {
 
@@ -1311,15 +1535,22 @@ function checkGameOver(
     }
 
 
-    const empty =
+    const emptyPlayers =
         room.players.filter(
             player =>
+                Array.isArray(
+                    player.hand
+                ) &&
                 player.hand.length === 0
         );
 
 
+    /*
+     * Оба закончили одновременно.
+     */
+
     if (
-        empty.length === 2
+        emptyPlayers.length === 2
     ) {
 
         finishGame(
@@ -1334,12 +1565,16 @@ function checkGameOver(
     }
 
 
+    /*
+     * Один закончил.
+     */
+
     if (
-        empty.length === 1
+        emptyPlayers.length === 1
     ) {
 
         const winner =
-            empty[0];
+            emptyPlayers[0];
 
         const loser =
             otherPlayer(
@@ -1349,7 +1584,6 @@ function checkGameOver(
 
 
         finishGame(
-
             room,
 
             winner.playerId,
@@ -1359,7 +1593,6 @@ function checkGameOver(
                 : null,
 
             "win"
-
         );
 
         return true;
@@ -1374,7 +1607,7 @@ function checkGameOver(
 
 /*
 =========================================================
-FINISH
+FINISH GAME
 =========================================================
 */
 
@@ -1384,6 +1617,26 @@ function finishGame(
     loserId,
     settlement
 ) {
+
+    if (!room) {
+        return;
+    }
+
+
+    /*
+     * Не позволяем второй раз
+     * завершить уже завершённую игру.
+     */
+
+    if (
+        room.status ===
+        "finished"
+    ) {
+
+        return;
+
+    }
+
 
     room.status =
         "finished";
@@ -1418,6 +1671,31 @@ function finishByForfeit(
     reason = "leave"
 ) {
 
+    if (!room) {
+
+        return {
+            ok: false,
+            error:
+                "Комната не найдена."
+        };
+
+    }
+
+
+    if (
+        room.status ===
+        "finished"
+    ) {
+
+        return {
+            ok: false,
+            error:
+                "Игра уже завершена."
+        };
+
+    }
+
+
     const winner =
         otherPlayer(
             room,
@@ -1428,19 +1706,15 @@ function finishByForfeit(
     if (!winner) {
 
         return {
-
             ok: false,
-
             error:
                 "Победитель не найден."
-
         };
 
     }
 
 
     finishGame(
-
         room,
 
         winner.playerId,
@@ -1448,7 +1722,6 @@ function finishByForfeit(
         loserId,
 
         "forfeit"
-
     );
 
 
@@ -1479,6 +1752,11 @@ function getPublicGameState(
     playerId
 ) {
 
+    if (!room) {
+        return null;
+    }
+
+
     const self =
         roomPlayerById(
             room,
@@ -1492,6 +1770,131 @@ function getPublicGameState(
         );
 
 
+    const isAttacker =
+        String(
+            room.attackerId
+        ) ===
+        String(
+            playerId
+        );
+
+
+    const isDefender =
+        String(
+            room.defenderId
+        ) ===
+        String(
+            playerId
+        );
+
+
+    const hasUnbeaten =
+        room.table.some(
+            pair =>
+                !pair.defense
+        );
+
+
+    const defended =
+        allCardsDefended(
+            room
+        );
+
+
+    /*
+     * Важно:
+     * если table пустой,
+     * БИТО нельзя нажимать.
+     */
+
+    const canBito =
+        room.status === "playing" &&
+        room.phase === "attack" &&
+        isAttacker &&
+        defended;
+
+
+    const canAttack =
+        room.status === "playing" &&
+        room.phase === "attack" &&
+        isAttacker &&
+        room.table.length <
+            room.roundMaxCards;
+
+
+    const canTake =
+        room.status === "playing" &&
+        room.phase === "defense" &&
+        isDefender &&
+        hasUnbeaten;
+
+
+    let turn =
+        "WAITING";
+
+    if (
+        room.status ===
+        "playing"
+    ) {
+
+        if (
+            isAttacker
+        ) {
+
+            turn =
+                "YOUR_TURN";
+
+        } else if (
+            isDefender
+        ) {
+
+            turn =
+                "OPPONENT_TURN";
+
+        }
+
+    }
+
+
+    let turnText =
+        "Ожидание игрока";
+
+
+    if (
+        room.status ===
+        "playing"
+    ) {
+
+        if (
+            room.phase ===
+            "attack" &&
+            isAttacker
+        ) {
+
+            turnText =
+                canBito
+                    ? "Ваш ход — атакуйте или нажмите БИТО"
+                    : "Ваш ход — атакуйте";
+
+        } else if (
+            room.phase ===
+            "defense" &&
+            isDefender
+        ) {
+
+            turnText =
+                "Ваш ход — отбивайтесь или берите";
+
+        } else {
+
+            turnText =
+                "Ход противника";
+
+        }
+
+    }
+
+
     return {
 
         roomId:
@@ -1500,11 +1903,18 @@ function getPublicGameState(
         stake:
             room.stake,
 
+        pot:
+            room.pot,
+
         status:
             room.status,
 
         phase:
             room.phase,
+
+        turn,
+
+        turnText,
 
         trumpSuit:
             room.trumpSuit,
@@ -1514,6 +1924,9 @@ function getPublicGameState(
 
         defenderId:
             room.defenderId,
+
+        roundMaxCards:
+            room.roundMaxCards,
 
         deckCount:
             room.deck.length,
@@ -1528,6 +1941,22 @@ function getPublicGameState(
                 ? self.hand.length
                 : 0,
 
+        me:
+            self
+                ? {
+
+                    playerId:
+                        self.playerId,
+
+                    name:
+                        self.name,
+
+                    cardsCount:
+                        self.hand.length
+
+                }
+                : null,
+
         opponent:
             opponent
                 ? {
@@ -1538,6 +1967,9 @@ function getPublicGameState(
                     name:
                         opponent.name,
 
+                    cardsCount:
+                        opponent.hand.length,
+
                     handCount:
                         opponent.hand.length
 
@@ -1546,6 +1978,22 @@ function getPublicGameState(
 
         table:
             room.table,
+
+        canAttack,
+
+        canDefend:
+            room.status ===
+            "playing" &&
+            room.phase ===
+            "defense" &&
+            isDefender,
+
+        canTake,
+
+        canBito,
+
+        allDefended:
+            defended,
 
         winnerId:
             room.winnerId,
@@ -1603,7 +2051,23 @@ module.exports = {
 
     bito,
 
-    drawCards,
+    drawCards:
+        room =>
+            drawCardsInOrder(
+                room,
+                room
+                    ? [
+                        roomPlayerById(
+                            room,
+                            room.attackerId
+                        ),
+                        roomPlayerById(
+                            room,
+                            room.defenderId
+                        )
+                    ]
+                    : []
+            ),
 
     checkGameOver,
 
@@ -1614,12 +2078,6 @@ module.exports = {
     roomPlayerById,
 
     otherPlayer,
-
-    findCard,
-
-    removeCard,
-
-    validAttackCard,
 
     getPublicGameState
 
