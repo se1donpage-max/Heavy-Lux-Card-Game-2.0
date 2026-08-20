@@ -45,10 +45,15 @@ function createRoomEngine(room) {
 
         startGame:
             () =>
-                startGame(room),
+                engine.startGame(
+                    room
+                ),
 
         attackCard:
-            (playerId, cardId) =>
+            (
+                playerId,
+                cardId
+            ) =>
                 engine.attackCard(
                     room,
                     playerId,
@@ -110,7 +115,7 @@ function createRoomEngine(room) {
         finishByForfeit:
             (
                 loserId,
-                reason
+                reason = "leave"
             ) =>
                 engine.finishByForfeit(
                     room,
@@ -159,52 +164,92 @@ function generateRoomId() {
 
 /*
 =========================================================
-NORMALIZE PLAYER
+GET ROOM
 =========================================================
 */
 
-function normalizePlayer(
-    player,
-    fallbackSocketId = null
+function getRoom(
+    roomOrId
 ) {
 
-    if (!player) {
+    if (!roomOrId) {
+
         return null;
+
     }
 
-    return {
 
-        playerId:
-            player.playerId,
+    /*
+    -----------------------------------------------------
+    PLAYER OBJECT
+    -----------------------------------------------------
+    */
 
-        name:
-            player.name || "",
+    if (
+        typeof roomOrId ===
+        "object"
+    ) {
 
-        socketId:
-            player.socketId ||
-            fallbackSocketId ||
-            null,
+        if (
+            roomOrId.id &&
+            rooms.has(
+                String(
+                    roomOrId.id
+                )
+            )
+        ) {
 
-        connected:
-            player.connected !== false,
+            return rooms.get(
+                String(
+                    roomOrId.id
+                )
+            );
 
-        hand:
-            Array.isArray(player.hand)
-                ? player.hand
-                : [],
+        }
 
-        roomId:
-            player.roomId ||
-            null
 
-    };
+        if (
+            roomOrId.roomId
+        ) {
+
+            return (
+                rooms.get(
+                    String(
+                        roomOrId.roomId
+                    )
+                ) ||
+                null
+            );
+
+        }
+
+
+        return null;
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    ROOM ID
+    -----------------------------------------------------
+    */
+
+    return (
+        rooms.get(
+            String(
+                roomOrId
+            )
+        ) ||
+        null
+    );
 
 }
 
 
 /*
 =========================================================
-SYNC PLAYER
+SYNC EXTERNAL PLAYER
 =========================================================
 */
 
@@ -218,17 +263,60 @@ function syncExternalPlayer(
         !externalPlayer ||
         !roomPlayer
     ) {
+
         return;
+
     }
 
+
     externalPlayer.roomId =
-        roomId;
+        roomId || null;
 
     externalPlayer.socketId =
-        roomPlayer.socketId;
+        roomPlayer.socketId || null;
 
     externalPlayer.connected =
-        roomPlayer.connected;
+        roomPlayer.connected !== false;
+
+}
+
+
+/*
+=========================================================
+FIND EXTERNAL PLAYER
+=========================================================
+*/
+
+function findExternalPlayer(
+    room,
+    playerId
+) {
+
+    if (!room) {
+
+        return null;
+
+    }
+
+
+    const roomPlayer =
+        roomPlayerById(
+            room,
+            playerId
+        );
+
+
+    if (!roomPlayer) {
+
+        return null;
+
+    }
+
+
+    return (
+        roomPlayer.externalPlayer ||
+        null
+    );
 
 }
 
@@ -240,22 +328,18 @@ CREATE ROOM
 */
 
 /*
-Поддерживаются оба варианта:
+Поддерживается:
 
-createRoom({
-    roomId,
-    stake,
-    playerId,
-    name,
-    socketId
-})
+createRoom(player, stake)
 
 и:
 
-createRoom(
-    player,
+createRoom({
+    playerId,
+    name,
+    socketId,
     stake
-)
+})
 */
 
 function createRoom(
@@ -263,22 +347,28 @@ function createRoom(
     legacyStake = 0
 ) {
 
-    let externalPlayer = null;
+    let externalPlayer =
+        null;
 
-    let roomId = null;
+    let playerId =
+        null;
 
-    let stake = 0;
+    let name =
+        "";
 
-    let playerId = null;
+    let socketId =
+        null;
 
-    let name = "";
+    let stake =
+        0;
 
-    let socketId = null;
+    let roomId =
+        null;
 
 
     /*
     -----------------------------------------------------
-    LEGACY API
+    LEGACY:
     createRoom(player, stake)
     -----------------------------------------------------
     */
@@ -286,20 +376,11 @@ function createRoom(
     if (
         options &&
         typeof options === "object" &&
-        options.playerId &&
-        !Object.prototype.hasOwnProperty.call(
-            options,
-            "stake"
-        )
+        options.playerId
     ) {
 
         externalPlayer =
             options;
-
-        stake =
-            Number(
-                legacyStake || 0
-            );
 
         playerId =
             options.playerId;
@@ -310,11 +391,17 @@ function createRoom(
         socketId =
             options.socketId || null;
 
+        stake =
+            Number(
+                legacyStake || 0
+            );
+
     }
+
 
     /*
     -----------------------------------------------------
-    OBJECT API
+    OBJECT:
     createRoom({...})
     -----------------------------------------------------
     */
@@ -326,14 +413,6 @@ function createRoom(
 
         externalPlayer =
             options.player || null;
-
-        roomId =
-            options.roomId || null;
-
-        stake =
-            Number(
-                options.stake || 0
-            );
 
         playerId =
             options.playerId ||
@@ -361,6 +440,14 @@ function createRoom(
             ) ||
             null;
 
+        stake =
+            Number(
+                options.stake || 0
+            );
+
+        roomId =
+            options.roomId || null;
+
     }
 
 
@@ -380,7 +467,7 @@ function createRoom(
 
     /*
     -----------------------------------------------------
-    PREVENT PLAYER IN MULTIPLE ROOMS
+    PLAYER ALREADY IN ROOM
     -----------------------------------------------------
     */
 
@@ -393,6 +480,7 @@ function createRoom(
             getRoom(
                 externalPlayer.roomId
             );
+
 
         if (existingRoom) {
 
@@ -410,8 +498,23 @@ function createRoom(
 
         }
 
+
+        /*
+        Если roomId устарел —
+        очищаем его.
+        */
+
+        externalPlayer.roomId =
+            null;
+
     }
 
+
+    /*
+    -----------------------------------------------------
+    ROOM ID
+    -----------------------------------------------------
+    */
 
     const id =
         roomId ||
@@ -434,6 +537,12 @@ function createRoom(
     }
 
 
+    /*
+    -----------------------------------------------------
+    CREATE ROOM PLAYER
+    -----------------------------------------------------
+    */
+
     const player =
         createRoomPlayer({
 
@@ -443,14 +552,15 @@ function createRoom(
 
             socketId,
 
-            connected: true
+            connected:
+                true
 
         });
 
 
     /*
     -----------------------------------------------------
-    PRESERVE EXTERNAL PLAYER REFERENCE
+    SAVE EXTERNAL PLAYER
     -----------------------------------------------------
     */
 
@@ -461,6 +571,12 @@ function createRoom(
 
     }
 
+
+    /*
+    -----------------------------------------------------
+    CREATE GAME STATE
+    -----------------------------------------------------
+    */
 
     const room =
         createGameState({
@@ -503,7 +619,7 @@ function createRoom(
 
     /*
     -----------------------------------------------------
-    ASSIGN ROOM ID
+    ASSIGN PLAYER ROOM ID
     -----------------------------------------------------
     */
 
@@ -511,6 +627,9 @@ function createRoom(
 
         externalPlayer.roomId =
             id;
+
+        externalPlayer.socketId =
+            socketId;
 
         externalPlayer.connected =
             true;
@@ -542,134 +661,27 @@ function createRoom(
 
 /*
 =========================================================
-GET ROOM
-=========================================================
-*/
-
-function getRoom(
-    roomIdOrPlayer
-) {
-
-    if (!roomIdOrPlayer) {
-        return null;
-    }
-
-
-    /*
-    getRoom(player)
-    */
-
-    if (
-        typeof roomIdOrPlayer ===
-        "object"
-    ) {
-
-        if (
-            roomIdOrPlayer.roomId
-        ) {
-
-            return (
-                rooms.get(
-                    String(
-                        roomIdOrPlayer.roomId
-                    )
-                ) ||
-                null
-            );
-
-        }
-
-        return null;
-
-    }
-
-
-    return (
-        rooms.get(
-            String(
-                roomIdOrPlayer
-            )
-        ) ||
-        null
-    );
-
-}
-
-
-/*
-=========================================================
-GET ROOMS
-=========================================================
-*/
-
-function getRooms() {
-
-    return Array.from(
-        rooms.values()
-    );
-
-}
-
-
-/*
-=========================================================
-GET ALL ROOMS
-=========================================================
-*/
-
-function getAllRooms() {
-
-    return getRooms();
-
-}
-
-
-/*
-=========================================================
-ROOM COUNT
-=========================================================
-*/
-
-function roomCount() {
-
-    return rooms.size;
-
-}
-
-
-/*
-=========================================================
-HAS ROOM
-=========================================================
-*/
-
-function hasRoom(
-    roomId
-) {
-
-    return rooms.has(
-        String(
-            roomId
-        )
-    );
-
-}
-
-
-/*
-=========================================================
 JOIN ROOM
 =========================================================
 */
 
 /*
-Поддерживаются:
+Поддерживается:
 
 joinRoom(player, roomId)
 
+и:
+
 joinRoom({
-    roomId,
+    player,
+    roomId
+})
+
+и:
+
+joinRoom({
     playerId,
+    roomId,
     name,
     socketId
 })
@@ -680,20 +692,26 @@ function joinRoom(
     legacyRoomId = null
 ) {
 
-    let externalPlayer = null;
+    let externalPlayer =
+        null;
 
-    let roomId = null;
+    let roomId =
+        null;
 
-    let playerId = null;
+    let playerId =
+        null;
 
-    let name = "";
+    let name =
+        "";
 
-    let socketId = null;
+    let socketId =
+        null;
 
 
     /*
     -----------------------------------------------------
-    LEGACY
+    LEGACY:
+    joinRoom(player, roomId)
     -----------------------------------------------------
     */
 
@@ -706,11 +724,6 @@ function joinRoom(
         externalPlayer =
             options;
 
-        roomId =
-            legacyRoomId ||
-            options.roomId ||
-            options.roomId;
-
         playerId =
             options.playerId;
 
@@ -720,7 +733,13 @@ function joinRoom(
         socketId =
             options.socketId || null;
 
+        roomId =
+            legacyRoomId ||
+            options.roomId ||
+            null;
+
     }
+
 
     /*
     -----------------------------------------------------
@@ -737,7 +756,7 @@ function joinRoom(
             options.player || null;
 
         roomId =
-            options.roomId;
+            options.roomId || null;
 
         playerId =
             options.playerId ||
@@ -768,9 +787,7 @@ function joinRoom(
     }
 
 
-    if (
-        !roomId
-    ) {
+    if (!roomId) {
 
         return {
 
@@ -820,7 +837,7 @@ function joinRoom(
 
     /*
     -----------------------------------------------------
-    ALREADY IN ANOTHER ROOM
+    PLAYER IN ANOTHER ROOM
     -----------------------------------------------------
     */
 
@@ -830,17 +847,36 @@ function joinRoom(
         String(
             externalPlayer.roomId
         ) !==
-        String(room.id)
+        String(
+            room.id
+        )
     ) {
 
-        return {
+        const anotherRoom =
+            getRoom(
+                externalPlayer.roomId
+            );
 
-            ok: false,
 
-            error:
-                "Игрок уже находится в другой комнате."
+        if (anotherRoom) {
 
-        };
+            return {
+
+                ok: false,
+
+                error:
+                    "Игрок уже находится в другой комнате.",
+
+                room:
+                    anotherRoom
+
+            };
+
+        }
+
+
+        externalPlayer.roomId =
+            null;
 
     }
 
@@ -950,6 +986,12 @@ function joinRoom(
     }
 
 
+    /*
+    -----------------------------------------------------
+    CREATE PLAYER
+    -----------------------------------------------------
+    */
+
     const player =
         createRoomPlayer({
 
@@ -959,7 +1001,8 @@ function joinRoom(
 
             socketId,
 
-            connected: true
+            connected:
+                true
 
         });
 
@@ -987,6 +1030,9 @@ function joinRoom(
 
         externalPlayer.roomId =
             room.id;
+
+        externalPlayer.socketId =
+            socketId;
 
         externalPlayer.connected =
             true;
@@ -1016,6 +1062,7 @@ function joinRoom(
 
 
         if (
+            !result ||
             !result.ok
         ) {
 
@@ -1035,8 +1082,10 @@ function joinRoom(
                 ok: false,
 
                 error:
-                    result.error ||
-                    "Не удалось начать игру."
+                    result &&
+                    result.error
+                        ? result.error
+                        : "Не удалось начать игру."
 
             };
 
@@ -1057,15 +1106,57 @@ function joinRoom(
 
         player,
 
-        reconnected:
-            false,
-
         started,
 
         gameStarted:
-            started
+            started,
+
+        reconnected:
+            false
 
     };
+
+}
+
+
+/*
+=========================================================
+GET ROOMS
+=========================================================
+*/
+
+function getRooms() {
+
+    return Array.from(
+        rooms.values()
+    );
+
+}
+
+
+function getAllRooms() {
+
+    return getRooms();
+
+}
+
+
+function roomCount() {
+
+    return rooms.size;
+
+}
+
+
+function hasRoom(
+    roomId
+) {
+
+    return rooms.has(
+        String(
+            roomId
+        )
+    );
 
 }
 
@@ -1076,72 +1167,45 @@ GET ROOM PLAYER
 =========================================================
 */
 
-/*
-Поддерживаются:
-
-getRoomPlayer(player)
-
-getRoomPlayer(room, playerId)
-
-getRoomPlayer(roomId, playerId)
-*/
-
 function getRoomPlayer(
-    first,
-    second = null
+    roomOrPlayer,
+    playerId = null
 ) {
 
-    let room = null;
-
-    let playerId = null;
-
-
-    if (
-        first &&
-        typeof first === "object" &&
-        first.players
-    ) {
-
-        room =
-            first;
-
-        playerId =
-            second;
-
-    }
-
-    else if (
-        first &&
-        typeof first === "object"
-    ) {
-
-        playerId =
-            first.playerId;
-
-        room =
-            getRoom(
-                first.roomId
-            );
-
-    }
-
-    else {
-
-        room =
-            getRoom(
-                first
-            );
-
-        playerId =
-            second;
-
-    }
+    const room =
+        getRoom(
+            roomOrPlayer
+        );
 
 
     if (!room) {
+
         return null;
+
     }
 
+
+    /*
+    getRoomPlayer(player)
+    */
+
+    if (
+        typeof roomOrPlayer ===
+        "object" &&
+        roomOrPlayer.playerId
+    ) {
+
+        return roomPlayerById(
+            room,
+            roomOrPlayer.playerId
+        );
+
+    }
+
+
+    /*
+    getRoomPlayer(room, playerId)
+    */
 
     return roomPlayerById(
         room,
@@ -1157,55 +1221,46 @@ GET OTHER PLAYER
 =========================================================
 */
 
-/*
-Поддерживаются:
-
-getOtherPlayer(room, playerId)
-
-getOtherPlayer(roomId, playerId)
-*/
-
 function getOtherPlayer(
-    first,
-    second
+    roomOrPlayer,
+    playerId = null
 ) {
 
-    let room = null;
-
-    let playerId = null;
-
-
-    if (
-        first &&
-        typeof first === "object" &&
-        first.players
-    ) {
-
-        room =
-            first;
-
-        playerId =
-            second;
-
-    }
-
-    else {
-
-        room =
-            getRoom(
-                first
-            );
-
-        playerId =
-            second;
-
-    }
+    const room =
+        getRoom(
+            roomOrPlayer
+        );
 
 
     if (!room) {
+
         return null;
+
     }
 
+
+    /*
+    getOtherPlayer(player)
+    */
+
+    if (
+        typeof roomOrPlayer ===
+        "object" &&
+        roomOrPlayer.playerId &&
+        !playerId
+    ) {
+
+        return otherPlayer(
+            room,
+            roomOrPlayer.playerId
+        );
+
+    }
+
+
+    /*
+    getOtherPlayer(room, playerId)
+    */
 
     return otherPlayer(
         room,
@@ -1217,88 +1272,43 @@ function getOtherPlayer(
 
 /*
 =========================================================
-GET PUBLIC STATE
+PUBLIC GAME STATE
 =========================================================
 */
 
 function getPublicState(
-    roomOrPlayer,
-    playerId = null
+    roomOrId,
+    playerId
 ) {
 
-    let room = null;
-
-    let id = null;
-
-
-    if (
-        roomOrPlayer &&
-        typeof roomOrPlayer === "object" &&
-        roomOrPlayer.players
-    ) {
-
-        room =
-            roomOrPlayer;
-
-        id =
-            playerId;
-
-    }
-
-    else if (
-        roomOrPlayer &&
-        typeof roomOrPlayer === "object"
-    ) {
-
-        room =
-            getRoom(
-                roomOrPlayer.roomId
-            );
-
-        id =
-            roomOrPlayer.playerId;
-
-    }
-
-    else {
-
-        room =
-            getRoom(
-                roomOrPlayer
-            );
-
-        id =
-            playerId;
-
-    }
+    const room =
+        getRoom(
+            roomOrId
+        );
 
 
     if (!room) {
+
         return null;
+
     }
 
 
     return getPublicGameState(
         room,
-        id
+        playerId
     );
 
 }
 
 
-/*
-=========================================================
-GET GAME STATE
-=========================================================
-*/
-
 function getGameState(
-    roomId,
+    roomOrId,
     playerId
 ) {
 
     return getPublicState(
-        roomId,
+        roomOrId,
         playerId
     );
 
@@ -1316,7 +1326,9 @@ function getRoomSummary(
 ) {
 
     if (!room) {
+
         return null;
+
     }
 
 
@@ -1360,9 +1372,7 @@ function getRoomSummary(
                         player.name,
 
                     connected:
-                        Boolean(
-                            player.connected
-                        )
+                        player.connected !== false
 
                 })
             ),
@@ -1386,22 +1396,20 @@ WAITING ROOMS
 
 function getWaitingRooms() {
 
-    return Array.from(
-        rooms.values()
-    )
-    .filter(
-        room =>
-            room.status ===
-            "waiting" &&
-            room.players.length <
-            MAX_PLAYERS
-    )
-    .map(
-        room =>
-            getRoomSummary(
-                room
-            )
-    );
+    return getRooms()
+        .filter(
+            room =>
+                room.status ===
+                    "waiting" &&
+                room.players.length <
+                    MAX_PLAYERS
+        )
+        .map(
+            room =>
+                getRoomSummary(
+                    room
+                )
+        );
 
 }
 
@@ -1420,21 +1428,12 @@ function getPublicRoomList() {
 
 
 /*
-=========================================================
-PUBLIC ROOMS
-=========================================================
+Совместимость со старым API.
 */
 
 function getPublicRooms() {
 
-    return Array.from(
-        rooms.values()
-    ).map(
-        room =>
-            getRoomSummary(
-                room
-            )
-    );
+    return getWaitingRooms();
 
 }
 
@@ -1446,54 +1445,24 @@ DISCONNECT PLAYER
 */
 
 /*
-Поддерживаются:
+Поддерживается:
 
 disconnectPlayer(player)
+
+и:
 
 disconnectPlayer(roomId, playerId)
 */
 
 function disconnectPlayer(
-    first,
-    second = null
+    roomOrPlayer,
+    playerId = null
 ) {
 
-    let room = null;
-
-    let playerId = null;
-
-    let externalPlayer = null;
-
-
-    if (
-        first &&
-        typeof first === "object"
-    ) {
-
-        externalPlayer =
-            first;
-
-        playerId =
-            first.playerId;
-
-        room =
-            getRoom(
-                first.roomId
-            );
-
-    }
-
-    else {
-
-        room =
-            getRoom(
-                first
-            );
-
-        playerId =
-            second;
-
-    }
+    const room =
+        getRoom(
+            roomOrPlayer
+        );
 
 
     if (!room) {
@@ -1510,10 +1479,26 @@ function disconnectPlayer(
     }
 
 
+    let actualPlayerId =
+        playerId;
+
+
+    if (
+        typeof roomOrPlayer ===
+        "object" &&
+        roomOrPlayer.playerId
+    ) {
+
+        actualPlayerId =
+            roomOrPlayer.playerId;
+
+    }
+
+
     const player =
         roomPlayerById(
             room,
-            playerId
+            actualPlayerId
         );
 
 
@@ -1538,20 +1523,28 @@ function disconnectPlayer(
         null;
 
 
-    if (externalPlayer) {
+    /*
+    -----------------------------------------------------
+    SYNC EXTERNAL PLAYER
+    -----------------------------------------------------
+    */
 
-        externalPlayer.connected =
-            false;
+    if (
+        player.externalPlayer
+    ) {
 
-        externalPlayer.socketId =
+        player.externalPlayer.socketId =
             null;
+
+        player.externalPlayer.connected =
+            false;
 
     }
 
 
     /*
     -----------------------------------------------------
-    WAITING
+    WAITING ROOM
     -----------------------------------------------------
     */
 
@@ -1566,8 +1559,6 @@ function disconnectPlayer(
 
             room,
 
-            player,
-
             disconnected:
                 true,
 
@@ -1581,7 +1572,7 @@ function disconnectPlayer(
 
     /*
     -----------------------------------------------------
-    PLAYING
+    ACTIVE GAME
     -----------------------------------------------------
     */
 
@@ -1593,7 +1584,7 @@ function disconnectPlayer(
         const result =
             finishByForfeit(
                 room,
-                playerId,
+                actualPlayerId,
                 "disconnect"
             );
 
@@ -1604,8 +1595,6 @@ function disconnectPlayer(
                 result.ok,
 
             room,
-
-            player,
 
             disconnected:
                 true,
@@ -1619,7 +1608,7 @@ function disconnectPlayer(
 
             loserId:
                 result.loserId ||
-                playerId
+                actualPlayerId
 
         };
 
@@ -1631,8 +1620,6 @@ function disconnectPlayer(
         ok: true,
 
         room,
-
-        player,
 
         disconnected:
             true,
@@ -1653,9 +1640,11 @@ RECONNECT PLAYER
 */
 
 /*
-Поддерживаются:
+Поддерживается:
 
 reconnectPlayer(player, socketId)
+
+и:
 
 reconnectPlayer({
     roomId,
@@ -1670,38 +1659,91 @@ function reconnectPlayer(
     legacySocketId = null
 ) {
 
-    let externalPlayer = null;
+    let externalPlayer =
+        null;
 
-    let roomId = null;
+    let roomId =
+        null;
 
-    let playerId = null;
+    let playerId =
+        null;
 
-    let socketId = null;
+    let socketId =
+        null;
 
-    let name = null;
+    let name =
+        null;
 
+
+    /*
+    -----------------------------------------------------
+    LEGACY
+    -----------------------------------------------------
+    */
 
     if (
         options &&
-        typeof options === "object"
+        typeof options === "object" &&
+        options.playerId
     ) {
 
         externalPlayer =
             options;
 
         roomId =
-            options.roomId;
+            options.roomId ||
+            null;
 
         playerId =
             options.playerId;
 
         socketId =
             legacySocketId ||
-            options.socketId ||
             null;
 
+    }
+
+
+    /*
+    -----------------------------------------------------
+    OBJECT API
+    -----------------------------------------------------
+    */
+
+    else if (
+        options &&
+        typeof options === "object"
+    ) {
+
+        externalPlayer =
+            options.player || null;
+
+        roomId =
+            options.roomId ||
+            (
+                externalPlayer
+                    ? externalPlayer.roomId
+                    : null
+            );
+
+        playerId =
+            options.playerId ||
+            (
+                externalPlayer
+                    ? externalPlayer.playerId
+                    : null
+            );
+
+        socketId =
+            options.socketId ||
+            (
+                externalPlayer
+                    ? externalPlayer.socketId
+                    : null
+            );
+
         name =
-            options.name ??
+            options.name ||
             null;
 
     }
@@ -1714,7 +1756,21 @@ function reconnectPlayer(
             ok: false,
 
             error:
-                "Игрок не привязан к комнате."
+                "Не указана комната."
+
+        };
+
+    }
+
+
+    if (!playerId) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Не указан игрок."
 
         };
 
@@ -1774,7 +1830,9 @@ function reconnectPlayer(
     }
 
 
-    if (name !== null) {
+    if (
+        name !== null
+    ) {
 
         player.name =
             name;
@@ -1783,8 +1841,12 @@ function reconnectPlayer(
 
 
     syncExternalPlayer(
-        externalPlayer,
+        externalPlayer ||
+        player.externalPlayer ||
+        null,
+
         player,
+
         room.id
     );
 
@@ -1798,7 +1860,11 @@ function reconnectPlayer(
         player,
 
         reconnected:
-            true
+            true,
+
+        gameStarted:
+            room.status ===
+            "playing"
 
     };
 
@@ -1812,65 +1878,21 @@ LEAVE ROOM
 */
 
 /*
-Поддерживается:
+Выход из активной игры =
+автоматический forfeit.
 
-leaveRoom(player, reason)
-
-leaveRoom(roomId, playerId, reason)
+Для waiting комнаты игрок просто удаляется.
 */
 
 function leaveRoom(
-    first,
-    second = "leave",
-    third = null
+    roomOrPlayer,
+    reason = "leave"
 ) {
 
-    let externalPlayer = null;
-
-    let room = null;
-
-    let playerId = null;
-
-    let reason = "leave";
-
-
-    if (
-        first &&
-        typeof first === "object"
-    ) {
-
-        externalPlayer =
-            first;
-
-        room =
-            getRoom(
-                first.roomId
-            );
-
-        playerId =
-            first.playerId;
-
-        reason =
-            second ||
-            "leave";
-
-    }
-
-    else {
-
-        room =
-            getRoom(
-                first
-            );
-
-        playerId =
-            second;
-
-        reason =
-            third ||
-            "leave";
-
-    }
+    const room =
+        getRoom(
+            roomOrPlayer
+        );
 
 
     if (!room) {
@@ -1887,14 +1909,36 @@ function leaveRoom(
     }
 
 
-    const player =
+    let playerId =
+        null;
+
+    let externalPlayer =
+        null;
+
+
+    if (
+        typeof roomOrPlayer ===
+        "object" &&
+        roomOrPlayer.playerId
+    ) {
+
+        playerId =
+            roomOrPlayer.playerId;
+
+        externalPlayer =
+            roomOrPlayer;
+
+    }
+
+
+    const roomPlayer =
         roomPlayerById(
             room,
             playerId
         );
 
 
-    if (!player) {
+    if (!roomPlayer) {
 
         return {
 
@@ -1910,7 +1954,7 @@ function leaveRoom(
 
     /*
     -----------------------------------------------------
-    ACTIVE GAME = FORFEIT
+    ACTIVE GAME
     -----------------------------------------------------
     */
 
@@ -1927,10 +1971,36 @@ function leaveRoom(
             );
 
 
-        if (externalPlayer) {
+        if (
+            externalPlayer
+        ) {
 
             externalPlayer.roomId =
                 null;
+
+        }
+
+
+        if (
+            roomPlayer.externalPlayer
+        ) {
+
+            roomPlayer.externalPlayer.roomId =
+                null;
+
+        }
+
+
+        roomPlayer.connected =
+            false;
+
+        roomPlayer.socketId =
+            null;
+
+
+        if (
+            externalPlayer
+        ) {
 
             externalPlayer.socketId =
                 null;
@@ -1941,32 +2011,17 @@ function leaveRoom(
         }
 
 
-        player.roomId =
-            null;
-
-        player.connected =
-            false;
-
-        player.socketId =
-            null;
-
-
         return {
+
+            ...result,
 
             ok:
                 result.ok,
 
             room,
 
-            winnerId:
-                result.winnerId ||
-                null,
-
-            loserId:
-                result.loserId ||
-                playerId,
-
-            reason
+            finished:
+                result.ok
 
         };
 
@@ -1979,61 +2034,100 @@ function leaveRoom(
     -----------------------------------------------------
     */
 
-    const index =
-        room.players.findIndex(
-            current =>
-                String(
-                    current.playerId
-                ) ===
-                String(
-                    playerId
-                )
-        );
-
-
     if (
-        index !== -1
+        room.status ===
+        "waiting"
     ) {
 
-        room.players.splice(
-            index,
-            1
-        );
-
-    }
-
-
-    if (externalPlayer) {
-
-        externalPlayer.roomId =
-            null;
-
-        externalPlayer.socketId =
-            null;
-
-        externalPlayer.connected =
-            false;
-
-    }
+        const index =
+            room.players.findIndex(
+                player =>
+                    String(
+                        player.playerId
+                    ) ===
+                    String(
+                        playerId
+                    )
+            );
 
 
-    if (room.players.length === 0) {
+        if (
+            index !== -1
+        ) {
 
-        rooms.delete(
-            room.id
-        );
+            room.players.splice(
+                index,
+                1
+            );
+
+        }
+
+
+        if (
+            externalPlayer
+        ) {
+
+            externalPlayer.roomId =
+                null;
+
+            externalPlayer.socketId =
+                null;
+
+        }
+
+
+        if (
+            room.players.length === 0
+        ) {
+
+            rooms.delete(
+                room.id
+            );
+
+            return {
+
+                ok: true,
+
+                room:
+                    null,
+
+                removed:
+                    true
+
+            };
+
+        }
+
 
         return {
 
             ok: true,
 
-            room:
-                null,
+            room,
 
             removed:
-                true
+                true,
+
+            finished:
+                false
 
         };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    ALREADY FINISHED
+    -----------------------------------------------------
+    */
+
+    if (
+        externalPlayer
+    ) {
+
+        externalPlayer.roomId =
+            null;
 
     }
 
@@ -2044,71 +2138,11 @@ function leaveRoom(
 
         room,
 
-        removed:
-            false
+        finished:
+            room.status ===
+            "finished"
 
     };
-
-}
-
-
-/*
-=========================================================
-REMOVE PLAYER
-=========================================================
-*/
-
-function removePlayer(
-    roomId,
-    playerId
-) {
-
-    const room =
-        getRoom(
-            roomId
-        );
-
-
-    if (!room) {
-
-        return {
-
-            ok: false,
-
-            error:
-                "Комната не найдена."
-
-        };
-
-    }
-
-
-    const player =
-        roomPlayerById(
-            room,
-            playerId
-        );
-
-
-    if (!player) {
-
-        return {
-
-            ok: false,
-
-            error:
-                "Игрок не найден."
-
-        };
-
-    }
-
-
-    return leaveRoom(
-        roomId,
-        playerId,
-        "remove"
-    );
 
 }
 
@@ -2120,14 +2154,14 @@ FORFEIT PLAYER
 */
 
 function forfeitPlayer(
-    roomId,
-    playerId,
+    roomOrPlayer,
+    playerId = null,
     reason = "leave"
 ) {
 
     const room =
         getRoom(
-            roomId
+            roomOrPlayer
         );
 
 
@@ -2141,6 +2175,22 @@ function forfeitPlayer(
                 "Комната не найдена."
 
         };
+
+    }
+
+
+    let actualPlayerId =
+        playerId;
+
+
+    if (
+        typeof roomOrPlayer ===
+        "object" &&
+        roomOrPlayer.playerId
+    ) {
+
+        actualPlayerId =
+            roomOrPlayer.playerId;
 
     }
 
@@ -2165,7 +2215,7 @@ function forfeitPlayer(
     const result =
         finishByForfeit(
             room,
-            playerId,
+            actualPlayerId,
             reason
         );
 
@@ -2183,19 +2233,127 @@ function forfeitPlayer(
 
 /*
 =========================================================
-DELETE ROOM
+REMOVE PLAYER
 =========================================================
 */
 
-function deleteRoom(
-    roomId
+function removePlayer(
+    roomOrId,
+    playerId = null
 ) {
 
-    return rooms.delete(
-        String(
-            roomId
-        )
-    );
+    const room =
+        getRoom(
+            roomOrId
+        );
+
+
+    if (!room) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Комната не найдена."
+
+        };
+
+    }
+
+
+    let actualPlayerId =
+        playerId;
+
+
+    if (
+        typeof roomOrId ===
+        "object" &&
+        roomOrId.playerId
+    ) {
+
+        actualPlayerId =
+            roomOrId.playerId;
+
+    }
+
+
+    const index =
+        room.players.findIndex(
+            player =>
+                String(
+                    player.playerId
+                ) ===
+                String(
+                    actualPlayerId
+                )
+        );
+
+
+    if (
+        index === -1
+    ) {
+
+        return {
+
+            ok: false,
+
+            error:
+                "Игрок не найден."
+
+        };
+
+    }
+
+
+    const removed =
+        room.players.splice(
+            index,
+            1
+        )[0];
+
+
+    if (
+        removed.externalPlayer
+    ) {
+
+        removed.externalPlayer.roomId =
+            null;
+
+    }
+
+
+    if (
+        room.players.length === 0
+    ) {
+
+        rooms.delete(
+            room.id
+        );
+
+        return {
+
+            ok: true,
+
+            room:
+                null,
+
+            removed
+
+        };
+
+    }
+
+
+    return {
+
+        ok: true,
+
+        room,
+
+        removed
+
+    };
 
 }
 
@@ -2207,11 +2365,6 @@ CLEAR ROOMS
 */
 
 function clearRooms() {
-
-    /*
-    Сбрасываем roomId
-    у внешних игроков.
-    */
 
     for (
         const room
@@ -2230,12 +2383,6 @@ function clearRooms() {
                 player.externalPlayer.roomId =
                     null;
 
-                player.externalPlayer.socketId =
-                    null;
-
-                player.externalPlayer.connected =
-                    false;
-
             }
 
         }
@@ -2250,11 +2397,64 @@ function clearRooms() {
 
 /*
 =========================================================
+DELETE ROOM
+=========================================================
+*/
+
+function deleteRoom(
+    roomId
+) {
+
+    const room =
+        getRoom(
+            roomId
+        );
+
+
+    if (!room) {
+
+        return false;
+
+    }
+
+
+    for (
+        const player
+        of room.players
+    ) {
+
+        if (
+            player.externalPlayer
+        ) {
+
+            player.externalPlayer.roomId =
+                null;
+
+        }
+
+    }
+
+
+    return rooms.delete(
+        String(
+            roomId
+        )
+    );
+
+}
+
+
+/*
+=========================================================
 EXPORTS
 =========================================================
 */
 
 module.exports = {
+
+    /*
+    Rooms
+    */
 
     createRoom,
 
@@ -2268,7 +2468,16 @@ module.exports = {
 
     hasRoom,
 
+
+    /*
+    Players
+    */
+
     joinRoom,
+
+    getRoomPlayer,
+
+    getOtherPlayer,
 
     disconnectPlayer,
 
@@ -2276,20 +2485,23 @@ module.exports = {
 
     leaveRoom,
 
-    removePlayer,
-
     forfeitPlayer,
 
-    reconnect:
-        reconnectPlayer,
+    removePlayer,
 
-    getRoomPlayer,
 
-    getOtherPlayer,
+    /*
+    Game
+    */
 
     getGameState,
 
     getPublicState,
+
+
+    /*
+    Lists
+    */
 
     getRoomSummary,
 
@@ -2298,6 +2510,11 @@ module.exports = {
     getPublicRoomList,
 
     getPublicRooms,
+
+
+    /*
+    Maintenance
+    */
 
     clearRooms,
 
