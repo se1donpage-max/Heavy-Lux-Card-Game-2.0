@@ -191,7 +191,9 @@ async function initializeDatabase() {
 
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-            settled_at TIMESTAMPTZ
+            settled_at TIMESTAMPTZ,
+
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
 
@@ -277,6 +279,33 @@ async function initializeDatabase() {
 
     /*
     -----------------------------------------------------
+    MIGRATIONS FOR EXISTING DATABASES
+    -----------------------------------------------------
+    */
+
+    await query(`
+        ALTER TABLE game_settlements
+        ADD COLUMN IF NOT EXISTS
+        updated_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW()
+    `);
+
+
+    /*
+    -----------------------------------------------------
+    NORMALIZE EXISTING NULL VALUES
+    -----------------------------------------------------
+    */
+
+    await query(`
+        UPDATE game_settlements
+        SET updated_at = NOW()
+        WHERE updated_at IS NULL
+    `);
+
+
+    /*
+    -----------------------------------------------------
     DONE
     -----------------------------------------------------
     */
@@ -287,6 +316,12 @@ async function initializeDatabase() {
 
 }
 
+
+/*
+=========================================================
+EXPORTS
+=========================================================
+*/
 
 module.exports = {
 
