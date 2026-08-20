@@ -222,6 +222,29 @@ function createGame({
         defenderId: null,
 
         /*
+        Игрок, которому сейчас принадлежит
+        право подкинуть карту.
+
+        ВАЖНО:
+
+        attackerId =
+            основной атакующий текущего захода.
+
+        currentAttackPlayerId =
+            игрок, который прямо сейчас
+            имеет право подкинуть.
+
+        Для 3 игроков это позволяет
+        корректно чередовать:
+
+        A → C → A → C
+
+        при защитнике B.
+        */
+
+        currentAttackPlayerId: null,
+
+        /*
         Кто сейчас должен сделать действие.
         */
 
@@ -360,21 +383,31 @@ GET NEXT ATTACKER
 Ищет следующего активного игрока,
 который НЕ является защитником.
 
-Это важно для 3 игроков.
+ВАЖНО:
 
-Например:
+playerId здесь означает
+ПОСЛЕДНЕГО игрока, который имел
+право подкидывать.
 
-A = атакующий
+Это позволяет корректно строить
+очередь подкидывания.
+
+3 игрока:
+
+A = основной атакующий
 B = защитник
 C = третий игрок
 
-После защиты B:
+A подкинул
+↓
+C подкидывает
+↓
+A подкидывает
+↓
+C подкидывает
 
-C получает право подкинуть.
-
-После защиты C:
-
-A получает право подкинуть.
+Защитник B не получает
+право атаковать.
 
 =========================================================
 */
@@ -737,6 +770,14 @@ function startGame(game) {
     game.finishOrder = [];
 
     /*
+    Сбрасываем текущего игрока
+    подкидывания перед стартом.
+    */
+
+    game.currentAttackPlayerId =
+        null;
+
+    /*
     Раздача по 6 карт.
     */
 
@@ -829,6 +870,14 @@ function startGame(game) {
 
     game.defenderId =
         defender.playerId;
+
+    /*
+    Первый ход принадлежит
+    основному атакующему.
+    */
+
+    game.currentAttackPlayerId =
+        firstAttacker.playerId;
 
     game.turnPlayerId =
         firstAttacker.playerId;
@@ -926,6 +975,17 @@ function prepareNewAttack(game) {
 
     game.phase =
         PHASE.ATTACK;
+
+    /*
+    Новый заход всегда начинается
+    с основного атакующего.
+
+    Поэтому currentAttackPlayerId
+    синхронизируется с attackerId.
+    */
+
+    game.currentAttackPlayerId =
+        game.attackerId;
 
     game.turnPlayerId =
         game.attackerId;
@@ -1033,6 +1093,13 @@ function playFirstAttackCard(
         defense: null
 
     });
+
+    /*
+    Основной атакующий начал заход.
+    */
+
+    game.currentAttackPlayerId =
+        playerId;
 
     /*
     Теперь ход защитника.
@@ -1179,20 +1246,36 @@ function defend(
     Теперь право подкинуть получает
     следующий атакующий.
 
-    Для 2 игроков это снова
-    первоначальный атакующий.
+    ВАЖНО:
 
-    Для 3 игроков это будет
-    третий игрок, затем первый.
+    Ищем следующего игрока
+    относительно CURRENT ATTACK PLAYER,
+    а не относительно защитника.
+
+    Для 3 игроков:
+
+    A → B
+    C → B
+    A → B
+    C → B
+
+    Для 2 игроков:
+
+    A → B
+    A → B
+    A → B
     */
 
     const nextAttacker =
         getNextAttacker(
             game,
-            game.defenderId
+            game.currentAttackPlayerId
         );
 
     if (!nextAttacker) {
+
+        game.currentAttackPlayerId =
+            game.attackerId;
 
         game.turnPlayerId =
             game.attackerId;
@@ -1200,6 +1283,9 @@ function defend(
         return game;
 
     }
+
+    game.currentAttackPlayerId =
+        nextAttacker.playerId;
 
     game.phase =
         PHASE.DEFENSE;
@@ -1283,6 +1369,23 @@ function addAttackCard(
         );
     }
 
+    /*
+    Дополнительная серверная проверка:
+    currentAttackPlayerId и turnPlayerId
+    должны совпадать.
+
+    Это защищает состояние от рассинхронизации.
+    */
+
+    if (
+        game.currentAttackPlayerId !==
+        playerId
+    ) {
+        throw new Error(
+            "Player does not have attack priority"
+        );
+    }
+
     const player =
         getPlayer(
             game,
@@ -1332,6 +1435,14 @@ function addAttackCard(
     const tableCards =
         getTableCards(game);
 
+    /*
+    Переменная оставлена в логике
+    проверки состояния стола.
+
+    Само правило определения допустимой
+    карты находится в rules.js.
+    */
+
     if (
         !canAddAttackCard(
             card,
@@ -1361,6 +1472,15 @@ function addAttackCard(
         defense: null
 
     });
+
+    /*
+    Последним игроком,
+    который подкинул карту,
+    становится текущий атакующий.
+    */
+
+    game.currentAttackPlayerId =
+        playerId;
 
     /*
     После подкидывания снова
@@ -1522,6 +1642,14 @@ function takeCards(
     game.defenderId =
         nextDefender.playerId;
 
+    /*
+    Новый заход начинается
+    с нового основного атакующего.
+    */
+
+    game.currentAttackPlayerId =
+        nextAttacker.playerId;
+
     game.round += 1;
 
     /*
@@ -1611,6 +1739,21 @@ function endAttack(
     }
 
     /*
+    Дополнительная проверка:
+    закончить атаку может только
+    игрок с текущим приоритетом.
+    */
+
+    if (
+        game.currentAttackPlayerId !==
+        playerId
+    ) {
+        throw new Error(
+            "Player does not have attack priority"
+        );
+    }
+
+    /*
     Нельзя закончить заход,
     пока есть непобитая карта.
     */
@@ -1694,6 +1837,14 @@ function endAttack(
 
     game.defenderId =
         nextDefender.playerId;
+
+    /*
+    Новый заход начинается
+    с нового основного атакующего.
+    */
+
+    game.currentAttackPlayerId =
+        nextAttacker.playerId;
 
     game.round += 1;
 
@@ -1913,6 +2064,7 @@ function normalizeTurnPlayers(game) {
     ) {
         game.attackerId = null;
         game.defenderId = null;
+        game.currentAttackPlayerId = null;
         game.turnPlayerId = null;
         return;
     }
@@ -1975,6 +2127,14 @@ function normalizeTurnPlayers(game) {
                 : null;
 
     }
+
+    /*
+    После нормализации новый заход
+    всегда начинается с основного атакующего.
+    */
+
+    game.currentAttackPlayerId =
+        game.attackerId;
 
 }
 
@@ -2080,6 +2240,9 @@ function checkGameFinished(game) {
 
         game.finishedAt =
             Date.now();
+
+        game.currentAttackPlayerId =
+            null;
 
         game.turnPlayerId =
             null;
@@ -2216,6 +2379,18 @@ function getPossibleAttacks(
         return [];
     }
 
+    /*
+    Игрок должен иметь
+    текущий приоритет подкидывания.
+    */
+
+    if (
+        game.currentAttackPlayerId !==
+        playerId
+    ) {
+        return [];
+    }
+
     const player =
         getPlayer(
             game,
@@ -2326,6 +2501,9 @@ function getGameState(game) {
 
         defenderId:
             game.defenderId,
+
+        currentAttackPlayerId:
+            game.currentAttackPlayerId,
 
         turnPlayerId:
             game.turnPlayerId,
