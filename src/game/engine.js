@@ -4,102 +4,45 @@
 =========================================================
 HEAVY LUX CARD
 GAME ENGINE
-DURAK 36
 =========================================================
 
-PURE GAME LOGIC
+Источник игровой механики:
+Heavy-Lux-Card-Game-main/server.js
 
-ENGINE DOES NOT KNOW ABOUT:
+ENGINE НЕ отвечает за:
+
 - Socket.IO
-- Express
 - PostgreSQL
 - Telegram
-- wallet
-- database
-- UI
+- баланс
+- резервирование денег
+- settlement
+- XP
 
-ENGINE IS RESPONSIBLE FOR:
-- game state
-- deck
-- trump
-- hands
-- attack
-- defense
-- take
-- bito
-- draw
-- game over
-- winner
-- loser
+ENGINE отвечает только за состояние и механику игры.
 =========================================================
 */
 
 const {
-    CONFIG
+    DECK_SIZE,
+    MAX_PLAYERS,
+    STARTING_HAND_SIZE,
+    MAX_ATTACK_CARDS,
+    SUITS,
+    RANKS,
+    VALUES
 } = require("../config");
 
 const {
     createShuffledDeck,
-    canBeat,
-    findCardById,
-    removeCardById
+    canBeat: cardCanBeat,
+    getTrumpSuit
 } = require("./cards");
 
 
 /*
 =========================================================
-CONSTANTS
-=========================================================
-*/
-
-const MAX_PLAYERS =
-    CONFIG.GAME.MAX_PLAYERS;
-
-const HAND_SIZE =
-    CONFIG.GAME.STARTING_HAND_SIZE;
-
-const MAX_ATTACK_CARDS =
-    CONFIG.GAME.MAX_ATTACK_CARDS;
-
-
-/*
-=========================================================
-ROOM PLAYER
-=========================================================
-*/
-
-function createRoomPlayer(
-    player
-) {
-
-    return {
-
-        playerId:
-            String(
-                player.playerId
-            ),
-
-        name:
-            player.name ||
-            "Игрок",
-
-        socketId:
-            player.socketId ||
-            null,
-
-        connected:
-            player.connected !== false,
-
-        hand: []
-
-    };
-
-}
-
-
-/*
-=========================================================
-CREATE ROOM STATE
+CREATE ROOM GAME STATE
 =========================================================
 */
 
@@ -112,14 +55,10 @@ function createGameState({
     return {
 
         id:
-            String(
-                roomId
-            ),
+            roomId,
 
         stake:
-            Number(
-                stake
-            ) || 0,
+            Number(stake),
 
         pot:
             0,
@@ -136,10 +75,7 @@ function createGameState({
         payout:
             0,
 
-        players:
-            players.map(
-                createRoomPlayer
-            ),
+        players,
 
         status:
             "waiting",
@@ -179,6 +115,36 @@ function createGameState({
 
         finishedAt:
             null
+    };
+
+}
+
+
+/*
+=========================================================
+CREATE ROOM PLAYER
+=========================================================
+*/
+
+function createRoomPlayer({
+    playerId,
+    name,
+    socketId = null,
+    connected = true
+}) {
+
+    return {
+
+        playerId,
+
+        name:
+            name || "",
+
+        socketId,
+
+        connected,
+
+        hand: []
 
     };
 
@@ -187,83 +153,294 @@ function createGameState({
 
 /*
 =========================================================
-BASIC HELPERS
+OTHER PLAYER
 =========================================================
 */
-
-function getRoomPlayer(
-    room,
-    playerId
-) {
-
-    if (
-        !room ||
-        !Array.isArray(
-            room.players
-        )
-    ) {
-
-        return null;
-
-    }
-
-    return (
-        room.players.find(
-            player =>
-                String(
-                    player.playerId
-                ) ===
-                String(
-                    playerId
-                )
-        ) ||
-        null
-    );
-
-}
-
 
 function otherPlayer(
     room,
     playerId
 ) {
 
-    if (
-        !room ||
-        !Array.isArray(
-            room.players
-        )
-    ) {
-
+    if (!room) {
         return null;
-
     }
 
     return (
         room.players.find(
             player =>
-                String(
-                    player.playerId
-                ) !==
-                String(
-                    playerId
-                )
-        ) ||
-        null
+                String(player.playerId) !==
+                String(playerId)
+        ) || null
     );
 
 }
 
 
-function getPlayerCount(
+/*
+=========================================================
+ROOM PLAYER
+=========================================================
+*/
+
+function roomPlayerById(
+    room,
+    playerId
+) {
+
+    if (!room) {
+        return null;
+    }
+
+    return (
+        room.players.find(
+            player =>
+                String(player.playerId) ===
+                String(playerId)
+        ) || null
+    );
+
+}
+
+
+/*
+=========================================================
+CARD FIND
+=========================================================
+*/
+
+function findCard(
+    player,
+    cardId
+) {
+
+    if (
+        !player ||
+        !Array.isArray(player.hand)
+    ) {
+        return null;
+    }
+
+    return (
+        player.hand.find(
+            card =>
+                String(card.id) ===
+                String(cardId)
+        ) || null
+    );
+
+}
+
+
+/*
+=========================================================
+REMOVE CARD
+=========================================================
+*/
+
+function removeCard(
+    player,
+    cardId
+) {
+
+    if (
+        !player ||
+        !Array.isArray(player.hand)
+    ) {
+        return null;
+    }
+
+    const index =
+        player.hand.findIndex(
+            card =>
+                String(card.id) ===
+                String(cardId)
+        );
+
+    if (index === -1) {
+        return null;
+    }
+
+    return player.hand.splice(
+        index,
+        1
+    )[0];
+
+}
+
+
+/*
+=========================================================
+CARD LABEL
+=========================================================
+*/
+
+function cardLabel(
+    card
+) {
+
+    if (!card) {
+        return "";
+    }
+
+    return `${card.rank}${card.suit}`;
+
+}
+
+
+/*
+=========================================================
+CAN BEAT
+=========================================================
+*/
+
+function canBeat(
+    attackCard,
+    defenseCard,
+    trumpSuit
+) {
+
+    return cardCanBeat(
+        attackCard,
+        defenseCard,
+        trumpSuit
+    );
+
+}
+
+
+/*
+=========================================================
+VALID ATTACK CARD
+=========================================================
+*/
+
+function validAttackCard(
+    room,
+    card
+) {
+
+    if (!room || !card) {
+        return false;
+    }
+
+
+    /*
+    -----------------------------------------------------
+    FIRST ATTACK
+    -----------------------------------------------------
+    */
+
+    if (
+        room.table.length === 0
+    ) {
+
+        return true;
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    ALL RANKS ALREADY ON TABLE
+    -----------------------------------------------------
+    */
+
+    const allowedValues =
+        new Set();
+
+
+    for (
+        const pair
+        of room.table
+    ) {
+
+        if (pair.attack) {
+
+            allowedValues.add(
+                pair.attack.value
+            );
+
+        }
+
+        if (pair.defense) {
+
+            allowedValues.add(
+                pair.defense.value
+            );
+
+        }
+
+    }
+
+
+    return allowedValues.has(
+        card.value
+    );
+
+}
+
+
+/*
+=========================================================
+MAX TABLE CARDS
+=========================================================
+*/
+
+function maxTableCards(
     room
 ) {
 
-    return Array.isArray(
-        room?.players
-    )
-        ? room.players.length
-        : 0;
+    return Math.max(
+
+        0,
+
+        Math.min(
+
+            MAX_ATTACK_CARDS,
+
+            Number(
+                room.roundMaxCards || 0
+            )
+
+        )
+
+    );
+
+}
+
+
+/*
+=========================================================
+START NEW ATTACK ROUND
+=========================================================
+*/
+
+function startNewAttackRound(
+    room
+) {
+
+    const defender =
+        roomPlayerById(
+            room,
+            room.defenderId
+        );
+
+    if (!defender) {
+
+        room.roundMaxCards =
+            0;
+
+        return;
+
+    }
+
+
+    room.roundMaxCards =
+        Math.min(
+            MAX_ATTACK_CARDS,
+            defender.hand.length
+        );
 
 }
 
@@ -278,23 +455,10 @@ function startGame(
     room
 ) {
 
-    if (!room) {
-
-        return {
-
-            ok: false,
-
-            error:
-                "Комната не найдена."
-
-        };
-
-    }
-
-
     if (
-        getPlayerCount(room) !==
-        MAX_PLAYERS
+        !room ||
+        room.players.length !==
+            MAX_PLAYERS
     ) {
 
         return {
@@ -303,23 +467,6 @@ function startGame(
 
             error:
                 "Для начала нужны два игрока."
-
-        };
-
-    }
-
-
-    if (
-        room.status !==
-        "waiting"
-    ) {
-
-        return {
-
-            ok: false,
-
-            error:
-                "Игра уже началась."
 
         };
 
@@ -369,17 +516,17 @@ function startGame(
     -----------------------------------------------------
     */
 
-    for (
-        const player
-        of room.players
-    ) {
+    room.players.forEach(
+        player => {
 
-        player.hand = [];
+            player.hand =
+                [];
 
-        player.connected =
-            true;
+            player.connected =
+                true;
 
-    }
+        }
+    );
 
 
     /*
@@ -387,15 +534,16 @@ function startGame(
     DEAL
     -----------------------------------------------------
 
-    По одной карте каждому,
-    как в исходном server.js.
+    Original server:
+    по одной карте каждому игроку
+    до 6 карт.
     -----------------------------------------------------
     */
 
     for (
         let i = 0;
 
-        i < HAND_SIZE;
+        i < STARTING_HAND_SIZE;
 
         i++
     ) {
@@ -406,16 +554,14 @@ function startGame(
         ) {
 
             if (
-                room.deck.length === 0
+                room.deck.length > 0
             ) {
 
-                break;
+                player.hand.push(
+                    room.deck.pop()
+                );
 
             }
-
-            player.hand.push(
-                room.deck.pop()
-            );
 
         }
 
@@ -429,11 +575,9 @@ function startGame(
     */
 
     room.trumpSuit =
-        room.deck.length > 0
-            ? room.deck[
-                room.deck.length - 1
-            ].suit
-            : null;
+        getTrumpSuit(
+            room.deck
+        );
 
 
     /*
@@ -463,13 +607,19 @@ function startGame(
         ) {
 
             if (
-                card.suit ===
-                room.trumpSuit &&
-                (
-                    !lowestTrump ||
-                    card.value <
+                card.suit !==
+                room.trumpSuit
+            ) {
+
+                continue;
+
+            }
+
+
+            if (
+                !lowestTrump ||
+                card.value <
                     lowestTrump.value
-                )
             ) {
 
                 lowestTrump =
@@ -486,9 +636,9 @@ function startGame(
 
 
     /*
-    -----------------------------------------------------
-    FALLBACK
-    -----------------------------------------------------
+    Если козырей на руках нет,
+    сохраняем поведение архива:
+    начинает первый игрок.
     */
 
     if (!attacker) {
@@ -545,240 +695,6 @@ function startGame(
 
 /*
 =========================================================
-ROUND LIMIT
-=========================================================
-*/
-
-function startNewAttackRound(
-    room
-) {
-
-    const defender =
-        getRoomPlayer(
-            room,
-            room.defenderId
-        );
-
-
-    if (!defender) {
-
-        room.roundMaxCards =
-            0;
-
-        return;
-
-    }
-
-
-    room.roundMaxCards =
-        Math.min(
-            MAX_ATTACK_CARDS,
-            defender.hand.length
-        );
-
-}
-
-
-function maxTableCards(
-    room
-) {
-
-    return Math.max(
-        0,
-
-        Math.min(
-            MAX_ATTACK_CARDS,
-
-            Number(
-                room.roundMaxCards ||
-                0
-            )
-        )
-    );
-
-}
-
-
-/*
-=========================================================
-CARD HELPERS
-=========================================================
-*/
-
-function findPlayerCard(
-    room,
-    playerId,
-    cardId
-) {
-
-    const player =
-        getRoomPlayer(
-            room,
-            playerId
-        );
-
-
-    if (!player) {
-
-        return null;
-
-    }
-
-
-    return findCardById(
-        player.hand,
-        cardId
-    );
-
-}
-
-
-function removePlayerCard(
-    room,
-    playerId,
-    cardId
-) {
-
-    const player =
-        getRoomPlayer(
-            room,
-            playerId
-        );
-
-
-    if (!player) {
-
-        return null;
-
-    }
-
-
-    const result =
-        removeCardById(
-            player.hand,
-            cardId
-        );
-
-
-    if (!result.card) {
-
-        return null;
-
-    }
-
-
-    player.hand =
-        result.cards;
-
-
-    return result.card;
-
-}
-
-
-/*
-=========================================================
-CARD LABEL
-=========================================================
-*/
-
-function cardLabel(
-    card
-) {
-
-    if (!card) {
-
-        return "";
-
-    }
-
-
-    return `${card.rank}${card.suit}`;
-
-}
-
-
-/*
-=========================================================
-VALID ATTACK CARD
-=========================================================
-*/
-
-function validAttackCard(
-    room,
-    card
-) {
-
-    if (!card) {
-
-        return false;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    FIRST ATTACK
-    -----------------------------------------------------
-    */
-
-    if (
-        room.table.length === 0
-    ) {
-
-        return true;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    ALL RANKS CURRENTLY ON TABLE
-    -----------------------------------------------------
-    */
-
-    const allowedValues =
-        new Set();
-
-
-    for (
-        const pair
-        of room.table
-    ) {
-
-        if (
-            pair.attack
-        ) {
-
-            allowedValues.add(
-                pair.attack.value
-            );
-
-        }
-
-
-        if (
-            pair.defense
-        ) {
-
-            allowedValues.add(
-                pair.defense.value
-            );
-
-        }
-
-    }
-
-
-    return allowedValues.has(
-        card.value
-    );
-
-}
-
-
-/*
-=========================================================
 ATTACK
 =========================================================
 */
@@ -821,8 +737,10 @@ function attackCard(
 
 
     if (
-        room.phase !== "attack" &&
-        room.phase !== "bito"
+        room.phase !==
+            "attack" &&
+        room.phase !==
+            "bito"
     ) {
 
         return {
@@ -838,12 +756,8 @@ function attackCard(
 
 
     if (
-        String(
-            room.attackerId
-        ) !==
-        String(
-            playerId
-        )
+        room.attackerId !==
+        playerId
     ) {
 
         return {
@@ -882,9 +796,8 @@ function attackCard(
 
 
     /*
-    -----------------------------------------------------
-    PREVIOUS ATTACK MUST BE DEFENDED
-    -----------------------------------------------------
+    Предыдущая карта должна быть отбита
+    перед новым подкидыванием.
     */
 
     if (
@@ -907,10 +820,16 @@ function attackCard(
     }
 
 
-    const card =
-        findPlayerCard(
+    const player =
+        roomPlayerById(
             room,
-            playerId,
+            playerId
+        );
+
+
+    const card =
+        findCard(
+            player,
             cardId
         );
 
@@ -949,9 +868,8 @@ function attackCard(
 
 
     const removed =
-        removePlayerCard(
-            room,
-            playerId,
+        removeCard(
+            player,
             cardId
         );
 
@@ -990,10 +908,7 @@ function attackCard(
         type:
             "attack",
 
-        playerId:
-            String(
-                playerId
-            ),
+        playerId,
 
         card:
             cardLabel(
@@ -1077,12 +992,8 @@ function defendCard(
 
 
     if (
-        String(
-            room.defenderId
-        ) !==
-        String(
-            playerId
-        )
+        room.defenderId !==
+        playerId
     ) {
 
         return {
@@ -1121,10 +1032,16 @@ function defendCard(
     }
 
 
-    const defense =
-        findPlayerCard(
+    const player =
+        roomPlayerById(
             room,
-            playerId,
+            playerId
+        );
+
+
+    const defense =
+        findCard(
+            player,
             defenseId
         );
 
@@ -1164,9 +1081,8 @@ function defendCard(
 
 
     const removed =
-        removePlayerCard(
-            room,
-            playerId,
+        removeCard(
+            player,
             defenseId
         );
 
@@ -1194,10 +1110,7 @@ function defendCard(
         type:
             "defend",
 
-        playerId:
-            String(
-                playerId
-            ),
+        playerId,
 
         attack:
             cardLabel(
@@ -1240,7 +1153,7 @@ function defendCard(
 
 /*
 =========================================================
-TAKE CARDS
+TAKE
 =========================================================
 */
 
@@ -1298,12 +1211,8 @@ function takeCards(
 
 
     if (
-        String(
-            room.defenderId
-        ) !==
-        String(
-            playerId
-        )
+        room.defenderId !==
+        playerId
     ) {
 
         return {
@@ -1340,7 +1249,7 @@ function takeCards(
 
 
     const defender =
-        getRoomPlayer(
+        roomPlayerById(
             room,
             playerId
         );
@@ -1360,68 +1269,37 @@ function takeCards(
     }
 
 
-    /*
-    -----------------------------------------------------
-    TAKE EVERYTHING FROM TABLE
-    -----------------------------------------------------
-    */
+    let takenCount =
+        0;
+
 
     for (
         const pair
         of room.table
     ) {
 
-        if (
-            pair.attack
-        ) {
+        if (pair.attack) {
 
             defender.hand.push(
                 pair.attack
             );
 
+            takenCount++;
+
         }
 
 
-        if (
-            pair.defense
-        ) {
+        if (pair.defense) {
 
             defender.hand.push(
                 pair.defense
             );
 
+            takenCount++;
+
         }
 
     }
-
-
-    const takenCards =
-        room.table.reduce(
-            (
-                count,
-                pair
-            ) => {
-
-                return (
-                    count +
-
-                    (
-                        pair.attack
-                            ? 1
-                            : 0
-                    ) +
-
-                    (
-                        pair.defense
-                            ? 1
-                            : 0
-                    )
-                );
-
-            },
-
-            0
-        );
 
 
     room.moves.push({
@@ -1429,13 +1307,10 @@ function takeCards(
         type:
             "take",
 
-        playerId:
-            String(
-                playerId
-            ),
+        playerId,
 
         cards:
-            takenCards,
+            takenCount,
 
         timestamp:
             Date.now()
@@ -1448,9 +1323,8 @@ function takeCards(
 
 
     /*
-    -----------------------------------------------------
-    ATTACKER REMAINS ATTACKER
-    -----------------------------------------------------
+    После взятия атакующий
+    остаётся атакующим.
     */
 
     room.phase =
@@ -1462,8 +1336,23 @@ function takeCards(
     );
 
 
-    room.phase =
-        "attack";
+    const gameOver =
+        checkGameOver(
+            room
+        );
+
+
+    if (gameOver) {
+
+        return {
+
+            ok: true,
+
+            gameOver: true
+
+        };
+
+    }
 
 
     startNewAttackRound(
@@ -1471,14 +1360,15 @@ function takeCards(
     );
 
 
+    room.phase =
+        "attack";
+
+
     return {
 
         ok: true,
 
-        gameOver:
-            checkGameOver(
-                room
-            )
+        gameOver: false
 
     };
 
@@ -1545,12 +1435,8 @@ function bito(
 
 
     if (
-        String(
-            room.attackerId
-        ) !==
-        String(
-            playerId
-        )
+        room.attackerId !==
+        playerId
     ) {
 
         return {
@@ -1592,10 +1478,7 @@ function bito(
         type:
             "bito",
 
-        playerId:
-            String(
-                playerId
-            ),
+        playerId,
 
         timestamp:
             Date.now()
@@ -1606,12 +1489,6 @@ function bito(
     room.table =
         [];
 
-
-    /*
-    -----------------------------------------------------
-    ROLES SWITCH
-    -----------------------------------------------------
-    */
 
     const oldAttacker =
         room.attackerId;
@@ -1636,8 +1513,23 @@ function bito(
     );
 
 
-    room.phase =
-        "attack";
+    const gameOver =
+        checkGameOver(
+            room
+        );
+
+
+    if (gameOver) {
+
+        return {
+
+            ok: true,
+
+            gameOver: true
+
+        };
+
+    }
 
 
     startNewAttackRound(
@@ -1645,14 +1537,15 @@ function bito(
     );
 
 
+    room.phase =
+        "attack";
+
+
     return {
 
         ok: true,
 
-        gameOver:
-            checkGameOver(
-                room
-            )
+        gameOver: false
 
     };
 
@@ -1661,7 +1554,7 @@ function bito(
 
 /*
 =========================================================
-DRAW
+DRAW CARDS
 =========================================================
 */
 
@@ -1680,22 +1573,22 @@ function drawCards(
 
 
     const attacker =
-        getRoomPlayer(
+        roomPlayerById(
             room,
             room.attackerId
         );
 
     const defender =
-        getRoomPlayer(
+        roomPlayerById(
             room,
             room.defenderId
         );
 
 
     /*
-    -----------------------------------------------------
-    ATTACKER FIRST
-    -----------------------------------------------------
+    В оригинале:
+    сначала атакующий,
+    затем защитник.
     */
 
     const order = [
@@ -1713,16 +1606,13 @@ function drawCards(
     ) {
 
         if (!player) {
-
             continue;
-
         }
 
 
         while (
             player.hand.length <
-                HAND_SIZE &&
-
+                STARTING_HAND_SIZE &&
             room.deck.length > 0
         ) {
 
@@ -1739,17 +1629,7 @@ function drawCards(
 
 /*
 =========================================================
-GAME OVER
-=========================================================
-
-Returns:
-
-false
-true
-
-and mutates room state.
-Settlement itself remains outside
-the game engine.
+CHECK GAME OVER
 =========================================================
 */
 
@@ -1758,16 +1638,13 @@ function checkGameOver(
 ) {
 
     if (!room) {
-
         return false;
-
     }
 
 
     /*
-    -----------------------------------------------------
-    DECK STILL HAS CARDS
-    -----------------------------------------------------
+    Пока колода не закончилась,
+    пустая рука не означает победу.
     */
 
     if (
@@ -1796,55 +1673,14 @@ function checkGameOver(
         emptyPlayers.length === 2
     ) {
 
-        room.status =
-            "finished";
-
-        room.phase =
-            "finished";
-
-        room.winnerId =
-            null;
-
-        room.loserId =
-            null;
-
-        room.attackerId =
-            null;
-
-        room.defenderId =
-            null;
-
-        room.finishedAt =
-            Date.now();
-
-
-        room.moves.push({
-
-            type:
-                "draw",
-
-            timestamp:
-                Date.now()
-
-        });
-
+        finishGame(
+            room,
+            null,
+            null,
+            "draw"
+        );
 
         return true;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    NO WINNER YET
-    -----------------------------------------------------
-    */
-
-    if (
-        emptyPlayers.length !== 1
-    ) {
-
-        return false;
 
     }
 
@@ -1855,16 +1691,57 @@ function checkGameOver(
     -----------------------------------------------------
     */
 
-    const winner =
-        emptyPlayers[0];
+    if (
+        emptyPlayers.length === 1
+    ) {
+
+        const winner =
+            emptyPlayers[0];
+
+        const loser =
+            otherPlayer(
+                room,
+                winner.playerId
+            );
 
 
-    const loser =
-        otherPlayer(
+        finishGame(
+
             room,
-            winner.playerId
+
+            winner.playerId,
+
+            loser
+                ? loser.playerId
+                : null,
+
+            "win"
+
         );
 
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+
+/*
+=========================================================
+FINISH GAME
+=========================================================
+*/
+
+function finishGame(
+    room,
+    winnerId,
+    loserId,
+    settlementType
+) {
 
     room.status =
         "finished";
@@ -1873,12 +1750,10 @@ function checkGameOver(
         "finished";
 
     room.winnerId =
-        winner.playerId;
+        winnerId || null;
 
     room.loserId =
-        loser
-            ? loser.playerId
-            : null;
+        loserId || null;
 
     room.attackerId =
         null;
@@ -1890,40 +1765,22 @@ function checkGameOver(
         Date.now();
 
 
-    room.moves.push({
-
-        type:
-            "finish",
-
-        playerId:
-            winner.playerId,
-
-        timestamp:
-            Date.now()
-
-    });
-
-
-    return true;
+    room.settlement =
+        settlementType;
 
 }
 
 
 /*
 =========================================================
-FORCE WIN
-=========================================================
-
-Used later for:
-- leave room
-- disconnect timeout
+FORFEIT
 =========================================================
 */
 
 function finishByForfeit(
     room,
     loserId,
-    reason = "forfeit"
+    reason = "leave"
 ) {
 
     if (!room) {
@@ -1950,7 +1807,7 @@ function finishByForfeit(
             ok: false,
 
             error:
-                "Игра уже завершена."
+                "Игра не идёт."
 
         };
 
@@ -1978,42 +1835,33 @@ function finishByForfeit(
     }
 
 
-    room.status =
-        "finished";
-
-    room.phase =
-        "finished";
-
-    room.winnerId =
-        winner.playerId;
-
-    room.loserId =
-        String(
-            loserId
-        );
-
-    room.attackerId =
-        null;
-
-    room.defenderId =
-        null;
-
-    room.finishedAt =
-        Date.now();
-
-
     room.moves.push({
 
         type:
-            reason,
+            "forfeit",
 
         playerId:
-            winner.playerId,
+            loserId,
+
+        reason,
 
         timestamp:
             Date.now()
 
     });
+
+
+    finishGame(
+
+        room,
+
+        winner.playerId,
+
+        loserId,
+
+        "forfeit"
+
+    );
 
 
     return {
@@ -2023,10 +1871,7 @@ function finishByForfeit(
         winnerId:
             winner.playerId,
 
-        loserId:
-            String(
-                loserId
-            )
+        loserId
 
     };
 
@@ -2035,208 +1880,31 @@ function finishByForfeit(
 
 /*
 =========================================================
-SERIALIZATION
+ROOM SERIALIZATION
 =========================================================
 */
 
-function serializeCard(
-    card
-) {
-
-    if (!card) {
-
-        return null;
-
-    }
-
-
-    return {
-
-        id:
-            card.id,
-
-        suit:
-            card.suit,
-
-        rank:
-            card.rank,
-
-        value:
-            card.value
-
-    };
-
-}
-
-
-/*
-=========================================================
-GAME STATE FOR CLIENT
-=========================================================
-*/
-
-function getGameState(
+function getPublicGameState(
     room,
     playerId
 ) {
 
     if (!room) {
-
         return null;
-
     }
 
 
-    const me =
-        getRoomPlayer(
+    const self =
+        roomPlayerById(
             room,
             playerId
         );
+
 
     const opponent =
         otherPlayer(
             room,
             playerId
-        );
-
-
-    let turn =
-        "WAITING";
-
-
-    if (
-        room.status ===
-        "playing"
-    ) {
-
-        if (
-            room.phase === "attack" ||
-            room.phase === "bito"
-        ) {
-
-            turn =
-                String(
-                    room.attackerId
-                ) ===
-                String(
-                    playerId
-                )
-                    ? "YOUR_TURN"
-                    : "OPPONENT_TURN";
-
-        }
-
-
-        if (
-            room.phase ===
-            "defense"
-        ) {
-
-            turn =
-                String(
-                    room.defenderId
-                ) ===
-                String(
-                    playerId
-                )
-                    ? "YOUR_TURN"
-                    : "OPPONENT_TURN";
-
-        }
-
-    }
-
-
-    const table =
-        room.table.map(
-            pair => ({
-
-                attack:
-                    serializeCard(
-                        pair.attack
-                    ),
-
-                defense:
-                    pair.defense
-                        ? serializeCard(
-                            pair.defense
-                        )
-                        : null
-
-            })
-        );
-
-
-    const canTake =
-        room.status ===
-            "playing" &&
-
-        room.phase ===
-            "defense" &&
-
-        String(
-            room.defenderId
-        ) ===
-        String(
-            playerId
-        ) &&
-
-        room.table.some(
-            pair =>
-                !pair.defense
-        );
-
-
-    const canBito =
-        room.status ===
-            "playing" &&
-
-        room.phase ===
-            "bito" &&
-
-        String(
-            room.attackerId
-        ) ===
-        String(
-            playerId
-        ) &&
-
-        room.table.length > 0 &&
-
-        room.table.every(
-            pair =>
-                !!pair.defense
-        );
-
-
-    const canAttack =
-        room.status ===
-            "playing" &&
-
-        String(
-            room.attackerId
-        ) ===
-        String(
-            playerId
-        ) &&
-
-        (
-            room.phase === "attack" ||
-            room.phase === "bito"
-        ) &&
-
-        room.table.length <
-            maxTableCards(
-                room
-            ) &&
-
-        (
-            room.table.length === 0 ||
-
-            room.table.every(
-                pair =>
-                    !!pair.defense
-            )
         );
 
 
@@ -2257,7 +1925,8 @@ function getGameState(
         phase:
             room.phase,
 
-        turn,
+        trumpSuit:
+            room.trumpSuit,
 
         attackerId:
             room.attackerId,
@@ -2265,23 +1934,62 @@ function getGameState(
         defenderId:
             room.defenderId,
 
-        trumpSuit:
-            room.trumpSuit,
-
-        deckCount:
-            room.deck.length,
-
         roundMaxCards:
             room.roundMaxCards,
 
+        table:
+            room.table.map(
+                pair => ({
+
+                    attack:
+                        pair.attack
+                            ? {
+                                id:
+                                    pair.attack.id,
+
+                                suit:
+                                    pair.attack.suit,
+
+                                rank:
+                                    pair.attack.rank,
+
+                                value:
+                                    pair.attack.value
+                            }
+                            : null,
+
+                    defense:
+                        pair.defense
+                            ? {
+                                id:
+                                    pair.defense.id,
+
+                                suit:
+                                    pair.defense.suit,
+
+                                rank:
+                                    pair.defense.rank,
+
+                                value:
+                                    pair.defense.value
+                            }
+                            : null
+
+                })
+            ),
+
         hand:
-            me
-                ? me.hand.map(
-                    serializeCard
-                )
+            self
+                ? self.hand
                 : [],
 
+        handCount:
+            self
+                ? self.hand.length
+                : 0,
+
         opponent:
+
             opponent
                 ? {
 
@@ -2291,57 +1999,23 @@ function getGameState(
                     name:
                         opponent.name,
 
-                    connected:
-                        opponent.connected,
-
-                    cardsCount:
+                    handCount:
                         opponent.hand.length
 
                 }
                 : null,
 
-        table,
-
-        canAttack,
-
-        canTake,
-
-        canBito,
-
-        moves:
-            room.moves.slice(
-                -30
-            ),
+        deckCount:
+            room.deck.length,
 
         winnerId:
-            room.winnerId ||
-            null,
+            room.winnerId,
 
         loserId:
-            room.loserId ||
-            null,
+            room.loserId,
 
         settlement:
-            room.settlement ||
-            null,
-
-        payout:
-            room.payout ||
-            0,
-
-        me: {
-
-            playerId:
-                String(
-                    playerId
-                ),
-
-            name:
-                me
-                    ? me.name
-                    : "Игрок"
-
-        }
+            room.settlement
 
     };
 
@@ -2350,172 +2024,54 @@ function getGameState(
 
 /*
 =========================================================
-VALIDATE GAME STATE
+VALIDATE ENGINE CONFIG
 =========================================================
 */
 
-function validateGameState(
-    room
-) {
-
-    if (!room) {
-
-        return {
-
-            ok: false,
-
-            errors: [
-                "Room is missing"
-            ]
-
-        };
-
-    }
-
-
-    const errors = [];
-
-
-    /*
-    -----------------------------------------------------
-    PLAYERS
-    -----------------------------------------------------
-    */
+function validateEngineConfig() {
 
     if (
-        !Array.isArray(
-            room.players
-        )
+        SUITS.length !== 4
     ) {
 
-        errors.push(
-            "players must be an array"
+        throw new Error(
+            "Durak requires 4 suits."
         );
 
     }
 
 
-    /*
-    -----------------------------------------------------
-    DECK
-    -----------------------------------------------------
-    */
-
     if (
-        !Array.isArray(
-            room.deck
-        )
+        RANKS.length !== 9
     ) {
 
-        errors.push(
-            "deck must be an array"
+        throw new Error(
+            "Durak 36 requires 9 ranks."
         );
 
     }
 
 
-    /*
-    -----------------------------------------------------
-    TABLE
-    -----------------------------------------------------
-    */
-
     if (
-        !Array.isArray(
-            room.table
-        )
+        DECK_SIZE !== 36
     ) {
 
-        errors.push(
-            "table must be an array"
+        throw new Error(
+            "Durak deck must contain 36 cards."
         );
 
     }
-
-
-    /*
-    -----------------------------------------------------
-    PLAYER HANDS
-    -----------------------------------------------------
-    */
-
-    if (
-        Array.isArray(
-            room.players
-        )
-    ) {
-
-        for (
-            const player
-            of room.players
-        ) {
-
-            if (
-                !Array.isArray(
-                    player.hand
-                )
-            ) {
-
-                errors.push(
-                    `Player ${player.playerId} has invalid hand`
-                );
-
-            }
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    TABLE PAIRS
-    -----------------------------------------------------
-    */
-
-    if (
-        Array.isArray(
-            room.table
-        )
-    ) {
-
-        for (
-            const pair
-            of room.table
-        ) {
-
-            if (
-                !pair ||
-                !pair.attack
-            ) {
-
-                errors.push(
-                    "Invalid table pair"
-                );
-
-            }
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    RETURN
-    -----------------------------------------------------
-    */
-
-    return {
-
-        ok:
-            errors.length === 0,
-
-        errors
-
-    };
 
 }
+
+
+/*
+=========================================================
+STARTUP
+=========================================================
+*/
+
+validateEngineConfig();
 
 
 /*
@@ -2534,18 +2090,6 @@ module.exports = {
 
     startNewAttackRound,
 
-    maxTableCards,
-
-    getRoomPlayer,
-
-    otherPlayer,
-
-    findPlayerCard,
-
-    removePlayerCard,
-
-    validAttackCard,
-
     attackCard,
 
     defendCard,
@@ -2558,12 +2102,24 @@ module.exports = {
 
     checkGameOver,
 
+    finishGame,
+
     finishByForfeit,
 
-    getGameState,
+    roomPlayerById,
 
-    serializeCard,
+    otherPlayer,
 
-    validateGameState
+    findCard,
+
+    removeCard,
+
+    validAttackCard,
+
+    maxTableCards,
+
+    canBeat,
+
+    getPublicGameState
 
 };
