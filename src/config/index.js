@@ -14,8 +14,20 @@ const CONFIG = {
         VERSION: "8.2.0"
     },
 
+
+    /*
+    =====================================================
+    SERVER
+    =====================================================
+    */
+
     SERVER: {
-        PORT: Number(process.env.PORT || 10000),
+
+        PORT:
+            Number(
+                process.env.PORT ||
+                10000
+            ),
 
         HOST:
             process.env.HOST ||
@@ -26,22 +38,41 @@ const CONFIG = {
             "development",
 
         TEST_MODE:
-            String(process.env.TEST_MODE || "false")
-                .toLowerCase() === "true",
+            String(
+                process.env.TEST_MODE ||
+                "false"
+            ).toLowerCase() === "true",
 
         TELEGRAM_BOT_TOKEN:
             process.env.TELEGRAM_BOT_TOKEN ||
             ""
+
     },
 
+
+    /*
+    =====================================================
+    DATABASE
+    =====================================================
+    */
+
     DATABASE: {
+
         URL:
             process.env.DATABASE_URL ||
             "",
 
         SSL:
-            process.env.DATABASE_SSL === "true"
+            process.env.DATABASE_SSL !== "false"
+
     },
+
+
+    /*
+    =====================================================
+    SOCKET.IO
+    =====================================================
+    */
 
     SOCKET: {
 
@@ -68,7 +99,15 @@ const CONFIG = {
                 process.env.SOCKET_MAX_HTTP_BUFFER_SIZE ||
                 1e6
             )
+
     },
+
+
+    /*
+    =====================================================
+    GAME
+    =====================================================
+    */
 
     GAME: {
 
@@ -85,17 +124,19 @@ const CONFIG = {
             36,
 
         DISCONNECT_GRACE_MS:
-            Number(
-                process.env.DISCONNECT_GRACE_MS ||
-                120000
-            ),
+            2 * 60 * 1000,
 
         TELEGRAM_AUTH_MAX_AGE_MS:
-            Number(
-                process.env.TELEGRAM_AUTH_MAX_AGE_MS ||
-                86400000
-            )
+            24 * 60 * 60 * 1000
+
     },
+
+
+    /*
+    =====================================================
+    ECONOMY
+    =====================================================
+    */
 
     ECONOMY: {
 
@@ -103,22 +144,30 @@ const CONFIG = {
             1000,
 
         MIN_STAKE:
-            10,
+            100,
 
         MAX_STAKE:
-            1000000,
+            50000,
 
         STAKES: [
-            10,
-            25,
-            50,
             100,
             250,
             500,
             1000,
-            5000
+            2000,
+            5000,
+            10000,
+            50000
         ]
+
     },
+
+
+    /*
+    =====================================================
+    XP
+    =====================================================
+    */
 
     XP: {
 
@@ -133,31 +182,55 @@ const CONFIG = {
 
         LEVEL_BASE_XP:
             500
+
     },
+
+
+    /*
+    =====================================================
+    VEHICLES
+    =====================================================
+    */
 
     VEHICLES: {
 
         DEFAULT_PRICE:
-            50000,
+            100000,
 
         MIN_PRICE:
             1000,
 
         MAX_PRICE:
             100000000
+
     },
+
+
+    /*
+    =====================================================
+    PLATES
+    =====================================================
+    */
 
     PLATES: {
 
         DEFAULT_PRICE:
-            1000,
+            25000,
 
         MIN_PRICE:
             100,
 
         MAX_PRICE:
             100000000
+
     },
+
+
+    /*
+    =====================================================
+    CARDS
+    =====================================================
+    */
 
     CARDS: {
 
@@ -181,16 +254,27 @@ const CONFIG = {
         ],
 
         VALUES: {
+
             "6": 6,
+
             "7": 7,
+
             "8": 8,
+
             "9": 9,
+
             "10": 10,
+
             "J": 11,
+
             "Q": 12,
+
             "K": 13,
+
             "A": 14
+
         }
+
     }
 
 };
@@ -198,17 +282,20 @@ const CONFIG = {
 
 /*
 =========================================================
-HELPERS
+LEVEL
 =========================================================
 */
 
-function getLevelProgress(xp) {
+function getLevelProgress(
+    xp
+) {
 
     const safeXp =
         Math.max(
             0,
             Number(xp) || 0
         );
+
 
     const level =
         Math.max(
@@ -219,54 +306,79 @@ function getLevelProgress(xp) {
             ) + 1
         );
 
+
     const currentLevelXp =
-        (level - 1) *
+        (
+            level - 1
+        ) *
         CONFIG.XP.LEVEL_BASE_XP;
+
 
     const nextLevelXp =
         level *
         CONFIG.XP.LEVEL_BASE_XP;
 
+
     const progressXp =
         safeXp -
         currentLevelXp;
 
+
     const requiredXp =
         nextLevelXp -
         currentLevelXp;
+
 
     const progress =
         requiredXp > 0
             ? Math.min(
                 100,
                 Math.floor(
-                    (progressXp /
-                    requiredXp) *
-                    100
+                    (
+                        progressXp /
+                        requiredXp
+                    ) * 100
                 )
             )
             : 100;
 
+
     return {
+
         level,
-        xp: safeXp,
+
+        xp:
+            safeXp,
+
         currentLevelXp,
+
         nextLevelXp,
+
         progressXp,
+
         requiredXp,
+
         progress
+
     };
-}
-
-
-function getLevelFromXP(xp) {
-
-    return getLevelProgress(xp).level;
 
 }
 
 
-function getXPForLevel(level) {
+function getLevelFromXP(
+    xp
+) {
+
+    return getLevelProgress(
+        xp
+    ).level;
+
+}
+
+
+function getXPForLevel(
+    level
+) {
 
     const safeLevel =
         Math.max(
@@ -274,41 +386,44 @@ function getXPForLevel(level) {
             Number(level) || 1
         );
 
+
     return (
-        (safeLevel - 1) *
+        (
+            safeLevel - 1
+        ) *
         CONFIG.XP.LEVEL_BASE_XP
     );
 
 }
 
 
-function isValidStake(stake) {
+/*
+=========================================================
+STAKE
+=========================================================
+*/
+
+function isValidStake(
+    stake
+) {
 
     const value =
         Number(stake);
 
-    if (!Number.isFinite(value)) {
-        return false;
-    }
 
     if (
-        value <
-        CONFIG.ECONOMY.MIN_STAKE
+        !Number.isFinite(
+            value
+        )
     ) {
+
         return false;
+
     }
 
-    if (
-        value >
-        CONFIG.ECONOMY.MAX_STAKE
-    ) {
-        return false;
-    }
 
-    return (
-        CONFIG.ECONOMY.STAKES
-            .includes(value)
-    );
+    return CONFIG.ECONOMY.STAKES
+        .includes(value);
 
 }
 
@@ -322,15 +437,59 @@ function getAvailableStakes() {
 }
 
 
+/*
+=========================================================
+MONEY
+=========================================================
+*/
+
+function money(
+    value
+) {
+
+    const number =
+        Number(value);
+
+
+    if (
+        !Number.isFinite(
+            number
+        )
+    ) {
+
+        return 0;
+
+    }
+
+
+    return Math.max(
+        0,
+        Math.floor(number)
+    );
+
+}
+
+
+/*
+=========================================================
+EXPORTS
+=========================================================
+*/
+
 module.exports = {
 
     CONFIG,
 
+    money,
+
     getLevelProgress,
+
     getLevelFromXP,
+
     getXPForLevel,
 
     isValidStake,
+
     getAvailableStakes
 
 };
