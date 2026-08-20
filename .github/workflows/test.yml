@@ -26,3 +26,5 @@ jobs:
 
       - name: Run engine smoke test
         run: node src/test-engine.js
+      - name: Run rooms smoke test
+        run: node src/test-rooms.js
