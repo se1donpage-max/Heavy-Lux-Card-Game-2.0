@@ -7,160 +7,67 @@ CONFIG
 =========================================================
 */
 
-const CONFIG = {
+/*
+=========================================================
+GAME
+=========================================================
+*/
 
-    /*
-    =====================================================
-    GAME
-    =====================================================
-    */
+const GAME = {
 
-    GAME: {
+    DECK_SIZE: 36,
 
-        /*
-        Дурак 36 карт
-        */
+    MAX_PLAYERS: 2,
 
-        DECK_SIZE: 36,
+    STARTING_HAND_SIZE: 6,
 
-        MAX_PLAYERS: 2,
+    MAX_ATTACK_CARDS: 6,
 
-        STARTING_HAND_SIZE: 6,
+    DISCONNECT_GRACE_MS:
+        2 * 60 * 1000
 
-        MAX_ATTACK_CARDS: 6,
-
-        /*
-        Продолжительность reconnect grace period.
-        Используем позже в Socket.IO layer.
-        */
-
-        RECONNECT_TIMEOUT_MS:
-            60 * 1000
-
-    },
+};
 
 
-    /*
-    =====================================================
-    CARDS
-    =====================================================
-    */
+/*
+=========================================================
+CARDS
+=========================================================
+*/
 
-    CARDS: {
+const CARDS = {
 
-        SUITS: [
+    SUITS: [
+        "♠",
+        "♥",
+        "♦",
+        "♣"
+    ],
 
-            "♠",
-            "♥",
-            "♦",
-            "♣"
+    RANKS: [
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+        "A"
+    ],
 
-        ],
+    VALUES: {
 
-        RANKS: [
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
 
-            "6",
-            "7",
-            "8",
-            "9",
-            "10",
-            "J",
-            "Q",
-            "K",
-            "A"
-
-        ],
-
-        /*
-        Значения карт для сравнения
-        */
-
-        VALUES: {
-
-            "6": 6,
-            "7": 7,
-            "8": 8,
-            "9": 9,
-            "10": 10,
-
-            "J": 11,
-            "Q": 12,
-            "K": 13,
-            "A": 14
-
-        }
-
-    },
-
-
-    /*
-    =====================================================
-    ECONOMY
-    =====================================================
-    */
-
-    ECONOMY: {
-
-        /*
-        Допустимые ставки игры.
-
-        ВАЖНО:
-        этот массив должен соответствовать
-        рабочей версии проекта.
-
-        Если в старом server.js список ставок
-        отличается — позже синхронизируем
-        его с архивом.
-        */
-
-        STAKES: [
-
-            100,
-            500,
-            1_000,
-            5_000,
-            10_000,
-            50_000,
-            100_000
-
-        ]
-
-    },
-
-
-    /*
-    =====================================================
-    ROOMS
-    =====================================================
-    */
-
-    ROOMS: {
-
-        MAX_PLAYERS:
-            2,
-
-        ID_LENGTH:
-            6
-
-    },
-
-
-    /*
-    =====================================================
-    SERVER
-    =====================================================
-    */
-
-    SERVER: {
-
-        PORT:
-            Number(
-                process.env.PORT
-            ) || 10000,
-
-        HOST:
-            process.env.HOST ||
-            "0.0.0.0"
+        "J": 11,
+        "Q": 12,
+        "K": 13,
+        "A": 14
 
     }
 
@@ -169,13 +76,123 @@ const CONFIG = {
 
 /*
 =========================================================
-LEGACY / SHORT ALIASES
+ECONOMY
+=========================================================
+*/
+
+const ECONOMY = {
+
+    STAKES: [
+        100,
+        250,
+        500,
+        1000,
+        2000,
+        5000,
+        10000,
+        50000
+    ],
+
+    DEFAULT_BALANCE:
+        1000,
+
+    XP_WIN:
+        100,
+
+    XP_LOSS:
+        25,
+
+    XP_DRAW:
+        50,
+
+    LEVEL_BASE_XP:
+        500
+
+};
+
+
+/*
+=========================================================
+ROOMS
+=========================================================
+*/
+
+const ROOMS = {
+
+    MAX_PLAYERS:
+        GAME.MAX_PLAYERS,
+
+    ID_LENGTH:
+        6
+
+};
+
+
+/*
+=========================================================
+SERVER
+=========================================================
+*/
+
+const SERVER = {
+
+    PORT:
+        Number(
+            process.env.PORT ||
+            10000
+        ),
+
+    HOST:
+        process.env.HOST ||
+        "0.0.0.0"
+
+};
+
+
+/*
+=========================================================
+TELEGRAM
+=========================================================
+*/
+
+const TELEGRAM = {
+
+    MAX_AGE_SECONDS:
+        24 * 60 * 60
+
+};
+
+
+/*
+=========================================================
+UNIFIED CONFIG
+=========================================================
+*/
+
+const CONFIG = {
+
+    GAME,
+
+    CARDS,
+
+    ECONOMY,
+
+    ROOMS,
+
+    SERVER,
+
+    TELEGRAM
+
+};
+
+
+/*
+=========================================================
+LEGACY ALIASES
 =========================================================
 
-Оставляем их специально.
-
-Это позволит постепенно переносить старый
-server.js, не переписывая весь проект за один раз.
+Они нужны для постепенного переноса старого server.js
+без изменения игровой логики.
 =========================================================
 */
 
@@ -185,9 +202,9 @@ const {
     MAX_PLAYERS,
     STARTING_HAND_SIZE,
     MAX_ATTACK_CARDS,
-    RECONNECT_TIMEOUT_MS
+    DISCONNECT_GRACE_MS
 
-} = CONFIG.GAME;
+} = GAME;
 
 
 const {
@@ -196,21 +213,43 @@ const {
     RANKS,
     VALUES
 
-} = CONFIG.CARDS;
+} = CARDS;
 
 
 const {
 
-    STAKES
+    STAKES,
+    DEFAULT_BALANCE,
+    XP_WIN,
+    XP_LOSS,
+    XP_DRAW,
+    LEVEL_BASE_XP
 
-} = CONFIG.ECONOMY;
+} = ECONOMY;
 
 
 const {
 
+    MAX_PLAYERS: MAX_ROOM_PLAYERS,
     ID_LENGTH
 
-} = CONFIG.ROOMS;
+} = ROOMS;
+
+
+const {
+
+    PORT,
+    HOST
+
+} = SERVER;
+
+
+const {
+
+    MAX_AGE_SECONDS:
+        TELEGRAM_MAX_AGE_SECONDS
+
+} = TELEGRAM;
 
 
 /*
@@ -241,7 +280,7 @@ function validateConfig() {
     ) {
 
         errors.push(
-            `Invalid deck size: expected ${DECK_SIZE}, calculated ${calculatedDeckSize}`
+            `Deck size mismatch: ${calculatedDeckSize} !== ${DECK_SIZE}`
         );
 
     }
@@ -254,12 +293,11 @@ function validateConfig() {
     */
 
     if (
-        MAX_PLAYERS !==
-        2
+        MAX_PLAYERS !== 2
     ) {
 
         errors.push(
-            "Durak room must contain exactly 2 players"
+            "MAX_PLAYERS must be 2"
         );
 
     }
@@ -301,6 +339,63 @@ function validateConfig() {
 
     /*
     -----------------------------------------------------
+    STAKES
+    -----------------------------------------------------
+    */
+
+    if (
+        !Array.isArray(
+            STAKES
+        ) ||
+        STAKES.length !== 8
+    ) {
+
+        errors.push(
+            "Expected exactly 8 game stakes"
+        );
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    DEFAULT BALANCE
+    -----------------------------------------------------
+    */
+
+    if (
+        DEFAULT_BALANCE < 0
+    ) {
+
+        errors.push(
+            "DEFAULT_BALANCE cannot be negative"
+        );
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    XP
+    -----------------------------------------------------
+    */
+
+    if (
+        XP_WIN < 0 ||
+        XP_LOSS < 0 ||
+        XP_DRAW < 0 ||
+        LEVEL_BASE_XP <= 0
+    ) {
+
+        errors.push(
+            "Invalid XP configuration"
+        );
+
+    }
+
+
+    /*
+    -----------------------------------------------------
     ROOM ID
     -----------------------------------------------------
     */
@@ -310,27 +405,7 @@ function validateConfig() {
     ) {
 
         errors.push(
-            "ROOM ID is too short"
-        );
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    STAKES
-    -----------------------------------------------------
-    */
-
-    if (
-        !Array.isArray(
-            STAKES
-        ) ||
-        STAKES.length === 0
-    ) {
-
-        errors.push(
-            "No game stakes configured"
+            "ROOM ID length is too short"
         );
 
     }
@@ -343,7 +418,7 @@ function validateConfig() {
     */
 
     if (
-        errors.length > 0
+        errors.length
     ) {
 
         throw new Error(
@@ -366,7 +441,7 @@ function validateConfig() {
 
 /*
 =========================================================
-VALIDATE ON STARTUP
+STARTUP VALIDATION
 =========================================================
 */
 
@@ -375,13 +450,29 @@ validateConfig();
 
 /*
 =========================================================
-EXPORT
+EXPORTS
 =========================================================
 */
 
 module.exports = {
 
     CONFIG,
+
+    /*
+    Unified sections
+    */
+
+    GAME,
+
+    CARDS,
+
+    ECONOMY,
+
+    ROOMS,
+
+    SERVER,
+
+    TELEGRAM,
 
     /*
     Game
@@ -395,7 +486,7 @@ module.exports = {
 
     MAX_ATTACK_CARDS,
 
-    RECONNECT_TIMEOUT_MS,
+    DISCONNECT_GRACE_MS,
 
     /*
     Cards
@@ -413,11 +504,37 @@ module.exports = {
 
     STAKES,
 
+    DEFAULT_BALANCE,
+
+    XP_WIN,
+
+    XP_LOSS,
+
+    XP_DRAW,
+
+    LEVEL_BASE_XP,
+
     /*
     Rooms
     */
 
+    MAX_ROOM_PLAYERS,
+
     ID_LENGTH,
+
+    /*
+    Server
+    */
+
+    PORT,
+
+    HOST,
+
+    /*
+    Telegram
+    */
+
+    TELEGRAM_MAX_AGE_SECONDS,
 
     /*
     Validation
