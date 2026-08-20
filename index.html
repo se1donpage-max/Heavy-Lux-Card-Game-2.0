@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <meta
+        name="theme-color"
+        content="#08090d"
+    >
+
+    <title>Heavy Lux Card</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- =====================================================
+         TOP BAR
+    ====================================================== -->
+
+    <header class="topbar">
+
+        <div class="brand">
+            <div class="brand-mark">HL</div>
+
+            <div class="brand-text">
+                <strong>HEAVY LUX</strong>
+                <span>CARD</span>
+            </div>
+        </div>
+
+        <button
+            class="balance-button"
+            data-screen="profile"
+        >
+            <span class="balance-icon">₿</span>
+
+            <span>
+                <small>HC</small>
+                <strong id="topBalance">20 000</strong>
+            </span>
+        </button>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main id="screenContainer">
+
+
+        <!-- =================================================
+             HOME
+        ================================================== -->
+
+        <section
+            class="screen active"
+            id="screen-home"
+        >
+
+            <div class="hero-profile">
+
+                <div class="avatar">
+                    <span id="homeAvatar">V</span>
+                </div>
+
+                <div class="hero-user">
+
+                    <span class="muted">Добро пожаловать</span>
+
+                    <h1 id="homeName">
+                        Игрок
+                    </h1>
+
+                    <div class="user-meta">
+
+                        <span>
+                            LVL <b id="homeLevel">1</b>
+                        </span>
+
+                        <span class="rank-badge">
+                            Новичок
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="main-actions">
+
+                <button
+                    class="main-action play-action"
+                    data-screen="play"
+                >
+                    <span class="action-icon">♠</span>
+
+                    <span class="action-content">
+                        <strong>ИГРАТЬ</strong>
+                        <small>Найти соперника</small>
+                    </span>
+
+                    <span class="action-arrow">›</span>
+                </button>
+
+
+                <button
+                    class="main-action"
+                    data-screen="menu"
+                >
+                    <span class="action-icon">☰</span>
+
+                    <span class="action-content">
+                        <strong>МЕНЮ</strong>
+                        <small>Гараж, магазины, рынок</small>
+                    </span>
+
+                    <span class="action-arrow">›</span>
+                </button>
+
+
+                <button
+                    class="main-action"
+                    data-screen="profile"
+                >
+                    <span class="action-icon">♙</span>
+
+                    <span class="action-content">
+                        <strong>ЛИЧНЫЙ ПРОФИЛЬ</strong>
+                        <small>Статистика и владения</small>
+                    </span>
+
+                    <span class="action-arrow">›</span>
+                </button>
+
+            </div>
+
+
+            <div class="home-stats">
+
+                <div class="mini-stat">
+                    <span>ПОБЕДЫ</span>
+                    <strong id="homeWins">0</strong>
+                </div>
+
+                <div class="mini-stat">
+                    <span>ПОРАЖЕНИЯ</span>
+                    <strong id="homeLosses">0</strong>
+                </div>
+
+                <div class="mini-stat">
+                    <span>РЕЙТИНГ</span>
+                    <strong id="homeRating">1000</strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PLAY
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-play"
+        >
+
+            <div class="section-heading">
+
+                <button
+                    class="back-button"
+                    data-screen="home"
+                >
+                    ‹
+                </button>
+
+                <div>
+                    <span class="eyebrow">HEAVY MATCH</span>
+                    <h2>Играть</h2>
+                </div>
+
+            </div>
+
+
+            <div class="play-tabs">
+
+                <button
+                    class="tab-button active"
+                    data-play-tab="create"
+                >
+                    СОЗДАТЬ ЛОББИ
+                </button>
+
+                <button
+                    class="tab-button"
+                    data-play-tab="find"
+                >
+                    НАЙТИ ИГРУ
+                </button>
+
+            </div>
+
+
+            <!-- CREATE LOBBY -->
+
+            <div
+                class="play-panel active"
+                id="play-create"
+            >
+
+                <div class="panel-title">
+                    Создание лобби
+                </div>
+
+
+                <div class="setting-block">
+
+                    <label>Количество игроков</label>
+
+                    <div class="choice-grid">
+
+                        <button
+                            class="choice active"
+                            data-players="2"
+                        >
+                            <strong>2</strong>
+                            <span>игрока</span>
+                        </button>
+
+                        <button
+                            class="choice"
+                            data-players="3"
+                        >
+                            <strong>3</strong>
+                            <span>игрока</span>
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="setting-block">
+
+                    <label>Ставка</label>
+
+                    <div class="bet-grid">
+
+                        <button class="bet active" data-bet="100">100</button>
+                        <button class="bet" data-bet="250">250</button>
+                        <button class="bet" data-bet="500">500</button>
+                        <button class="bet" data-bet="1000">1 000</button>
+                        <button class="bet" data-bet="2500">2 500</button>
+                        <button class="bet" data-bet="5000">5 000</button>
+                        <button class="bet" data-bet="10000">10 000</button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="room-preview">
+
+                    <div class="room-preview-title">
+                        Heavy Room
+                    </div>
+
+                    <div class="room-preview-row">
+                        <span>Режим</span>
+                        <strong>ПОДКИДНОЙ</strong>
+                    </div>
+
+                    <div class="room-preview-row">
+                        <span>Колода</span>
+                        <strong>36</strong>
+                    </div>
+
+                    <div class="room-preview-row">
+                        <span>Игроки</span>
+                        <strong id="previewPlayers">2</strong>
+                    </div>
+
+                    <div class="room-preview-row">
+                        <span>Ставка</span>
+                        <strong id="previewBet">100 HC</strong>
+                    </div>
+
+                </div>
+
+
+                <button
+                    class="primary-button"
+                    id="createLobbyButton"
+                >
+                    СОЗДАТЬ ЛОББИ
+                </button>
+
+            </div>
+
+
+            <!-- FIND GAME -->
+
+            <div
+                class="play-panel"
+                id="play-find"
+            >
+
+                <button
+                    class="find-card quick-match"
+                    id="quickMatchButton"
+                >
+
+                    <div class="find-icon">⚡</div>
+
+                    <div>
+                        <strong>БЫСТРАЯ ИГРА</strong>
+                        <span>Подобрать любое доступное лобби</span>
+                    </div>
+
+                    <b>›</b>
+
+                </button>
+
+
+                <div class="panel-title lobby-title">
+                    Список лобби
+                </div>
+
+
+                <div
+                    id="lobbyList"
+                    class="lobby-list"
+                >
+
+                    <article class="lobby-card">
+
+                        <div class="lobby-head">
+                            <strong>Heavy Room</strong>
+                            <span class="online-dot"></span>
+                        </div>
+
+                        <div class="lobby-players">
+
+                            <span>👤 Player</span>
+                            <span>👤 Heavy</span>
+                            <span class="empty-slot">👤 Свободно</span>
+
+                        </div>
+
+                        <div class="lobby-info">
+
+                            <span>СТАВКА: <b>500</b></span>
+                            <span>2/3</span>
+
+                        </div>
+
+                        <button
+                            class="small-primary join-lobby"
+                            data-bet="500"
+                        >
+                            ВОЙТИ
+                        </button>
+
+                    </article>
+
+
+                    <article class="lobby-card">
+
+                        <div class="lobby-head">
+                            <strong>Heavy Room</strong>
+                            <span class="online-dot"></span>
+                        </div>
+
+                        <div class="lobby-players">
+
+                            <span>👤 Lux</span>
+                            <span class="empty-slot">👤 Свободно</span>
+
+                        </div>
+
+                        <div class="lobby-info">
+
+                            <span>СТАВКА: <b>1 000</b></span>
+                            <span>1/2</span>
+
+                        </div>
+
+                        <button
+                            class="small-primary join-lobby"
+                            data-bet="1000"
+                        >
+                            ВОЙТИ
+                        </button>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             GAME TABLE
+        ================================================== -->
+
+        <section
+            class="screen game-screen"
+            id="screen-game"
+        >
+
+            <div class="game-top">
+
+                <div>
+                    <span class="eyebrow">HEAVY ROOM</span>
+                    <strong id="gameRound">РАУНД 1</strong>
+                </div>
+
+                <div class="game-bet">
+                    500 HC
+                </div>
+
+            </div>
+
+
+            <div class="opponents">
+
+                <div class="opponent-card">
+
+                    <div class="opponent-avatar">
+                        H
+                    </div>
+
+                    <div>
+                        <strong>Heavy</strong>
+                        <span>6 карт</span>
+                    </div>
+
+                    <button class="player-info">
+                        i
+                    </button>
+
+                </div>
+
+
+                <div class="opponent-card">
+
+                    <div class="opponent-avatar">
+                        L
+                    </div>
+
+                    <div>
+                        <strong>Lux</strong>
+                        <span>6 карт</span>
+                    </div>
+
+                    <button class="player-info">
+                        i
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-area">
+
+                <div class="trump-label">
+                    КОЗЫРЬ
+                    <span id="trumpSuit">♥</span>
+                </div>
+
+
+                <div
+                    class="table-cards"
+                    id="tableCards"
+                >
+
+                    <div class="empty-table">
+                        ВАШ ХОД
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="game-status">
+                ВАША АТАКА
+            </div>
+
+
+            <div
+                class="hand"
+                id="playerHand"
+            >
+
+                <button
+                    class="playing-card"
+                    data-card="6H"
+                >
+                    <span>6</span>
+                    <b>♥</b>
+                </button>
+
+                <button
+                    class="playing-card"
+                    data-card="9S"
+                >
+                    <span>9</span>
+                    <b>♠</b>
+                </button>
+
+                <button
+                    class="playing-card"
+                    data-card="JH"
+                >
+                    <span>J</span>
+                    <b>♥</b>
+                </button>
+
+                <button
+                    class="playing-card"
+                    data-card="QC"
+                >
+                    <span>Q</span>
+                    <b>♣</b>
+                </button>
+
+                <button
+                    class="playing-card"
+                    data-card="KD"
+                >
+                    <span>K</span>
+                    <b>♦</b>
+                </button>
+
+                <button
+                    class="playing-card"
+                    data-card="AS"
+                >
+                    <span>A</span>
+                    <b>♠</b>
+                </button>
+
+            </div>
+
+
+            <div class="game-actions">
+
+                <button
+                    class="game-action take-action"
+                    id="takeButton"
+                >
+                    ВЗЯТЬ
+                </button>
+
+                <button
+                    class="game-action end-action"
+                    id="endAttackButton"
+                >
+                    ЗАКОНЧИТЬ АТАКУ
+                </button>
+
+                <button
+                    class="message-button"
+                    id="messageButton"
+                >
+                    💬
+                    <span>Сообщение</span>
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PROFILE
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-profile"
+        >
+
+            <div class="section-heading">
+
+                <button
+                    class="back-button"
+                    data-screen="home"
+                >
+                    ‹
+                </button>
+
+                <div>
+                    <span class="eyebrow">ACCOUNT</span>
+                    <h2>Профиль</h2>
+                </div>
+
+            </div>
+
+
+            <div class="profile-header">
+
+                <div class="profile-avatar">
+                    V
+                </div>
+
+                <div class="profile-name">
+                    <h2 id="profileName">Игрок</h2>
+                    <span>LEVEL <b id="profileLevel">1</b> / 100</span>
+                </div>
+
+            </div>
+
+
+            <div class="rating-card">
+
+                <div>
+                    <span>ИГРОВОЙ РЕЙТИНГ</span>
+                    <strong id="profileRating">1000</strong>
+                </div>
+
+                <div class="rating-rank">
+                    НОВИЧОК
+                </div>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+                <div>
+                    <span>ПОБЕД</span>
+                    <strong id="profileWins">0</strong>
+                </div>
+
+                <div>
+                    <span>ПОРАЖЕНИЙ</span>
+                    <strong id="profileLosses">0</strong>
+                </div>
+
+                <div>
+                    <span>ИГР</span>
+                    <strong id="profileGames">0</strong>
+                </div>
+
+                <div>
+                    <span>XP</span>
+                    <strong id="profileXP">0</strong>
+                </div>
+
+            </div>
+
+
+            <div class="profile-section">
+
+                <div class="section-title">
+                    ВЛАДЕНИЯ ИГРОКА
+                </div>
+
+                <div class="ownership-tabs">
+
+                    <button class="ownership-tab active" data-owner="cars">
+                        Авто
+                    </button>
+
+                    <button class="ownership-tab" data-owner="plates">
+                        Номера
+                    </button>
+
+                    <button class="ownership-tab" data-owner="property">
+                        Недвижимость
+                    </button>
+
+                    <button class="ownership-tab" data-owner="business">
+                        Бизнес
+                    </button>
+
+                </div>
+
+
+                <div class="ownership-content">
+
+                    <div
+                        class="ownership-panel active"
+                        id="owner-cars"
+                    >
+
+                        <div class="collection-card">
+
+                            <div class="collection-image car-image">
+                                BMW
+                            </div>
+
+                            <div>
+                                <strong>BMW M5</strong>
+                                <span>Основной автомобиль</span>
+                                <small>А777АА77</small>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="ownership-panel"
+                        id="owner-plates"
+                    >
+
+                        <div class="collection-card">
+
+                            <div class="plate-preview">
+                                А777АА77
+                            </div>
+
+                            <div>
+                                <strong>А777АА77</strong>
+                                <span>Закреплён</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="ownership-panel"
+                        id="owner-property"
+                    >
+
+                        <div class="collection-card">
+
+                            <div class="property-image lux">
+                                LUX
+                            </div>
+
+                            <div>
+                                <strong>Lux Residence</strong>
+                                <span>Класс Lux</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="ownership-panel"
+                        id="owner-business"
+                    >
+
+                        <div class="empty-collection">
+                            Бизнесов пока нет
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MENU
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-menu"
+        >
+
+            <div class="section-heading">
+
+                <button
+                    class="back-button"
+                    data-screen="home"
+                >
+                    ‹
+                </button>
+
+                <div>
+                    <span class="eyebrow">HEAVY LUX</span>
+                    <h2>Меню</h2>
+                </div>
+
+            </div>
+
+
+            <div class="menu-grid">
+
+                <button class="menu-item" data-screen="garage">
+                    <span>🚘</span>
+                    <strong>Гараж</strong>
+                    <small>Автомобили и номера</small>
+                </button>
+
+                <button class="menu-item" data-screen="showrooms">
+                    <span>🏢</span>
+                    <strong>Автосалоны</strong>
+                    <small>Heavy Motors / Exclusive</small>
+                </button>
+
+                <button class="menu-item" data-screen="market">
+                    <span>♻</span>
+                    <strong>Вторичный рынок Т/С</strong>
+                    <small>Покупка и продажа</small>
+                </button>
+
+                <button class="menu-item" data-screen="auction">
+                    <span>♛</span>
+                    <strong>Аукцион</strong>
+                    <small>Редкие предметы</small>
+                </button>
+
+                <button class="menu-item" data-screen="plates-shop">
+                    <span>▣</span>
+                    <strong>Номера на Т/С</strong>
+                    <small>Красивые госномера</small>
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             GARAGE
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-garage"
+        >
+
+            <div class="section-heading">
+
+                <button class="back-button" data-screen="menu">‹</button>
+
+                <div>
+                    <span class="eyebrow">MY COLLECTION</span>
+                    <h2>Гараж</h2>
+                </div>
+
+            </div>
+
+
+            <div class="garage-feature">
+
+                <div class="garage-car">
+                    BMW M5
+                </div>
+
+                <div class="garage-car-info">
+
+                    <span>ОСНОВНОЙ АВТОМОБИЛЬ</span>
+
+                    <h2>BMW M5</h2>
+
+                    <div class="license-plate">
+                        А777АА77
+                    </div>
+
+                    <button class="small-primary">
+                        УСТАНОВИТЬ НОМЕР
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="section-title">
+                МОИ АВТОМОБИЛИ
+            </div>
+
+            <div class="vehicle-list">
+
+                <div class="vehicle-row">
+
+                    <div class="vehicle-icon">
+                        BMW
+                    </div>
+
+                    <div>
+                        <strong>BMW M5</strong>
+                        <span>Business</span>
+                    </div>
+
+                    <b>›</b>
+
+                </div>
+
+                <div class="vehicle-row">
+
+                    <div class="vehicle-icon">
+                        MB
+                    </div>
+
+                    <div>
+                        <strong>Mercedes-Benz E63</strong>
+                        <span>Business</span>
+                    </div>
+
+                    <b>›</b>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SHOWROOMS
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-showrooms"
+        >
+
+            <div class="section-heading">
+
+                <button class="back-button" data-screen="menu">‹</button>
+
+                <div>
+                    <span class="eyebrow">HEAVY MOTORS</span>
+                    <h2>Автосалоны</h2>
+                </div>
+
+            </div>
+
+
+            <div class="showroom-switch">
+
+                <button
+                    class="showroom-tab active"
+                    data-showroom="motors"
+                >
+                    HEAVY MOTORS
+                </button>
+
+                <button
+                    class="showroom-tab"
+                    data-showroom="exclusive"
+                >
+                    HEAVY EXCLUSIVE
+                </button>
+
+            </div>
+
+
+            <div
+                class="showroom-panel active"
+                id="showroom-motors"
+            >
+
+                <div class="showroom-banner">
+                    <span>BUSINESS CLASS</span>
+                    <strong>HEAVY MOTORS</strong>
+                    <small>Надёжные автомобили бизнес-класса</small>
+                </div>
+
+                <div class="catalog-grid">
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">BMW</div>
+                        <strong>BMW M5</strong>
+                        <span>1 850 000 HC</span>
+                        <button class="small-primary buy-car" data-price="1850000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">AUDI</div>
+                        <strong>Audi RS6</strong>
+                        <span>2 100 000 HC</span>
+                        <button class="small-primary buy-car" data-price="2100000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">MB</div>
+                        <strong>Mercedes E63</strong>
+                        <span>2 250 000 HC</span>
+                        <button class="small-primary buy-car" data-price="2250000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">POR</div>
+                        <strong>Porsche Panamera</strong>
+                        <span>2 700 000 HC</span>
+                        <button class="small-primary buy-car" data-price="2700000">КУПИТЬ</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="showroom-panel"
+                id="showroom-exclusive"
+            >
+
+                <div class="showroom-banner exclusive-banner">
+                    <span>PREMIUM / HYPERCARS</span>
+                    <strong>HEAVY EXCLUSIVE</strong>
+                    <small>Редкие автомобили и специальные версии</small>
+                </div>
+
+                <div class="catalog-grid">
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">MANSORY</div>
+                        <strong>BMW XM MANSORY</strong>
+                        <span>8 500 000 HC</span>
+                        <button class="small-primary buy-car" data-price="8500000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">BRABUS</div>
+                        <strong>Mercedes G63 BRABUS</strong>
+                        <span>12 000 000 HC</span>
+                        <button class="small-primary buy-car" data-price="12000000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">PORSCHE</div>
+                        <strong>Porsche 911 Turbo S</strong>
+                        <span>9 500 000 HC</span>
+                        <button class="small-primary buy-car" data-price="9500000">КУПИТЬ</button>
+                    </div>
+
+                    <div class="catalog-card">
+                        <div class="catalog-car">LUX</div>
+                        <strong>Lamborghini Huracan</strong>
+                        <span>15 000 000 HC</span>
+                        <button class="small-primary buy-car" data-price="15000000">КУПИТЬ</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PLATES SHOP
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-plates-shop"
+        >
+
+            <div class="section-heading">
+
+                <button class="back-button" data-screen="menu">‹</button>
+
+                <div>
+                    <span class="eyebrow">HEAVY PLATES</span>
+                    <h2>Номера на Т/С</h2>
+                </div>
+
+            </div>
+
+
+            <div class="plates-intro">
+
+                <span>LIMITED COLLECTION</span>
+
+                <h2>
+                    Красивые<br>
+                    госномера
+                </h2>
+
+                <p>
+                    Ограниченная серия премиальных
+                    сочетаний цифр и букв.
+                </p>
+
+            </div>
+
+
+            <div class="premium-plates">
+
+                <div class="premium-plate-card">
+
+                    <div class="license-plate large">
+                        А111АА77
+                    </div>
+
+                    <strong>А111АА77</strong>
+                    <span>7 500 000 HC</span>
+
+                    <button class="small-primary">
+                        ПРИОБРЕСТИ
+                    </button>
+
+                </div>
+
+                <div class="premium-plate-card">
+
+                    <div class="license-plate large">
+                        У777УУ77
+                    </div>
+
+                    <strong>У777УУ77</strong>
+                    <span>12 000 000 HC</span>
+
+                    <button class="small-primary">
+                        ПРИОБРЕСТИ
+                    </button>
+
+                </div>
+
+                <div class="premium-plate-card">
+
+                    <div class="license-plate large">
+                        Е111ЕЕ77
+                    </div>
+
+                    <strong>Е111ЕЕ77</strong>
+                    <span>6 500 000 HC</span>
+
+                    <button class="small-primary">
+                        ПРИОБРЕСТИ
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MARKET
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-market"
+        >
+
+            <div class="section-heading">
+
+                <button class="back-button" data-screen="menu">‹</button>
+
+                <div>
+                    <span class="eyebrow">SECONDARY MARKET</span>
+                    <h2>Вторичный рынок</h2>
+                </div>
+
+            </div>
+
+
+            <div class="market-tabs">
+
+                <button class="market-tab active">
+                    ТРАНСПОРТ
+                </button>
+
+                <button class="market-tab">
+                    НОМЕРА
+                </button>
+
+            </div>
+
+
+            <div class="market-list">
+
+                <article class="market-card">
+
+                    <div class="market-image">
+                        BMW
+                    </div>
+
+                    <div class="market-info">
+                        <strong>BMW M5</strong>
+                        <span>А777АА77</span>
+                        <b>1 950 000 HC</b>
+                    </div>
+
+                    <button class="small-primary">
+                        КУПИТЬ
+                    </button>
+
+                </article>
+
+
+                <article class="market-card">
+
+                    <div class="market-image">
+                        MB
+                    </div>
+
+                    <div class="market-info">
+                        <strong>Mercedes E63</strong>
+                        <span>У429РО77</span>
+                        <b>2 350 000 HC</b>
+                    </div>
+
+                    <button class="small-primary">
+                        КУПИТЬ
+                    </button>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AUCTION
+        ================================================== -->
+
+        <section
+            class="screen"
+            id="screen-auction"
+        >
+
+            <div class="section-heading">
+
+                <button class="back-button" data-screen="menu">‹</button>
+
+                <div>
+                    <span class="eyebrow">HEAVY AUCTION</span>
+                    <h2>Аукцион</h2>
+                </div>
+
+            </div>
+
+
+            <div class="auction-card">
+
+                <span>ТОРГИ</span>
+
+                <h2>
+                    Редкие предметы
+                </h2>
+
+                <p>
+                    Уникальные автомобили,
+                    номера и предметы коллекции.
+                </p>
+
+                <button class="primary-button">
+                    ОТКРЫТЬ ТОРГИ
+                </button>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =====================================================
+         BOTTOM NAV
+    ====================================================== -->
+
+    <nav class="bottom-nav">
+
+        <button
+            class="nav-button active"
+            data-screen="home"
+        >
+            <span>⌂</span>
+            <small>Главная</small>
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="play"
+        >
+            <span>♠</span>
+            <small>Играть</small>
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="profile"
+        >
+            <span>♙</span>
+            <small>Профиль</small>
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="menu"
+        >
+            <span>☰</span>
+            <small>Меню</small>
+        </button>
+
+    </nav>
+
+
+    <!-- =====================================================
+         MESSAGE MODAL
+    ====================================================== -->
+
+    <div
+        class="modal"
+        id="messageModal"
+    >
+
+        <div class="modal-backdrop"></div>
+
+        <div class="modal-sheet">
+
+            <div class="modal-handle"></div>
+
+            <div class="modal-title">
+                Сообщение
+            </div>
+
+            <button class="quick-message">
+                Спасибо за игру!
+            </button>
+
+            <button class="quick-message">
+                Хорошей игры!
+            </button>
+
+            <button class="quick-message">
+                Охх…
+            </button>
+
+            <button class="quick-message">
+                Скорее!
+            </button>
+
+            <button
+                class="modal-close"
+                id="closeMessageModal"
+            >
+                ЗАКРЫТЬ
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PLAYER INFO MODAL
+    ====================================================== -->
+
+    <div
+        class="modal"
+        id="playerInfoModal"
+    >
+
+        <div class="modal-backdrop"></div>
+
+        <div class="modal-sheet">
+
+            <div class="modal-handle"></div>
+
+            <div class="profile-header compact">
+
+                <div class="profile-avatar">
+                    H
+                </div>
+
+                <div class="profile-name">
+                    <h2>Heavy</h2>
+                    <span>LEVEL 27</span>
+                </div>
+
+            </div>
+
+            <div class="stats-grid">
+
+                <div>
+                    <span>ПОБЕД</span>
+                    <strong>143</strong>
+                </div>
+
+                <div>
+                    <span>ПОРАЖЕНИЙ</span>
+                    <strong>81</strong>
+                </div>
+
+                <div>
+                    <span>РЕЙТИНГ</span>
+                    <strong>1284</strong>
+                </div>
+
+                <div>
+                    <span>АВТО</span>
+                    <strong>BMW</strong>
+                </div>
+
+            </div>
+
+            <div class="mini-profile-car">
+                BMW M5 · А777АА77
+            </div>
+
+            <button
+                class="modal-close"
+                id="closePlayerInfo"
+            >
+                ЗАКРЫТЬ
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
+
+    <div
+        class="toast"
+        id="toast"
+    >
+        Готово
+    </div>
+
+</div>
+
+
+<script src="app.js"></script>
+
+</body>
+</html>
