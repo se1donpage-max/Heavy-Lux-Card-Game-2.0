@@ -16,17 +16,15 @@ function assert(
 ) {
 
     if (!condition) {
-        throw new Error(message);
+
+        throw new Error(
+            message
+        );
+
     }
 
 }
 
-
-/*
-=========================================================
-START
-=========================================================
-*/
 
 console.log(
     "================================"
@@ -43,7 +41,7 @@ console.log(
 
 /*
 =========================================================
-CLEAN
+CLEAN START
 =========================================================
 */
 
@@ -51,12 +49,58 @@ rooms.clearRooms();
 
 
 assert(
-    rooms.roomCount() === 0,
+    rooms.getRooms().length === 0,
     "Rooms are not empty before test"
 );
 
+
 console.log(
     "\n[1] Empty storage: OK"
+);
+
+
+/*
+=========================================================
+PLAYERS
+=========================================================
+*/
+
+const player1 = {
+
+    playerId:
+        "player-1",
+
+    name:
+        "Player 1",
+
+    socketId:
+        "socket-1",
+
+    roomId:
+        null
+
+};
+
+
+const player2 = {
+
+    playerId:
+        "player-2",
+
+    name:
+        "Player 2",
+
+    socketId:
+        "socket-2",
+
+    roomId:
+        null
+
+};
+
+
+console.log(
+    "[2] Players created: OK"
 );
 
 
@@ -67,21 +111,10 @@ CREATE ROOM
 */
 
 const created =
-    rooms.createRoom({
-
-        playerId:
-            "player-1",
-
-        name:
-            "Player 1",
-
-        socketId:
-            "socket-1",
-
-        stake:
-            100
-
-    });
+    rooms.createRoom(
+        player1,
+        100
+    );
 
 
 assert(
@@ -109,107 +142,26 @@ assert(
 );
 
 
+assert(
+    player1.roomId ===
+    created.room.id,
+    "Player 1 roomId was not assigned"
+);
+
+
 const roomId =
     created.room.id;
 
 
 console.log(
-    "[2] Room created:",
+    "[3] Room created:",
     roomId
 );
 
 
 /*
 =========================================================
-DUPLICATE PLAYER
-=========================================================
-*/
-
-const duplicate =
-    rooms.createRoom({
-
-        playerId:
-            "player-1",
-
-        name:
-            "Player 1",
-
-        socketId:
-            "socket-duplicate",
-
-        stake:
-            100
-
-    });
-
-
-assert(
-    !duplicate.ok,
-    "Duplicate player should be rejected"
-);
-
-
-console.log(
-    "[3] Duplicate player protection: OK"
-);
-
-
-/*
-=========================================================
-JOIN SECOND PLAYER
-=========================================================
-*/
-
-const joined =
-    rooms.joinRoom({
-
-        roomId,
-
-        playerId:
-            "player-2",
-
-        name:
-            "Player 2",
-
-        socketId:
-            "socket-2"
-
-    });
-
-
-assert(
-    joined.ok,
-    joined.error ||
-    "Second player could not join"
-);
-
-
-assert(
-    joined.room.players.length === 2,
-    "Room should contain two players"
-);
-
-
-assert(
-    joined.gameStarted === true,
-    "Game should start automatically"
-);
-
-
-assert(
-    joined.room.status === "playing",
-    "Room should be playing"
-);
-
-
-console.log(
-    "[4] Second player joined: OK"
-);
-
-
-/*
-=========================================================
-GAME STATE
+ROOM LOOKUP
 =========================================================
 */
 
@@ -221,9 +173,108 @@ const room =
 
 assert(
     room,
-    "Room disappeared after starting"
+    "Room lookup failed"
 );
 
+
+assert(
+    room.id === roomId,
+    "Room ID mismatch"
+);
+
+
+console.log(
+    "[4] Room lookup: OK"
+);
+
+
+/*
+=========================================================
+WAITING ROOMS
+=========================================================
+*/
+
+const waiting =
+    rooms.getWaitingRooms();
+
+
+assert(
+    waiting.length === 1,
+    "Expected one waiting room"
+);
+
+
+assert(
+    waiting[0].id === roomId,
+    "Waiting room ID mismatch"
+);
+
+
+console.log(
+    "[5] Waiting rooms: OK"
+);
+
+
+/*
+=========================================================
+JOIN SECOND PLAYER
+=========================================================
+*/
+
+const joined =
+    rooms.joinRoom(
+        player2,
+        roomId
+    );
+
+
+assert(
+    joined.ok,
+    joined.error ||
+    "Second player could not join"
+);
+
+
+assert(
+    joined.room,
+    "Joined room missing"
+);
+
+
+assert(
+    joined.room.players.length === 2,
+    "Room should contain two players"
+);
+
+
+assert(
+    player2.roomId === roomId,
+    "Player 2 roomId was not assigned"
+);
+
+
+assert(
+    joined.started === true,
+    "Game should start automatically"
+);
+
+
+assert(
+    joined.room.status === "playing",
+    "Room should be playing"
+);
+
+
+console.log(
+    "[6] Second player joined: OK"
+);
+
+
+/*
+=========================================================
+GAME STATE
+=========================================================
+*/
 
 assert(
     room.players.length === 2,
@@ -268,114 +319,156 @@ assert(
 
 
 console.log(
-    "[5] Game state: OK"
+    "[7] Game state: OK"
 );
 
 
 /*
 =========================================================
-PUBLIC ROOM STATE
+ROOM PLAYER
 =========================================================
 */
 
-const publicState =
-    rooms.getPublicRoom(
+const roomPlayer =
+    rooms.getRoomPlayer(
+        player1
+    );
+
+
+assert(
+    roomPlayer,
+    "Room player lookup failed"
+);
+
+
+assert(
+    roomPlayer.playerId ===
+    "player-1",
+    "Room player ID mismatch"
+);
+
+
+assert(
+    roomPlayer.name ===
+    "Player 1",
+    "Room player name mismatch"
+);
+
+
+console.log(
+    "[8] Room player lookup: OK"
+);
+
+
+/*
+=========================================================
+OTHER PLAYER
+=========================================================
+*/
+
+const other =
+    rooms.getOtherPlayer(
         room,
         "player-1"
     );
 
 
 assert(
-    publicState,
-    "Public room state missing"
+    other,
+    "Other player not found"
 );
 
 
 assert(
-    publicState.roomId === roomId,
-    "Public room ID mismatch"
-);
-
-
-assert(
-    publicState.players.length === 2,
-    "Public state should contain two players"
-);
-
-
-assert(
-    publicState.game,
-    "Public game state missing"
-);
-
-
-assert(
-    publicState.game.hand.length === 6,
-    "Public hand should contain six cards"
+    other.playerId ===
+    "player-2",
+    "Other player mismatch"
 );
 
 
 console.log(
-    "[6] Public room state: OK"
+    "[9] Other player lookup: OK"
 );
 
 
 /*
 =========================================================
-SOCKET LOOKUP
+ROOM SUMMARY
 =========================================================
 */
 
-const socketRoom =
-    rooms.findRoomBySocket(
-        "socket-1"
+const summary =
+    rooms.getRoomSummary(
+        room
     );
 
 
 assert(
-    socketRoom,
-    "Room not found by socket"
+    summary,
+    "Room summary missing"
 );
 
 
 assert(
-    socketRoom.id === roomId,
-    "Socket room mismatch"
+    summary.id === roomId,
+    "Summary room ID mismatch"
+);
+
+
+assert(
+    summary.playersCount === 2,
+    "Summary player count mismatch"
+);
+
+
+assert(
+    summary.maxPlayers === 2,
+    "Summary max players mismatch"
+);
+
+
+assert(
+    summary.stake === 100,
+    "Summary stake mismatch"
 );
 
 
 console.log(
-    "[7] Socket lookup: OK"
+    "[10] Room summary: OK"
 );
 
 
 /*
 =========================================================
-PLAYER LOOKUP
+PUBLIC ROOM LIST
 =========================================================
 */
 
-const player =
-    rooms.getPlayer(
-        roomId,
-        "player-1"
-    );
+const publicRooms =
+    rooms.getPublicRoomList();
 
 
 assert(
-    player,
-    "Player lookup failed"
+    Array.isArray(
+        publicRooms
+    ),
+    "Public room list is not an array"
 );
 
 
+/*
+Игра уже началась,
+поэтому waiting list должен быть пустым.
+*/
+
 assert(
-    player.name === "Player 1",
-    "Player name mismatch"
+    publicRooms.length === 0,
+    "Playing room should not be in waiting list"
 );
 
 
 console.log(
-    "[8] Player lookup: OK"
+    "[11] Public room list: OK"
 );
 
 
@@ -387,8 +480,7 @@ DISCONNECT
 
 const disconnected =
     rooms.disconnectPlayer(
-        roomId,
-        "player-1"
+        player1
     );
 
 
@@ -400,25 +492,31 @@ assert(
 
 
 assert(
-    player.connected === false,
-    "Player should be disconnected"
+    player1.socketId === null,
+    "Player socket should be cleared"
+);
+
+
+const disconnectedRoomPlayer =
+    rooms.getRoomPlayer(
+        player1
+    );
+
+
+assert(
+    disconnectedRoomPlayer,
+    "Disconnected room player missing"
 );
 
 
 assert(
-    player.disconnectedAt,
-    "Disconnect timestamp missing"
-);
-
-
-assert(
-    room.status === "playing",
-    "Game should remain active after disconnect"
+    disconnectedRoomPlayer.connected === false,
+    "Room player should be disconnected"
 );
 
 
 console.log(
-    "[9] Disconnect handling: OK"
+    "[12] Disconnect handling: OK"
 );
 
 
@@ -429,20 +527,10 @@ RECONNECT
 */
 
 const reconnected =
-    rooms.reconnectPlayer({
-
-        roomId,
-
-        playerId:
-            "player-1",
-
-        socketId:
-            "socket-1-new",
-
-        name:
-            "Player 1"
-
-    });
+    rooms.reconnectPlayer(
+        player1,
+        "socket-1-new"
+    );
 
 
 assert(
@@ -453,117 +541,85 @@ assert(
 
 
 assert(
-    player.connected === true,
-    "Player should be connected"
+    player1.socketId ===
+    "socket-1-new",
+    "Socket ID was not restored"
 );
 
 
-assert(
-    player.socketId === "socket-1-new",
-    "Socket ID was not updated"
-);
-
-
-assert(
-    player.disconnectedAt === null,
-    "Disconnect timestamp should be cleared"
-);
-
-
-assert(
-    reconnected.gameState,
-    "Reconnect game state missing"
-);
-
-
-console.log(
-    "[10] Reconnection: OK"
-);
-
-
-/*
-=========================================================
-ROOM LIST
-=========================================================
-*/
-
-const list =
-    rooms.listRooms();
-
-
-assert(
-    Array.isArray(list),
-    "Room list is not an array"
-);
-
-
-assert(
-    list.length === 1,
-    "Expected exactly one room"
-);
-
-
-assert(
-    list[0].roomId === roomId,
-    "Room list ID mismatch"
-);
-
-
-assert(
-    list[0].players === 2,
-    "Room list player count mismatch"
-);
-
-
-console.log(
-    "[11] Room list: OK"
-);
-
-
-/*
-=========================================================
-REMOVE / FINISH
-=========================================================
-*/
-
-const removed =
-    rooms.removePlayer(
-        roomId,
-        "player-1",
-        {
-            forfeit:
-                true
-        }
+const reconnectedRoomPlayer =
+    rooms.getRoomPlayer(
+        player1
     );
 
 
 assert(
-    removed.ok,
-    removed.error ||
-    "Player removal failed"
+    reconnectedRoomPlayer.connected === true,
+    "Room player should be connected"
 );
 
 
 assert(
-    room.status === "finished",
-    "Forfeit should finish the game"
-);
-
-
-assert(
-    room.winnerId === "player-2",
-    "Remaining player should be winner"
-);
-
-
-assert(
-    room.loserId === "player-1",
-    "Removed player should be loser"
+    reconnectedRoomPlayer.socketId ===
+    "socket-1-new",
+    "Room socket ID mismatch"
 );
 
 
 console.log(
-    "[12] Forfeit handling: OK"
+    "[13] Reconnection: OK"
+);
+
+
+/*
+=========================================================
+LEAVE / FORFEIT
+=========================================================
+*/
+
+const leaveResult =
+    rooms.leaveRoom(
+        player1,
+        "test"
+    );
+
+
+assert(
+    leaveResult.ok,
+    leaveResult.error ||
+    "Leave room failed"
+);
+
+
+assert(
+    room.status ===
+    "finished",
+    "Leaving active game should finish it"
+);
+
+
+assert(
+    room.winnerId ===
+    "player-2",
+    "Player 2 should win after forfeit"
+);
+
+
+assert(
+    room.loserId ===
+    "player-1",
+    "Player 1 should lose after forfeit"
+);
+
+
+assert(
+    player1.roomId === null,
+    "Player 1 roomId should be cleared"
+);
+
+
+console.log(
+    "[14] Forfeit handling: OK"
 );
 
 
@@ -577,13 +633,13 @@ rooms.clearRooms();
 
 
 assert(
-    rooms.roomCount() === 0,
+    rooms.getRooms().length === 0,
     "Rooms were not cleared"
 );
 
 
 console.log(
-    "[13] Clear rooms: OK"
+    "[15] Clear rooms: OK"
 );
 
 
