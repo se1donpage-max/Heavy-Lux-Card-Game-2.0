@@ -23,9 +23,6 @@ ROOMS / LOBBY MANAGER
 
 ./game.js
 
-server.js работает с этим модулем
-через публичные методы ниже.
-
 =========================================================
 */
 
@@ -144,23 +141,26 @@ function createRoomPlayer({
     telegramId
 }) {
 
+    const now =
+        Date.now();
+
     return {
 
         playerId,
 
         name:
             typeof name === "string"
-                ? name
+                ? name.trim().slice(0, 100)
                 : null,
 
         username:
             typeof username === "string"
-                ? username
+                ? username.trim().slice(0, 100)
                 : null,
 
         telegramId:
             typeof telegramId === "string"
-                ? telegramId
+                ? telegramId.trim().slice(0, 100)
                 : null,
 
         connected:
@@ -170,10 +170,10 @@ function createRoomPlayer({
             false,
 
         joinedAt:
-            Date.now(),
+            now,
 
         lastSeenAt:
-            Date.now()
+            now
 
     };
 
@@ -205,12 +205,6 @@ function createRoom({
         );
 
     }
-
-    /*
-    Один игрок не может
-    находиться сразу
-    в нескольких комнатах.
-    */
 
     if (
         hasPlayer(
@@ -390,9 +384,7 @@ function getPlayerRoom(
             );
 
         if (player) {
-
             return room;
-
         }
 
     }
@@ -466,11 +458,6 @@ function joinRoom(
     }
 
 
-    /*
-    Нельзя входить
-    в завершённую игру.
-    */
-
     if (
         room.status !==
         ROOM_STATUS.LOBBY
@@ -484,8 +471,10 @@ function joinRoom(
 
 
     /*
-    Проверяем, не находится ли
-    игрок уже в этой комнате.
+    Игрок уже находится
+    в этой комнате.
+
+    Используем как reconnect.
     */
 
     const existingPlayer =
@@ -500,13 +489,6 @@ function joinRoom(
         existingPlayer
     ) {
 
-        /*
-        Это может быть
-        переподключение.
-
-        Восстанавливаем игрока.
-        */
-
         existingPlayer.connected =
             true;
 
@@ -519,7 +501,7 @@ function joinRoom(
         ) {
 
             existingPlayer.name =
-                name.trim();
+                name.trim().slice(0, 100);
 
         }
 
@@ -528,7 +510,7 @@ function joinRoom(
         ) {
 
             existingPlayer.username =
-                username;
+                username.trim().slice(0, 100);
 
         }
 
@@ -537,7 +519,7 @@ function joinRoom(
         ) {
 
             existingPlayer.telegramId =
-                telegramId;
+                telegramId.trim().slice(0, 100);
 
         }
 
@@ -547,15 +529,17 @@ function joinRoom(
 
 
     /*
-    Игрок не должен
-    находиться в другой комнате.
+    Нельзя войти в другую
+    комнату, если игрок
+    уже где-то находится.
     */
 
-    if (
-        hasPlayer(
+    const currentRoom =
+        getPlayerRoom(
             playerId
-        )
-    ) {
+        );
+
+    if (currentRoom) {
 
         throw new Error(
             "Player is already in a room"
@@ -563,10 +547,6 @@ function joinRoom(
 
     }
 
-
-    /*
-    Проверяем лимит.
-    */
 
     if (
         room.players.length >=
@@ -640,20 +620,9 @@ function leaveRoom(
 
 
     if (!room) {
-
         return null;
-
     }
 
-
-    /*
-    Во время игры server.js
-    не позволяет использовать
-    leaveRoom.
-
-    Здесь дополнительная
-    защита тоже остаётся.
-    */
 
     if (
         room.status ===
@@ -678,9 +647,7 @@ function leaveRoom(
     if (
         index === -1
     ) {
-
         return room;
-
     }
 
 
@@ -692,7 +659,7 @@ function leaveRoom(
 
     /*
     Если вышел хост —
-    назначаем нового хоста.
+    назначаем нового.
     */
 
     if (
@@ -700,22 +667,13 @@ function leaveRoom(
         playerId
     ) {
 
-        if (
+        room.hostPlayerId =
             room.players.length > 0
-        ) {
-
-            room.hostPlayerId =
-                room.players[0].playerId;
-
-        }
+                ? room.players[0].playerId
+                : null;
 
     }
 
-
-    /*
-    Если игроков не осталось —
-    удаляем комнату.
-    */
 
     if (
         room.players.length === 0
@@ -761,7 +719,6 @@ function setReady(
             roomId
         );
 
-
     if (!room) {
 
         throw new Error(
@@ -769,7 +726,6 @@ function setReady(
         );
 
     }
-
 
     if (
         room.status !==
@@ -782,14 +738,12 @@ function setReady(
 
     }
 
-
     const player =
         room.players.find(
             p =>
                 p.playerId ===
                 playerId
         );
-
 
     if (!player) {
 
@@ -799,7 +753,6 @@ function setReady(
 
     }
 
-
     player.ready =
         Boolean(
             ready
@@ -807,7 +760,6 @@ function setReady(
 
     player.lastSeenAt =
         Date.now();
-
 
     return room;
 
@@ -830,7 +782,6 @@ function toggleReady(
             roomId
         );
 
-
     if (!room) {
 
         throw new Error(
@@ -838,7 +789,6 @@ function toggleReady(
         );
 
     }
-
 
     if (
         room.status !==
@@ -851,14 +801,12 @@ function toggleReady(
 
     }
 
-
     const player =
         room.players.find(
             p =>
                 p.playerId ===
                 playerId
         );
-
 
     if (!player) {
 
@@ -868,13 +816,11 @@ function toggleReady(
 
     }
 
-
     player.ready =
         !player.ready;
 
     player.lastSeenAt =
         Date.now();
-
 
     return room;
 
@@ -895,72 +841,38 @@ function canStartRoom(
         return false;
     }
 
-
     if (
         room.status !==
         ROOM_STATUS.LOBBY
     ) {
-
         return false;
-
     }
-
 
     if (
         room.players.length <
         MIN_PLAYERS
     ) {
-
         return false;
-
     }
-
 
     if (
         room.players.length >
         MAX_PLAYERS
     ) {
-
         return false;
-
     }
 
-
-    /*
-    Все игроки должны
-    быть подключены.
-    */
 
     for (
         const player of room.players
     ) {
 
-        if (
-            !player.connected
-        ) {
-
+        if (!player.connected) {
             return false;
-
         }
 
-    }
-
-
-    /*
-    Все игроки должны
-    быть готовы.
-    */
-
-    for (
-        const player of room.players
-    ) {
-
-        if (
-            !player.ready
-        ) {
-
+        if (!player.ready) {
             return false;
-
         }
 
     }
@@ -987,7 +899,6 @@ function startRoom(
             roomId
         );
 
-
     if (!room) {
 
         throw new Error(
@@ -995,7 +906,6 @@ function startRoom(
         );
 
     }
-
 
     if (
         room.status !==
@@ -1008,12 +918,6 @@ function startRoom(
 
     }
 
-
-    /*
-    Только хост
-    может запускать игру.
-    */
-
     if (
         room.hostPlayerId !==
         playerId
@@ -1024,7 +928,6 @@ function startRoom(
         );
 
     }
-
 
     if (
         !canStartRoom(
@@ -1038,14 +941,6 @@ function startRoom(
 
     }
 
-
-    /*
-    Создаём игровые данные
-    из игроков комнаты.
-
-    game.js остаётся
-    авторитетным игровым движком.
-    */
 
     const gamePlayers =
         room.players.map(
@@ -1068,7 +963,6 @@ function startRoom(
 
 
     let game;
-
 
     try {
 
@@ -1110,6 +1004,9 @@ function startRoom(
     room.startedAt =
         Date.now();
 
+    room.finishedAt =
+        null;
+
 
     console.log(
         `[ROOMS] Game started in room ${room.roomId}`
@@ -1138,15 +1035,21 @@ function updateRoomStatus(
 
     if (
         room.game &&
-        room.game.status ===
-        "finished"
+        room.game.status === "finished"
     ) {
 
-        room.status =
-            ROOM_STATUS.FINISHED;
+        if (
+            room.status !==
+            ROOM_STATUS.FINISHED
+        ) {
 
-        room.finishedAt =
-            Date.now();
+            room.status =
+                ROOM_STATUS.FINISHED;
+
+            room.finishedAt =
+                Date.now();
+
+        }
 
     }
 
@@ -1171,11 +1074,8 @@ function disconnectPlayer(
             playerId
         );
 
-
     if (!room) {
-
         return null;
-
     }
 
 
@@ -1186,11 +1086,8 @@ function disconnectPlayer(
                 playerId
         );
 
-
     if (!player) {
-
         return room;
-
     }
 
 
@@ -1202,16 +1099,22 @@ function disconnectPlayer(
 
 
     /*
-    Игрок автоматически
-    становится неготовым.
+    В лобби disconnected игрок
+    больше не считается ready.
 
-    Это особенно важно
-    для лобби.
-
+    В активной игре ready уже
+    не имеет значения.
     */
 
-    player.ready =
-        false;
+    if (
+        room.status ===
+        ROOM_STATUS.LOBBY
+    ) {
+
+        player.ready =
+            false;
+
+    }
 
 
     return room;
@@ -1234,11 +1137,8 @@ function reconnectPlayer(
             playerId
         );
 
-
     if (!room) {
-
         return null;
-
     }
 
 
@@ -1249,11 +1149,8 @@ function reconnectPlayer(
                 playerId
         );
 
-
     if (!player) {
-
         return null;
-
     }
 
 
@@ -1272,12 +1169,6 @@ function reconnectPlayer(
 /*
 =========================================================
 PUBLIC ROOM VIEW
-=========================================================
-
-Никогда не отдаём game,
-telegramId и другие внутренние
-данные.
-
 =========================================================
 */
 
@@ -1357,31 +1248,19 @@ function getPublicRooms() {
         const room of roomsMap.values()
     ) {
 
-        /*
-        В публичном лобби показываем
-        только комнаты, в которые
-        ещё можно войти.
-        */
-
         if (
             room.status !==
             ROOM_STATUS.LOBBY
         ) {
-
             continue;
-
         }
-
 
         if (
             room.players.length >=
             MAX_PLAYERS
         ) {
-
             continue;
-
         }
-
 
         result.push(
             getPublicRoom(
@@ -1414,15 +1293,6 @@ function cleanupEmptyRooms() {
             room
         ] of roomsMap.entries()
     ) {
-
-        /*
-        Удаляем только полностью
-        пустые комнаты.
-
-        Отключённых игроков
-        не удаляем — они могут
-        переподключиться.
-        */
 
         if (
             room.players.length === 0
