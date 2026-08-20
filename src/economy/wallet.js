@@ -6,6 +6,27 @@ HEAVY LUX CARD
 ECONOMY
 WALLET
 =========================================================
+
+Ответственность:
+
+- получение кошелька;
+- резервирование средств;
+- освобождение резерва;
+- перевод средств;
+- журналирование денежных операций.
+
+ВАЖНО:
+
+wallet.js НЕ определяет победителя игры.
+
+Финальное закрытие игры выполняет:
+
+    src/economy/settlement.js
+
+Все изменения денег выполняются внутри PostgreSQL
+transaction + row locking.
+
+=========================================================
 */
 
 const crypto = require("crypto");
@@ -28,13 +49,37 @@ function makeTransactionId() {
 }
 
 
+function normalizeId(
+    value
+) {
+
+    if (
+        value === undefined ||
+        value === null
+    ) {
+
+        return null;
+
+    }
+
+    const id =
+        String(
+            value
+        ).trim();
+
+    return id || null;
+
+}
+
+
 function toSafeInteger(
-    value,
-    fallback = 0
+    value
 ) {
 
     const number =
-        Number(value);
+        Number(
+            value
+        );
 
     if (
         !Number.isSafeInteger(
@@ -42,7 +87,7 @@ function toSafeInteger(
         )
     ) {
 
-        return fallback;
+        return null;
 
     }
 
@@ -51,9 +96,82 @@ function toSafeInteger(
 }
 
 
+function requirePositiveAmount(
+    amount
+) {
+
+    const value =
+        toSafeInteger(
+            amount
+        );
+
+    if (
+        value === null ||
+        value <= 0
+    ) {
+
+        throw new Error(
+            "Amount must be a positive safe integer"
+        );
+
+    }
+
+    return value;
+
+}
+
+
+function requireGameId(
+    gameId
+) {
+
+    const id =
+        normalizeId(
+            gameId
+        );
+
+    if (!id) {
+
+        throw new Error(
+            "gameId is required"
+        );
+
+    }
+
+    return id;
+
+}
+
+
+function requirePlayerId(
+    playerId
+) {
+
+    const id =
+        normalizeId(
+            playerId
+        );
+
+    if (!id) {
+
+        throw new Error(
+            "playerId is required"
+        );
+
+    }
+
+    return id;
+
+}
+
+
 /*
 =========================================================
 GET WALLET
+=========================================================
+
+Чтение не требует BEGIN/COMMIT.
+
 =========================================================
 */
 
@@ -61,55 +179,75 @@ async function getWallet(
     playerId
 ) {
 
-    return withTransaction(
-        async client => {
+    const id =
+        requirePlayerId(
+            playerId
+        );
 
-            const result =
-                await client.query(
-                    `
-                    SELECT
-                        player_id,
-                        balance,
-                        reserved_balance
-                    FROM players
-                    WHERE player_id = $1
-                    LIMIT 1
-                    `,
-                    [
-                        String(
-                            playerId
-                        )
-                    ]
-                );
 
-            const player =
-                result.rows[0];
+    const result =
+        await withTransaction(
+            async client => {
 
-            if (!player) {
+                const playerResult =
+                    await client.query(
+                        `
+                        SELECT
+                            player_id,
+                            balance,
+                            reserved_balance
+                        FROM players
+                        WHERE player_id = $1
+                        LIMIT 1
+                        `,
+                        [
+                            id
+                        ]
+                    );
 
-                return null;
 
-            }
+                const player =
+                    playerResult.rows[0];
 
-            return {
 
-                playerId:
-                    player.player_id,
+                if (!player) {
 
-                balance:
+                    return null;
+
+                }
+
+
+                const balance =
                     Number(
                         player.balance
-                    ),
+                    );
 
-                reservedBalance:
+                const reservedBalance =
                     Number(
                         player.reserved_balance
-                    )
+                    );
 
-            };
 
-        }
-    );
+                return {
+
+                    playerId:
+                        player.player_id,
+
+                    balance,
+
+                    reservedBalance,
+
+                    availableBalance:
+                        balance -
+                        reservedBalance
+
+                };
+
+            }
+        );
+
+
+    return result;
 
 }
 
@@ -117,6 +255,21 @@ async function getWallet(
 /*
 =========================================================
 RESERVE BALANCE
+=========================================================
+
+Резерв НЕ уменьшает balance.
+
+Например:
+
+balance = 1000
+reserved = 0
+
+reserve 300
+
+balance = 1000
+reserved = 300
+available = 700
+
 =========================================================
 */
 
@@ -126,28 +279,20 @@ async function reserveBalance(
     gameId
 ) {
 
+    const id =
+        requirePlayerId(
+            playerId
+        );
+
     const value =
-        toSafeInteger(
+        requirePositiveAmount(
             amount
         );
 
-    if (
-        value <= 0
-    ) {
-
-        throw new Error(
-            "Invalid reservation amount"
+    const game =
+        requireGameId(
+            gameId
         );
-
-    }
-
-    if (!gameId) {
-
-        throw new Error(
-            "gameId is required"
-        );
-
-    }
 
 
     return withTransaction(
@@ -159,7 +304,7 @@ async function reserveBalance(
             -------------------------------------------------
             */
 
-            const playerResult =
+            const result =
                 await client.query(
                     `
                     SELECT
@@ -171,14 +316,14 @@ async function reserveBalance(
                     FOR UPDATE
                     `,
                     [
-                        String(
-                            playerId
-                        )
+                        id
                     ]
                 );
 
+
             const player =
-                playerResult.rows[0];
+                result.rows[0];
+
 
             if (!player) {
 
@@ -200,15 +345,10 @@ async function reserveBalance(
                 );
 
 
-            /*
-            -------------------------------------------------
-            CHECK AVAILABLE BALANCE
-            -------------------------------------------------
-            */
-
             const available =
                 balance -
                 reserved;
+
 
             if (
                 available <
@@ -224,7 +364,7 @@ async function reserveBalance(
 
             /*
             -------------------------------------------------
-            UPDATE RESERVED BALANCE
+            UPDATE RESERVE
             -------------------------------------------------
             */
 
@@ -233,6 +373,7 @@ async function reserveBalance(
                     `
                     UPDATE players
                     SET
+
                         reserved_balance =
                             reserved_balance + $2,
 
@@ -247,10 +388,7 @@ async function reserveBalance(
                         reserved_balance
                     `,
                     [
-                        String(
-                            playerId
-                        ),
-
+                        id,
                         value
                     ]
                 );
@@ -268,6 +406,7 @@ async function reserveBalance(
 
             const transactionId =
                 makeTransactionId();
+
 
             await client.query(
                 `
@@ -295,26 +434,35 @@ async function reserveBalance(
                 [
                     transactionId,
 
-                    String(
-                        gameId
-                    ),
+                    game,
 
-                    String(
-                        playerId
-                    ),
+                    id,
 
                     value,
 
                     balance,
 
                     JSON.stringify({
+
                         reservedBefore:
                             reserved,
 
                         reservedAfter:
                             Number(
                                 updated.reserved_balance
+                            ),
+
+                        availableBefore:
+                            available,
+
+                        availableAfter:
+                            Number(
+                                updated.balance
+                            ) -
+                            Number(
+                                updated.reserved_balance
                             )
+
                     })
                 ]
             );
@@ -337,6 +485,14 @@ async function reserveBalance(
                         updated.reserved_balance
                     ),
 
+                availableBalance:
+                    Number(
+                        updated.balance
+                    ) -
+                    Number(
+                        updated.reserved_balance
+                    ),
+
                 reservedAmount:
                     value
 
@@ -352,6 +508,13 @@ async function reserveBalance(
 =========================================================
 RELEASE RESERVED BALANCE
 =========================================================
+
+Возвращает сумму из reserved_balance
+в доступный баланс.
+
+Сам balance при этом НЕ меняется.
+
+=========================================================
 */
 
 async function releaseReservedBalance(
@@ -360,34 +523,26 @@ async function releaseReservedBalance(
     gameId
 ) {
 
+    const id =
+        requirePlayerId(
+            playerId
+        );
+
     const value =
-        toSafeInteger(
+        requirePositiveAmount(
             amount
         );
 
-    if (
-        value <= 0
-    ) {
-
-        throw new Error(
-            "Invalid release amount"
+    const game =
+        requireGameId(
+            gameId
         );
-
-    }
-
-    if (!gameId) {
-
-        throw new Error(
-            "gameId is required"
-        );
-
-    }
 
 
     return withTransaction(
         async client => {
 
-            const playerResult =
+            const result =
                 await client.query(
                     `
                     SELECT
@@ -399,14 +554,14 @@ async function releaseReservedBalance(
                     FOR UPDATE
                     `,
                     [
-                        String(
-                            playerId
-                        )
+                        id
                     ]
                 );
 
+
             const player =
-                playerResult.rows[0];
+                result.rows[0];
+
 
             if (!player) {
 
@@ -445,6 +600,7 @@ async function releaseReservedBalance(
                     `
                     UPDATE players
                     SET
+
                         reserved_balance =
                             reserved_balance - $2,
 
@@ -459,10 +615,7 @@ async function releaseReservedBalance(
                         reserved_balance
                     `,
                     [
-                        String(
-                            playerId
-                        ),
-
+                        id,
                         value
                     ]
                 );
@@ -502,19 +655,16 @@ async function releaseReservedBalance(
                 [
                     transactionId,
 
-                    String(
-                        gameId
-                    ),
+                    game,
 
-                    String(
-                        playerId
-                    ),
+                    id,
 
                     value,
 
                     balance,
 
                     JSON.stringify({
+
                         reservedBefore:
                             reserved,
 
@@ -522,6 +672,7 @@ async function releaseReservedBalance(
                             Number(
                                 updated.reserved_balance
                             )
+
                     })
                 ]
             );
@@ -544,6 +695,14 @@ async function releaseReservedBalance(
                         updated.reserved_balance
                     ),
 
+                availableBalance:
+                    Number(
+                        updated.balance
+                    ) -
+                    Number(
+                        updated.reserved_balance
+                    ),
+
                 releasedAmount:
                     value
 
@@ -557,7 +716,18 @@ async function releaseReservedBalance(
 
 /*
 =========================================================
-TRANSFER / PAYOUT
+TRANSFER BALANCE
+=========================================================
+
+Обычный перевод доступных средств.
+
+ВАЖНО:
+
+sender.balance - sender.reserved_balance
+должен быть >= amount.
+
+Получатель получает amount.
+
 =========================================================
 */
 
@@ -568,32 +738,30 @@ async function transferBalance(
     gameId
 ) {
 
+    const fromId =
+        requirePlayerId(
+            fromPlayerId
+        );
+
+    const toId =
+        requirePlayerId(
+            toPlayerId
+        );
+
     const value =
-        toSafeInteger(
+        requirePositiveAmount(
             amount
         );
 
-    if (
-        value <= 0
-    ) {
-
-        throw new Error(
-            "Invalid transfer amount"
+    const game =
+        requireGameId(
+            gameId
         );
 
-    }
-
-    if (!gameId) {
-
-        throw new Error(
-            "gameId is required"
-        );
-
-    }
 
     if (
-        String(fromPlayerId) ===
-        String(toPlayerId)
+        fromId ===
+        toId
     ) {
 
         throw new Error(
@@ -608,13 +776,17 @@ async function transferBalance(
 
             /*
             -------------------------------------------------
-            LOCK PLAYERS IN DETERMINISTIC ORDER
+            LOCK PLAYERS
             -------------------------------------------------
+
+            Сортировка ID предотвращает deadlock,
+            если два перевода происходят одновременно
+            в противоположных направлениях.
             */
 
             const ids = [
-                String(fromPlayerId),
-                String(toPlayerId)
+                fromId,
+                toId
             ].sort();
 
 
@@ -637,7 +809,8 @@ async function transferBalance(
 
 
             if (
-                playersResult.rows.length !== 2
+                playersResult.rows.length !==
+                2
             ) {
 
                 throw new Error(
@@ -660,16 +833,12 @@ async function transferBalance(
 
             const sender =
                 players.get(
-                    String(
-                        fromPlayerId
-                    )
+                    fromId
                 );
 
             const receiver =
                 players.get(
-                    String(
-                        toPlayerId
-                    )
+                    toId
                 );
 
 
@@ -688,12 +857,6 @@ async function transferBalance(
                     receiver.balance
                 );
 
-
-            /*
-            -------------------------------------------------
-            AVAILABLE BALANCE
-            -------------------------------------------------
-            */
 
             const available =
                 senderBalance -
@@ -718,235 +881,4 @@ async function transferBalance(
             -------------------------------------------------
             */
 
-            await client.query(
-                `
-                UPDATE players
-                SET
-                    balance =
-                        balance - $2,
-
-                    updated_at =
-                        NOW()
-
-                WHERE player_id = $1
-                `,
-                [
-                    String(
-                        fromPlayerId
-                    ),
-
-                    value
-                ]
-            );
-
-
-            /*
-            -------------------------------------------------
-            UPDATE RECEIVER
-            -------------------------------------------------
-            */
-
-            await client.query(
-                `
-                UPDATE players
-                SET
-                    balance =
-                        balance + $2,
-
-                    updated_at =
-                        NOW()
-
-                WHERE player_id = $1
-                `,
-                [
-                    String(
-                        toPlayerId
-                    ),
-
-                    value
-                ]
-            );
-
-
-            /*
-            -------------------------------------------------
-            LOG SENDER
-            -------------------------------------------------
-            */
-
-            const senderTransactionId =
-                makeTransactionId();
-
-            await client.query(
-                `
-                INSERT INTO game_transactions (
-                    transaction_id,
-                    game_id,
-                    player_id,
-                    type,
-                    amount,
-                    balance_before,
-                    balance_after,
-                    metadata
-                )
-                VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    'transfer_out',
-                    $4,
-                    $5,
-                    $6,
-                    $7::jsonb
-                )
-                `,
-                [
-                    senderTransactionId,
-
-                    String(
-                        gameId
-                    ),
-
-                    String(
-                        fromPlayerId
-                    ),
-
-                    value,
-
-                    senderBalance,
-
-                    senderBalance - value,
-
-                    JSON.stringify({
-                        toPlayerId:
-                            String(
-                                toPlayerId
-                            )
-                    })
-                ]
-            );
-
-
-            /*
-            -------------------------------------------------
-            LOG RECEIVER
-            -------------------------------------------------
-            */
-
-            const receiverTransactionId =
-                makeTransactionId();
-
-            await client.query(
-                `
-                INSERT INTO game_transactions (
-                    transaction_id,
-                    game_id,
-                    player_id,
-                    type,
-                    amount,
-                    balance_before,
-                    balance_after,
-                    metadata
-                )
-                VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    'transfer_in',
-                    $4,
-                    $5,
-                    $6,
-                    $7::jsonb
-                )
-                `,
-                [
-                    receiverTransactionId,
-
-                    String(
-                        gameId
-                    ),
-
-                    String(
-                        toPlayerId
-                    ),
-
-                    value,
-
-                    receiverBalance,
-
-                    receiverBalance + value,
-
-                    JSON.stringify({
-                        fromPlayerId:
-                            String(
-                                fromPlayerId
-                            )
-                    })
-                ]
-            );
-
-
-            return {
-
-                amount:
-                    value,
-
-                from: {
-
-                    playerId:
-                        String(
-                            fromPlayerId
-                        ),
-
-                    balance:
-                        senderBalance -
-                        value
-
-                },
-
-                to: {
-
-                    playerId:
-                        String(
-                            toPlayerId
-                        ),
-
-                    balance:
-                        receiverBalance +
-                        value
-
-                },
-
-                transactionIds: [
-
-                    senderTransactionId,
-
-                    receiverTransactionId
-
-                ]
-
-            };
-
-        }
-    );
-
-}
-
-
-/*
-=========================================================
-EXPORTS
-=========================================================
-*/
-
-module.exports = {
-
-    getWallet,
-
-    reserveBalance,
-
-    releaseReservedBalance,
-
-    transferBalance
-
-};
+            const
