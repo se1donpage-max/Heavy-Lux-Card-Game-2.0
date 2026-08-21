@@ -27,16 +27,6 @@
 
     <link rel="stylesheet" href="/style.css">
 
-    <!-- =====================================================
-         TELEGRAM MINI APP
-    ====================================================== -->
-
-    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
-
-    <!-- =====================================================
-         SOCKET.IO
-    ====================================================== -->
-
     <script src="/socket.io/socket.io.js"></script>
 </head>
 
@@ -52,6 +42,7 @@
         id="loadingScreen"
         class="screen loading-screen"
     >
+
         <div class="loading-logo">
 
             <div class="logo-mark">
@@ -77,11 +68,12 @@
         <div class="loading-text">
             Подключение...
         </div>
+
     </section>
 
 
     <!-- =====================================================
-         AUTH / START
+         AUTH
     ====================================================== -->
 
     <section
@@ -111,6 +103,7 @@
 
             </div>
 
+
             <div class="auth-card">
 
                 <div class="auth-card-title">
@@ -127,6 +120,7 @@
                     class="primary-button"
                     type="button"
                 >
+
                     <span class="button-icon">
                         TG
                     </span>
@@ -134,6 +128,7 @@
                     <span>
                         Войти через Telegram
                     </span>
+
                 </button>
 
                 <button
@@ -146,12 +141,19 @@
 
             </div>
 
+
             <div class="auth-footer">
+
                 HEAVY LUX CARD
+
                 <span>•</span>
+
                 36 КАРТ
+
                 <span>•</span>
+
                 1 × 1
+
             </div>
 
         </div>
@@ -160,7 +162,7 @@
 
 
     <!-- =====================================================
-         MAIN APP
+         MAIN APPLICATION
     ====================================================== -->
 
     <main
@@ -168,7 +170,10 @@
         class="screen app-screen hidden"
     >
 
-        <!-- TOP BAR -->
+
+        <!-- =================================================
+             TOP BAR
+        ================================================== -->
 
         <header class="topbar">
 
@@ -178,10 +183,13 @@
                 type="button"
                 aria-label="Профиль"
             >
+
                 <span class="avatar">
                     ?
                 </span>
+
             </button>
+
 
             <div class="topbar-brand">
 
@@ -195,6 +203,7 @@
 
             </div>
 
+
             <button
                 id="settingsButton"
                 class="icon-button"
@@ -207,7 +216,9 @@
         </header>
 
 
-        <!-- PLAYER SUMMARY -->
+        <!-- =================================================
+             PLAYER SUMMARY
+        ================================================== -->
 
         <section class="player-summary">
 
@@ -220,6 +231,7 @@
                     ?
                 </div>
 
+
                 <div class="player-data">
 
                     <div
@@ -228,6 +240,7 @@
                     >
                         Игрок
                     </div>
+
 
                     <div class="player-level-row">
 
@@ -241,12 +254,13 @@
 
                     </div>
 
+
                     <div class="xp-bar">
 
                         <div
                             id="xpProgress"
                             class="xp-progress"
-                            style="width: 0%"
+                            style="width:0%"
                         ></div>
 
                     </div>
@@ -254,6 +268,7 @@
                 </div>
 
             </div>
+
 
             <div class="balance-block">
 
@@ -269,7 +284,7 @@
                 </div>
 
                 <div class="balance-currency">
-                    LUX
+                    HC
                 </div>
 
             </div>
@@ -311,6 +326,7 @@
                         class="play-button"
                         type="button"
                     >
+
                         <span>
                             ИГРАТЬ
                         </span>
@@ -318,6 +334,7 @@
                         <span class="play-arrow">
                             →
                         </span>
+
                     </button>
 
                 </div>
@@ -380,6 +397,7 @@
 
                 </div>
 
+
                 <div class="stat-card">
 
                     <span class="stat-label">
@@ -394,6 +412,7 @@
                     </strong>
 
                 </div>
+
 
                 <div class="stat-card">
 
@@ -448,10 +467,13 @@
 
             </div>
 
+
             <div
                 id="stakesContainer"
                 class="stakes-list"
-            ></div>
+            >
+            </div>
+
 
             <div class="stake-warning">
 
@@ -503,6 +525,7 @@
                     —
                 </div>
 
+
                 <div class="search-animation">
 
                     <div class="search-ring ring-1"></div>
@@ -515,6 +538,7 @@
 
                 </div>
 
+
                 <div
                     id="matchingStatus"
                     class="matching-status"
@@ -522,12 +546,14 @@
                     Ищем игрока...
                 </div>
 
+
                 <div
                     id="matchingPlayers"
                     class="matching-players"
                 >
                     1 / 2
                 </div>
+
 
                 <button
                     id="cancelMatchButton"
@@ -543,7 +569,7 @@
 
 
         <!-- =================================================
-             GAME TABLE
+             GAME
         ================================================== -->
 
         <section
@@ -569,15 +595,19 @@
                         </strong>
 
                         <span>
+
                             <b id="opponentCards">
                                 6
                             </b>
+
                             карт
+
                         </span>
 
                     </div>
 
                 </div>
+
 
                 <div class="game-pot">
 
@@ -612,6 +642,7 @@
 
                     </div>
 
+
                     <div
                         id="deckCounter"
                         class="deck-counter"
@@ -621,10 +652,12 @@
 
                 </div>
 
+
                 <div
                     id="tableCards"
                     class="table-cards"
-                ></div>
+                >
+                </div>
 
             </div>
 
@@ -640,7 +673,8 @@
             <div
                 id="playerHand"
                 class="player-hand"
-            ></div>
+            >
+            </div>
 
 
             <div class="game-actions">
@@ -701,12 +735,14 @@
                     ?
                 </div>
 
+
                 <div
                     id="profileName"
                     class="profile-name"
                 >
                     Игрок
                 </div>
+
 
                 <div
                     id="profileUsername"
@@ -715,12 +751,15 @@
                     @username
                 </div>
 
+
                 <div class="profile-level">
+
                     LEVEL
 
                     <strong id="profileLevel">
                         1
                     </strong>
+
                 </div>
 
             </div>
@@ -740,6 +779,7 @@
 
                 </div>
 
+
                 <div>
 
                     <span>
@@ -751,6 +791,7 @@
                     </strong>
 
                 </div>
+
 
                 <div>
 
@@ -777,6 +818,7 @@
 
                 </div>
 
+
                 <div class="profile-row">
 
                     <span>
@@ -784,10 +826,11 @@
                     </span>
 
                     <strong id="profileBalance">
-                        0 LUX
+                        0 HC
                     </strong>
 
                 </div>
+
 
                 <div class="profile-row">
 
@@ -796,8 +839,319 @@
                     </span>
 
                     <strong id="profileIncome">
-                        0 LUX
+                        0 HC
                     </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AUTO HUB
+        ================================================== -->
+
+        <section
+            id="autoView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="home"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div>
+
+                    <div class="view-title">
+                        АВТОМОБИЛИ
+                    </div>
+
+                    <div class="view-subtitle">
+                        Автомобильная система Heavy Lux
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="auto-brand-card">
+
+                <div class="auto-brand-logo">
+                    HM
+                </div>
+
+                <div class="auto-brand-info">
+
+                    <strong>
+                        HEAVY MOTORS
+                    </strong>
+
+                    <span>
+                        Автомобили для города
+                    </span>
+
+                </div>
+
+                <button
+                    id="motorsButton"
+                    class="auto-open-button"
+                    type="button"
+                >
+                    ОТКРЫТЬ
+                </button>
+
+            </div>
+
+
+            <div class="auto-brand-card exclusive-brand-card">
+
+                <div class="auto-brand-logo">
+                    HX
+                </div>
+
+                <div class="auto-brand-info">
+
+                    <strong>
+                        HEAVY EXCLUSIVE
+                    </strong>
+
+                    <span>
+                        Редкие и эксклюзивные автомобили
+                    </span>
+
+                </div>
+
+                <button
+                    id="exclusiveButton"
+                    class="auto-open-button"
+                    type="button"
+                >
+                    ОТКРЫТЬ
+                </button>
+
+            </div>
+
+
+            <div class="auto-brand-card garage-brand-card">
+
+                <div class="auto-brand-logo">
+                    G
+                </div>
+
+                <div class="auto-brand-info">
+
+                    <strong>
+                        МОЙ ГАРАЖ
+                    </strong>
+
+                    <span>
+                        Твои приобретённые автомобили
+                    </span>
+
+                </div>
+
+                <button
+                    id="garageButton"
+                    class="auto-open-button"
+                    type="button"
+                >
+                    ОТКРЫТЬ
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HEAVY MOTORS
+        ================================================== -->
+
+        <section
+            id="motorsView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="auto"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div>
+
+                    <div class="view-title">
+                        HEAVY MOTORS
+                    </div>
+
+                    <div class="view-subtitle">
+                        Основной автосалон
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="dealer-hero motors-hero">
+
+                <div class="dealer-logo">
+                    HM
+                </div>
+
+                <div>
+
+                    <strong>
+                        HEAVY MOTORS
+                    </strong>
+
+                    <span>
+                        Выбери автомобиль для своего гаража
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="section-heading">
+
+                <span>
+                    АВТОМОБИЛИ
+                </span>
+
+                <small>
+                    MOTORS
+                </small>
+
+            </div>
+
+
+            <div
+                id="motorsContainer"
+                class="vehicle-grid"
+            >
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        🚘
+                    </div>
+
+                    <strong>
+                        Загрузка автомобилей
+                    </strong>
+
+                    <span>
+                        Получаем каталог Heavy Motors...
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HEAVY EXCLUSIVE
+        ================================================== -->
+
+        <section
+            id="exclusiveView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="auto"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div>
+
+                    <div class="view-title">
+                        HEAVY EXCLUSIVE
+                    </div>
+
+                    <div class="view-subtitle">
+                        Эксклюзивный автосалон
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="dealer-hero exclusive-hero">
+
+                <div class="dealer-logo">
+                    HX
+                </div>
+
+                <div>
+
+                    <strong>
+                        HEAVY EXCLUSIVE
+                    </strong>
+
+                    <span>
+                        Автомобили ограниченной серии
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="section-heading">
+
+                <span>
+                    EXCLUSIVE
+                </span>
+
+                <small>
+                    LIMITED
+                </small>
+
+            </div>
+
+
+            <div
+                id="exclusiveContainer"
+                class="vehicle-grid"
+            >
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        👑
+                    </div>
+
+                    <strong>
+                        Загрузка автомобилей
+                    </strong>
+
+                    <span>
+                        Получаем каталог Heavy Exclusive...
+                    </span>
 
                 </div>
 
@@ -819,7 +1173,7 @@
 
                 <button
                     class="back-button"
-                    data-back="home"
+                    data-back="auto"
                     type="button"
                 >
                     ←
@@ -828,7 +1182,7 @@
                 <div>
 
                     <div class="view-title">
-                        ГАРАЖ
+                        МОЙ ГАРАЖ
                     </div>
 
                     <div class="view-subtitle">
@@ -838,6 +1192,36 @@
                 </div>
 
             </div>
+
+
+            <div class="garage-summary">
+
+                <div>
+
+                    <span>
+                        АВТОМОБИЛЕЙ
+                    </span>
+
+                    <strong id="garageCount">
+                        0
+                    </strong>
+
+                </div>
+
+                <div>
+
+                    <span>
+                        БАЛАНС
+                    </span>
+
+                    <strong id="garageBalance">
+                        0 HC
+                    </strong>
+
+                </div>
+
+            </div>
+
 
             <div
                 id="garageContainer"
@@ -867,7 +1251,7 @@
 
 
         <!-- =================================================
-             SETTINGS
+             SETTINGS / MORE
         ================================================== -->
 
         <section
@@ -886,9 +1270,14 @@
                 </button>
 
                 <div class="view-title">
-                    НАСТРОЙКИ
+                    ЕЩЁ
                 </div>
 
+            </div>
+
+
+            <div class="settings-section-title">
+                НАСТРОЙКИ
             </div>
 
 
@@ -899,6 +1288,7 @@
                     type="button"
                     id="soundToggle"
                 >
+
                     <span>
                         Звук
                     </span>
@@ -906,13 +1296,16 @@
                     <strong>
                         ВКЛ
                     </strong>
+
                 </button>
+
 
                 <button
                     class="settings-row"
                     type="button"
                     id="vibrationToggle"
                 >
+
                     <span>
                         Вибрация
                     </span>
@@ -920,13 +1313,16 @@
                     <strong>
                         ВКЛ
                     </strong>
+
                 </button>
+
 
                 <button
                     class="settings-row"
                     type="button"
                     id="logoutButton"
                 >
+
                     <span>
                         Выйти
                     </span>
@@ -934,9 +1330,11 @@
                     <strong>
                         →
                     </strong>
+
                 </button>
 
             </div>
+
 
             <div class="settings-version">
 
@@ -976,6 +1374,7 @@
 
             </button>
 
+
             <button
                 class="nav-item"
                 data-view="profile"
@@ -992,21 +1391,23 @@
 
             </button>
 
+
             <button
                 class="nav-item"
-                data-view="garage"
+                data-view="auto"
                 type="button"
             >
 
                 <span class="nav-icon">
-                    ▣
+                    🚘
                 </span>
 
                 <span>
-                    ГАРАЖ
+                    АВТО
                 </span>
 
             </button>
+
 
             <button
                 class="nav-item"
@@ -1051,12 +1452,14 @@
                 ×
             </button>
 
+
             <div
                 id="modalIcon"
                 class="modal-icon"
             >
                 !
             </div>
+
 
             <div
                 id="modalTitle"
@@ -1065,12 +1468,14 @@
                 Сообщение
             </div>
 
+
             <div
                 id="modalText"
                 class="modal-text"
             >
                 —
             </div>
+
 
             <button
                 id="modalConfirm"
@@ -1096,18 +1501,33 @@
 
 
     <!-- =====================================================
-         HEAVY LUX CONFIG
+         GLOBAL CONFIG
     ====================================================== -->
 
     <script>
+
         window.HEAVY_LUX = {
-            version: "BASE_V3",
+
+            version: "BASE_V4",
+
             game: "durak",
+
             deck: 36,
+
             players: 2,
+
             ai: false,
-            bot: false
+
+            bot: false,
+
+            cars: true,
+
+            heavyMotors: true,
+
+            heavyExclusive: true
+
         };
+
     </script>
 
 
@@ -1116,8 +1536,6 @@
     ====================================================== -->
 
     <script src="/app.js"></script>
-
-</div>
 
 </body>
 </html>
