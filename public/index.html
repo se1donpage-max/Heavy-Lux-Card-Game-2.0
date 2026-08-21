@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -26,6 +27,16 @@
 
     <link rel="stylesheet" href="/style.css">
 
+    <!-- =====================================================
+         TELEGRAM MINI APP
+    ====================================================== -->
+
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+
+    <!-- =====================================================
+         SOCKET.IO
+    ====================================================== -->
+
     <script src="/socket.io/socket.io.js"></script>
 </head>
 
@@ -42,7 +53,10 @@
         class="screen loading-screen"
     >
         <div class="loading-logo">
-            <div class="logo-mark">HL</div>
+
+            <div class="logo-mark">
+                HL
+            </div>
 
             <div class="logo-title">
                 HEAVY LUX
@@ -51,6 +65,7 @@
             <div class="logo-subtitle">
                 CARD
             </div>
+
         </div>
 
         <div class="loading-indicator">
@@ -169,6 +184,7 @@
             </button>
 
             <div class="topbar-brand">
+
                 <div class="topbar-title">
                     HEAVY LUX
                 </div>
@@ -176,6 +192,7 @@
                 <div class="topbar-subtitle">
                     CARD
                 </div>
+
             </div>
 
             <button
@@ -308,8 +325,6 @@
             </div>
 
 
-            <!-- QUICK INFO -->
-
             <div class="section-heading">
 
                 <span>
@@ -321,6 +336,7 @@
                 </small>
 
             </div>
+
 
             <div class="mode-card">
 
@@ -346,8 +362,6 @@
 
             </div>
 
-
-            <!-- STATS -->
 
             <div class="stats-grid">
 
@@ -421,6 +435,7 @@
                 </button>
 
                 <div>
+
                     <div class="view-title">
                         ВЫБОР СТАВКИ
                     </div>
@@ -428,20 +443,15 @@
                     <div class="view-subtitle">
                         Выбери уровень стола
                     </div>
+
                 </div>
 
             </div>
 
-
             <div
                 id="stakesContainer"
                 class="stakes-list"
-            >
-
-                <!-- JS вставит ставки -->
-
-            </div>
-
+            ></div>
 
             <div class="stake-warning">
 
@@ -450,6 +460,7 @@
                 </div>
 
                 <div>
+
                     <strong>
                         Внимание
                     </strong>
@@ -458,6 +469,7 @@
                         Ставка резервируется сервером
                         до окончания партии.
                     </span>
+
                 </div>
 
             </div>
@@ -539,8 +551,6 @@
             class="view game-view hidden"
         >
 
-            <!-- GAME HEADER -->
-
             <div class="game-header">
 
                 <div class="game-player">
@@ -584,8 +594,6 @@
             </div>
 
 
-            <!-- TABLE -->
-
             <div
                 id="gameTable"
                 class="game-table"
@@ -597,9 +605,11 @@
                         id="trumpCard"
                         class="trump-card"
                     >
+
                         <div class="card-placeholder">
                             ♠
                         </div>
+
                     </div>
 
                     <div
@@ -611,18 +621,13 @@
 
                 </div>
 
-
                 <div
                     id="tableCards"
                     class="table-cards"
-                >
-                    <!-- Cards inserted by JS -->
-                </div>
+                ></div>
 
             </div>
 
-
-            <!-- GAME STATUS -->
 
             <div
                 id="gameStatus"
@@ -632,17 +637,11 @@
             </div>
 
 
-            <!-- PLAYER HAND -->
-
             <div
                 id="playerHand"
                 class="player-hand"
-            >
-                <!-- Cards inserted by JS -->
-            </div>
+            ></div>
 
-
-            <!-- GAME ACTIONS -->
 
             <div class="game-actions">
 
@@ -718,6 +717,7 @@
 
                 <div class="profile-level">
                     LEVEL
+
                     <strong id="profileLevel">
                         1
                     </strong>
@@ -729,6 +729,7 @@
             <div class="profile-stats">
 
                 <div>
+
                     <span>
                         ИГР
                     </span>
@@ -736,9 +737,11 @@
                     <strong id="profileGames">
                         0
                     </strong>
+
                 </div>
 
                 <div>
+
                     <span>
                         ПОБЕД
                     </span>
@@ -746,9 +749,11 @@
                     <strong id="profileWins">
                         0
                     </strong>
+
                 </div>
 
                 <div>
+
                     <span>
                         ПОРАЖЕНИЙ
                     </span>
@@ -756,6 +761,7 @@
                     <strong id="profileLosses">
                         0
                     </strong>
+
                 </div>
 
             </div>
@@ -764,9 +770,11 @@
             <div class="profile-section">
 
                 <div class="section-heading">
+
                     <span>
                         ЭКОНОМИКА
                     </span>
+
                 </div>
 
                 <div class="profile-row">
@@ -818,6 +826,7 @@
                 </button>
 
                 <div>
+
                     <div class="view-title">
                         ГАРАЖ
                     </div>
@@ -825,6 +834,7 @@
                     <div class="view-subtitle">
                         Твои автомобили
                     </div>
+
                 </div>
 
             </div>
@@ -929,10 +939,13 @@
             </div>
 
             <div class="settings-version">
+
                 HEAVY LUX CARD
+
                 <span>
                     BASE V3
                 </span>
+
             </div>
 
         </section>
@@ -952,6 +965,7 @@
                 data-view="home"
                 type="button"
             >
+
                 <span class="nav-icon">
                     ◆
                 </span>
@@ -959,6 +973,7 @@
                 <span>
                     ИГРА
                 </span>
+
             </button>
 
             <button
@@ -966,6 +981,7 @@
                 data-view="profile"
                 type="button"
             >
+
                 <span class="nav-icon">
                     ●
                 </span>
@@ -973,6 +989,7 @@
                 <span>
                     ПРОФИЛЬ
                 </span>
+
             </button>
 
             <button
@@ -980,6 +997,7 @@
                 data-view="garage"
                 type="button"
             >
+
                 <span class="nav-icon">
                     ▣
                 </span>
@@ -987,6 +1005,7 @@
                 <span>
                     ГАРАЖ
                 </span>
+
             </button>
 
             <button
@@ -994,6 +1013,7 @@
                 data-view="settings"
                 type="button"
             >
+
                 <span class="nav-icon">
                     ⚙
                 </span>
@@ -1001,6 +1021,7 @@
                 <span>
                     ЕЩЁ
                 </span>
+
             </button>
 
         </nav>
@@ -1009,7 +1030,7 @@
 
 
     <!-- =====================================================
-         MODALS
+         MODAL
     ====================================================== -->
 
     <div
@@ -1075,11 +1096,10 @@
 
 
     <!-- =====================================================
-         CLIENT
+         HEAVY LUX CONFIG
     ====================================================== -->
 
     <script>
-
         window.HEAVY_LUX = {
             version: "BASE_V3",
             game: "durak",
@@ -1088,10 +1108,16 @@
             ai: false,
             bot: false
         };
-
     </script>
 
+
+    <!-- =====================================================
+         CLIENT
+    ====================================================== -->
+
     <script src="/app.js"></script>
+
+</div>
 
 </body>
 </html>
