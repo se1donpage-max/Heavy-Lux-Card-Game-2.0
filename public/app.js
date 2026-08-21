@@ -4,29 +4,11 @@
 =========================================================
 HEAVY LUX CARD
 CLIENT
-BASE V4
+BASE V5
 =========================================================
 */
 
 (() => {
-
-    /* =====================================================
-       SOCKET
-    ====================================================== */
-
-    const socket = io({
-        transports: [
-            "websocket",
-            "polling"
-        ],
-
-        autoConnect: true,
-
-        auth: {
-            devId: getDevId()
-        }
-    });
-
 
     /* =====================================================
        STATE
@@ -67,32 +49,27 @@ BASE V4
 
         sound: true,
 
-        vibration: true
+        vibration: true,
+
+        telegram: false
     };
 
 
     const VIEW_IDS = {
 
-        home:
-            "homeView",
+        home: "homeView",
 
-        stake:
-            "stakeView",
+        stake: "stakeView",
 
-        matching:
-            "matchingView",
+        matching: "matchingView",
 
-        game:
-            "gameView",
+        game: "gameView",
 
-        profile:
-            "profileView",
+        profile: "profileView",
 
-        garage:
-            "garageView",
+        garage: "garageView",
 
-        settings:
-            "settingsView"
+        settings: "settingsView"
     };
 
 
@@ -105,26 +82,14 @@ BASE V4
     }
 
 
-    function qs(
-        selector,
-        root = document
-    ) {
-
-        return root.querySelector(
-            selector
-        );
+    function qs(selector, root = document) {
+        return root.querySelector(selector);
     }
 
 
-    function qsa(
-        selector,
-        root = document
-    ) {
-
+    function qsa(selector, root = document) {
         return [
-            ...root.querySelectorAll(
-                selector
-            )
+            ...root.querySelectorAll(selector)
         ];
     }
 
@@ -134,12 +99,8 @@ BASE V4
         const key =
             "heavy_lux_dev_id";
 
-
         let id =
-            localStorage.getItem(
-                key
-            );
-
+            localStorage.getItem(key);
 
         if (!id) {
 
@@ -151,43 +112,142 @@ BASE V4
                     .toString(36)
                     .slice(2, 9);
 
-
             localStorage.setItem(
                 key,
                 id
             );
         }
 
-
         return id;
+    }
+
+
+    function getTelegramWebApp() {
+
+        try {
+
+            if (
+                window.Telegram &&
+                window.Telegram.WebApp
+            ) {
+
+                return window.Telegram.WebApp;
+            }
+
+        } catch (_) {}
+
+        return null;
+    }
+
+
+    function getTelegramAuth() {
+
+        const webApp =
+            getTelegramWebApp();
+
+        if (!webApp) {
+            return null;
+        }
+
+        try {
+
+            webApp.ready();
+
+            const user =
+                webApp.initDataUnsafe?.user;
+
+            const initData =
+                webApp.initData || "";
+
+            /*
+             * Настоящая Telegram-сессия.
+             *
+             * Важно:
+             * initData должен существовать,
+             * иначе Telegram авторизацию
+             * не считаем активной.
+             */
+
+            if (
+                user &&
+                initData
+            ) {
+
+                return {
+
+                    initData,
+
+                    devId:
+                        String(user.id),
+
+                    username:
+                        user.username || "",
+
+                    name:
+                        user.first_name ||
+                        "Игрок",
+
+                    telegram: true
+                };
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[Heavy Lux] Telegram auth error:",
+                error
+            );
+        }
+
+        return null;
+    }
+
+
+    function getSocketAuth() {
+
+        const telegramAuth =
+            getTelegramAuth();
+
+        if (telegramAuth) {
+
+            state.telegram =
+                true;
+
+            return telegramAuth;
+        }
+
+        /*
+         * DEV-режим.
+         *
+         * Используется только когда
+         * игра открыта не внутри Telegram.
+         */
+
+        state.telegram =
+            false;
+
+        return {
+
+            devId:
+                getDevId(),
+
+            username:
+                "demo",
+
+            name:
+                "Игрок"
+        };
     }
 
 
     function escapeHtml(value) {
 
-        return String(
-            value ?? ""
-        )
-            .replaceAll(
-                "&",
-                "&amp;"
-            )
-            .replaceAll(
-                "<",
-                "&lt;"
-            )
-            .replaceAll(
-                ">",
-                "&gt;"
-            )
-            .replaceAll(
-                '"',
-                "&quot;"
-            )
-            .replaceAll(
-                "'",
-                "&#039;"
-            );
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
 
@@ -195,9 +255,7 @@ BASE V4
 
         return Number(
             value || 0
-        ).toLocaleString(
-            "ru-RU"
-        );
+        ).toLocaleString("ru-RU");
     }
 
 
@@ -208,19 +266,14 @@ BASE V4
                 name || "Игрок"
             ).trim();
 
-
         if (!text) {
             return "?";
         }
 
-
         const parts =
             text.split(/\s+/);
 
-
-        if (
-            parts.length >= 2
-        ) {
+        if (parts.length >= 2) {
 
             return (
                 parts[0][0] +
@@ -228,21 +281,17 @@ BASE V4
             ).toUpperCase();
         }
 
-
         return text
             .slice(0, 2)
             .toUpperCase();
     }
 
 
-    function vibrate(
-        pattern = 20
-    ) {
+    function vibrate(pattern = 20) {
 
         if (!state.vibration) {
             return;
         }
-
 
         try {
 
@@ -264,14 +313,10 @@ BASE V4
     }
 
 
-    function setText(
-        id,
-        value
-    ) {
+    function setText(id, value) {
 
         const element =
             $(id);
-
 
         if (element) {
 
@@ -294,25 +339,18 @@ BASE V4
                     "hl_sound"
                 );
 
-
             const vibration =
                 localStorage.getItem(
                     "hl_vibration"
                 );
 
-
-            if (
-                sound !== null
-            ) {
+            if (sound !== null) {
 
                 state.sound =
                     sound !== "0";
             }
 
-
-            if (
-                vibration !== null
-            ) {
+            if (vibration !== null) {
 
                 state.vibration =
                     vibration !== "0";
@@ -328,17 +366,12 @@ BASE V4
 
             localStorage.setItem(
                 "hl_sound",
-                state.sound
-                    ? "1"
-                    : "0"
+                state.sound ? "1" : "0"
             );
-
 
             localStorage.setItem(
                 "hl_vibration",
-                state.vibration
-                    ? "1"
-                    : "0"
+                state.vibration ? "1" : "0"
             );
 
         } catch (_) {}
@@ -361,11 +394,9 @@ BASE V4
                 const element =
                     $(screenId);
 
-
                 if (!element) {
                     return;
                 }
-
 
                 element.classList.toggle(
                     "hidden",
@@ -377,6 +408,7 @@ BASE V4
 
 
     function showAuth() {
+
         showScreen(
             "authScreen"
         );
@@ -387,9 +419,7 @@ BASE V4
        VIEWS
     ====================================================== */
 
-    function showView(
-        viewName
-    ) {
+    function showView(viewName) {
 
         if (
             !VIEW_IDS[viewName]
@@ -399,7 +429,6 @@ BASE V4
                 "home";
         }
 
-
         Object.entries(
             VIEW_IDS
         ).forEach(
@@ -408,17 +437,14 @@ BASE V4
                 const element =
                     $(id);
 
-
                 if (!element) {
                     return;
                 }
-
 
                 element.classList.toggle(
                     "hidden",
                     name !== viewName
                 );
-
 
                 element.classList.toggle(
                     "active",
@@ -427,10 +453,8 @@ BASE V4
             }
         );
 
-
         state.currentView =
             viewName;
-
 
         qsa(
             ".nav-item"
@@ -445,57 +469,42 @@ BASE V4
             }
         );
 
-
         const bottomNavigation =
             $("bottomNavigation");
 
-
-        if (
-            bottomNavigation
-        ) {
+        if (bottomNavigation) {
 
             bottomNavigation.classList.toggle(
                 "hidden",
 
-                viewName ===
-                    "game" ||
-
-                viewName ===
-                    "matching"
+                viewName === "game" ||
+                viewName === "matching"
             );
         }
 
-
         if (
-            viewName ===
-            "stake"
+            viewName === "stake"
         ) {
 
             renderStakes();
         }
 
-
         if (
-            viewName ===
-            "profile"
+            viewName === "profile"
         ) {
 
             renderProfile();
         }
 
-
         if (
-            viewName ===
-            "garage"
+            viewName === "garage"
         ) {
 
             renderGarage();
         }
 
-
         if (
-            viewName ===
-            "settings"
+            viewName === "settings"
         ) {
 
             renderSettings();
@@ -516,10 +525,7 @@ BASE V4
             return;
         }
 
-
-        if (
-            profile?.avatar
-        ) {
+        if (profile?.avatar) {
 
             element.innerHTML = `
 
@@ -551,28 +557,22 @@ BASE V4
         const p =
             state.profile;
 
-
         if (!p) {
             return;
         }
 
-
         const name =
-            p.name ||
-            "Игрок";
-
+            p.name || "Игрок";
 
         const level =
             Number(
                 p.level || 1
             );
 
-
         const xp =
             Number(
                 p.xp || 0
             );
-
 
         const balance =
             Number(
@@ -582,30 +582,25 @@ BASE V4
                 0
             );
 
-
         setText(
             "playerName",
             name
         );
-
 
         setText(
             "playerLevel",
             level
         );
 
-
         setText(
             "playerBalance",
             number(balance)
         );
 
-
         updateAvatar(
             $("playerAvatar"),
             p
         );
-
 
         updateAvatar(
             qs(
@@ -614,18 +609,13 @@ BASE V4
             p
         );
 
-
         const xpProgress =
             $("xpProgress");
 
-
-        if (
-            xpProgress
-        ) {
+        if (xpProgress) {
 
             const currentLevelXp =
                 xp % 1000;
-
 
             xpProgress.style.width =
                 `${Math.min(
@@ -633,7 +623,6 @@ BASE V4
                     currentLevelXp / 10
                 )}%`;
         }
-
 
         const games =
             Number(
@@ -645,18 +634,15 @@ BASE V4
                 )
             );
 
-
         setText(
             "gamesPlayed",
             games
         );
 
-
         setText(
             "gamesWon",
             p.wins || 0
         );
-
 
         setText(
             "gamesLost",
@@ -674,24 +660,19 @@ BASE V4
         const p =
             state.profile;
 
-
         if (!p) {
             return;
         }
-
 
         updateAvatar(
             $("profileAvatar"),
             p
         );
 
-
         setText(
             "profileName",
-            p.name ||
-            "Игрок"
+            p.name || "Игрок"
         );
-
 
         setText(
             "profileUsername",
@@ -706,12 +687,10 @@ BASE V4
                 : "@username"
         );
 
-
         setText(
             "profileLevel",
             p.level || 1
         );
-
 
         const games =
             Number(
@@ -723,24 +702,20 @@ BASE V4
                 )
             );
 
-
         setText(
             "profileGames",
             games
         );
-
 
         setText(
             "profileWins",
             p.wins || 0
         );
 
-
         setText(
             "profileLosses",
             p.losses || 0
         );
-
 
         setText(
             "profileBalance",
@@ -748,7 +723,6 @@ BASE V4
                 p.hc ?? 0
             )} HC`
         );
-
 
         setText(
             "profileIncome",
@@ -770,11 +744,9 @@ BASE V4
         const container =
             $("stakesContainer");
 
-
         if (!container) {
             return;
         }
-
 
         const stakes =
             Array.isArray(
@@ -782,7 +754,6 @@ BASE V4
             )
                 ? state.catalog.stakes
                 : [];
-
 
         if (!stakes.length) {
 
@@ -810,7 +781,6 @@ BASE V4
             return;
         }
 
-
         container.innerHTML =
             stakes
                 .map(
@@ -832,7 +802,6 @@ BASE V4
                                     0
                                 );
 
-
                         const name =
                             typeof stake ===
                             "object"
@@ -849,13 +818,11 @@ BASE V4
                                     index + 1
                                 }`;
 
-
                         const available =
                             Number(
                                 state.profile?.hc ||
                                 0
                             ) >= value;
-
 
                         return `
 
@@ -901,7 +868,6 @@ BASE V4
 
                                 </div>
 
-
                                 <div
                                     class="stake-card-price"
                                 >
@@ -923,7 +889,6 @@ BASE V4
                 )
                 .join("");
 
-
         qsa(
             "[data-stake]",
             container
@@ -936,10 +901,8 @@ BASE V4
 
                         const stake =
                             Number(
-                                button.dataset
-                                    .stake
+                                button.dataset.stake
                             );
-
 
                         startMatch(
                             stake
@@ -955,38 +918,29 @@ BASE V4
        MATCHMAKING
     ====================================================== */
 
-    function startMatch(
-        stake
-    ) {
+    function startMatch(stake) {
 
         state.matchStake =
             stake;
 
-
         setText(
             "matchingStake",
-            `${number(
-                stake
-            )} HC`
+            `${number(stake)} HC`
         );
-
 
         setText(
             "matchingStatus",
             "Ищем игрока..."
         );
 
-
         setText(
             "matchingPlayers",
             "1 / 2"
         );
 
-
         showView(
             "matching"
         );
-
 
         socket.emit(
             "quick_match",
@@ -994,7 +948,6 @@ BASE V4
                 stake
             }
         );
-
 
         playClick();
     }
@@ -1006,23 +959,18 @@ BASE V4
             "leave_room"
         );
 
-
         state.matchStake =
             null;
-
 
         state.room =
             null;
 
-
         state.game =
             null;
-
 
         showView(
             "home"
         );
-
 
         setText(
             "matchingStatus",
@@ -1035,13 +983,10 @@ BASE V4
        ROOM
     ====================================================== */
 
-    function handleRoomState(
-        room
-    ) {
+    function handleRoomState(room) {
 
         state.room =
             room;
-
 
         const roomPlayers =
             Array.isArray(
@@ -1050,23 +995,18 @@ BASE V4
                 ? room.players
                 : [];
 
-
         const maxPlayers =
             Number(
-                room?.maxPlayers ||
-                2
+                room?.maxPlayers || 2
             );
-
 
         setText(
             "matchingPlayers",
             `${roomPlayers.length} / ${maxPlayers}`
         );
 
-
         if (
-            room.status ===
-            "LOBBY"
+            room.status === "LOBBY"
         ) {
 
             if (
@@ -1088,10 +1028,8 @@ BASE V4
             }
         }
 
-
         if (
-            room.status ===
-            "PLAYING"
+            room.status === "PLAYING"
         ) {
 
             showView(
@@ -1105,18 +1043,14 @@ BASE V4
        GAME
     ====================================================== */
 
-    function handleGameState(
-        game
-    ) {
+    function handleGameState(game) {
 
         state.game =
             game;
 
-
         showView(
             "game"
         );
-
 
         renderGame();
     }
@@ -1128,23 +1062,18 @@ BASE V4
     ) {
 
         if (
-            typeof card ===
-            "string"
+            typeof card === "string"
         ) {
 
             return {
 
-                id:
-                    card,
+                id: card,
 
-                rank:
-                    card,
+                rank: card,
 
-                suit:
-                    ""
+                suit: ""
             };
         }
-
 
         return {
 
@@ -1167,63 +1096,40 @@ BASE V4
     }
 
 
-    function suitSymbol(
-        suit
-    ) {
+    function suitSymbol(suit) {
 
         const value =
             String(
                 suit || ""
             ).toLowerCase();
 
-
         if (
-            value.includes(
-                "heart"
-            ) ||
-            value.includes(
-                "черв"
-            )
+            value.includes("heart") ||
+            value.includes("черв")
         ) {
             return "♥";
         }
 
-
         if (
-            value.includes(
-                "diamond"
-            ) ||
-            value.includes(
-                "буб"
-            )
+            value.includes("diamond") ||
+            value.includes("буб")
         ) {
             return "♦";
         }
 
-
         if (
-            value.includes(
-                "club"
-            ) ||
-            value.includes(
-                "крест"
-            )
+            value.includes("club") ||
+            value.includes("крест")
         ) {
             return "♣";
         }
 
-
         if (
-            value.includes(
-                "spade"
-            ) ||
-            value.includes(
-                "пик"
-            )
+            value.includes("spade") ||
+            value.includes("пик")
         ) {
             return "♠";
         }
-
 
         if (
             [
@@ -1236,7 +1142,6 @@ BASE V4
 
             return value;
         }
-
 
         return "♠";
     }
@@ -1254,17 +1159,14 @@ BASE V4
                 index
             );
 
-
         const symbol =
             suitSymbol(
                 c.suit
             );
 
-
         const red =
             symbol === "♥" ||
             symbol === "♦";
-
 
         return `
 
@@ -1301,9 +1203,7 @@ BASE V4
     }
 
 
-    function getMyCards(
-        game
-    ) {
+    function getMyCards(game) {
 
         return (
             game?.hand ||
@@ -1315,9 +1215,7 @@ BASE V4
     }
 
 
-    function getTableCards(
-        game
-    ) {
+    function getTableCards(game) {
 
         return (
             game?.table ||
@@ -1333,32 +1231,20 @@ BASE V4
         const game =
             state.game;
 
-
         if (!game) {
             return;
         }
 
-
-        /* ================================================
-           HAND
-        ================================================= */
-
         const handContainer =
             $("playerHand");
 
-
-        if (
-            handContainer
-        ) {
+        if (handContainer) {
 
             const cards =
                 getMyCards(game);
 
-
             handContainer.innerHTML =
-                Array.isArray(
-                    cards
-                ) &&
+                Array.isArray(cards) &&
                 cards.length
 
                     ? cards
@@ -1380,15 +1266,12 @@ BASE V4
                         <div
                             class="empty-state"
                         >
-
                             <span>
                                 Нет карт
                             </span>
-
                         </div>
 
                     `;
-
 
             qsa(
                 ".game-card",
@@ -1410,29 +1293,16 @@ BASE V4
             );
         }
 
-
-        /* ================================================
-           TABLE
-        ================================================= */
-
         const tableContainer =
             $("tableCards");
 
-
-        if (
-            tableContainer
-        ) {
+        if (tableContainer) {
 
             const cards =
-                getTableCards(
-                    game
-                );
-
+                getTableCards(game);
 
             tableContainer.innerHTML =
-                Array.isArray(
-                    cards
-                )
+                Array.isArray(cards)
 
                     ? cards
                         .map(
@@ -1451,25 +1321,16 @@ BASE V4
                     : "";
         }
 
-
-        /* ================================================
-           TRUMP
-        ================================================= */
-
         const trump =
             game?.trump ||
             game?.trumpCard;
-
 
         if (trump) {
 
             const trumpElement =
                 $("trumpCard");
 
-
-            if (
-                trumpElement
-            ) {
+            if (trumpElement) {
 
                 trumpElement.innerHTML =
                     renderCard(
@@ -1480,16 +1341,10 @@ BASE V4
             }
         }
 
-
-        /* ================================================
-           DECK
-        ================================================= */
-
         const deck =
             game?.deckCount ??
             game?.deckSize ??
             game?.remainingCards;
-
 
         if (
             deck !== undefined
@@ -1501,55 +1356,31 @@ BASE V4
             );
         }
 
-
-        /* ================================================
-           POT
-        ================================================= */
-
         const pot =
             game?.pot ??
             game?.bank ??
             state.room?.stake ??
             0;
 
-
         setText(
             "gamePot",
             number(pot)
         );
 
-
-        /* ================================================
-           STATUS
-        ================================================= */
-
         const status =
             game?.message ||
             game?.statusText ||
-            getGameStatusText(
-                game
-            );
-
+            getGameStatusText(game);
 
         setText(
             "gameStatus",
             status
         );
 
-
-        /* ================================================
-           OPPONENT
-        ================================================= */
-
         const opponent =
-            getOpponent(
-                game
-            );
+            getOpponent(game);
 
-
-        if (
-            opponent
-        ) {
+        if (opponent) {
 
             setText(
                 "opponentName",
@@ -1557,40 +1388,32 @@ BASE V4
                 "Соперник"
             );
 
-
             updateAvatar(
                 $("opponentAvatar"),
                 opponent
             );
 
-
             setText(
                 "opponentCards",
-
                 opponent.cards ??
                 opponent.cardCount ??
                 0
             );
         }
 
-
         updateGameButtons();
     }
 
 
-    function getOpponent(
-        game
-    ) {
+    function getOpponent(game) {
 
         const gamePlayers =
             game?.players ||
             state.room?.players ||
             [];
 
-
         const myId =
             state.profile?.id;
-
 
         return (
             gamePlayers.find(
@@ -1605,9 +1428,7 @@ BASE V4
     }
 
 
-    function getGameStatusText(
-        game
-    ) {
+    function getGameStatusText(game) {
 
         if (
             game?.status ===
@@ -1629,10 +1450,8 @@ BASE V4
                         : "ПОРАЖЕНИЕ";
             }
 
-
             return "Партия завершена";
         }
-
 
         if (
             game?.status ===
@@ -1641,7 +1460,6 @@ BASE V4
 
             return "Ожидание хода...";
         }
-
 
         if (
             game?.turnPlayerId &&
@@ -1658,7 +1476,6 @@ BASE V4
                     : "ХОД СОПЕРНИКА";
         }
 
-
         if (
             game?.currentPlayerId &&
             state.profile?.id
@@ -1674,7 +1491,6 @@ BASE V4
                     : "ХОД СОПЕРНИКА";
         }
 
-
         return "Ожидание хода...";
     }
 
@@ -1684,48 +1500,37 @@ BASE V4
         const game =
             state.game;
 
-
         if (!game) {
             return;
         }
 
-
         const myId =
             state.profile?.id;
-
 
         const takeButton =
             $("takeButton");
 
-
         const passButton =
             $("passButton");
-
 
         const attacker =
             game.attackerId ??
             game.currentPlayerId;
 
-
         const defender =
             game.defenderId;
-
 
         const isDefender =
             defender &&
             String(defender) ===
             String(myId);
 
-
         const isAttacker =
             attacker &&
             String(attacker) ===
             String(myId);
 
-
-        if (
-            takeButton
-        ) {
+        if (takeButton) {
 
             takeButton.disabled =
                 !isDefender ||
@@ -1733,10 +1538,7 @@ BASE V4
                 "FINISHED";
         }
 
-
-        if (
-            passButton
-        ) {
+        if (passButton) {
 
             passButton.disabled =
                 !isAttacker ||
@@ -1746,30 +1548,20 @@ BASE V4
     }
 
 
-    /* =====================================================
-       CARD CLICK
-    ====================================================== */
-
-    function handleCardClick(
-        cardId
-    ) {
+    function handleCardClick(cardId) {
 
         if (!state.game) {
             return;
         }
 
-
         const game =
             state.game;
-
 
         const myId =
             state.profile?.id;
 
-
         const defender =
             game.defenderId;
-
 
         if (
             defender &&
@@ -1794,7 +1586,6 @@ BASE V4
             );
         }
 
-
         playClick();
     }
 
@@ -1811,11 +1602,9 @@ BASE V4
             return;
         }
 
-
         socket.emit(
             "take_cards"
         );
-
 
         playClick();
     }
@@ -1829,11 +1618,9 @@ BASE V4
             return;
         }
 
-
         socket.emit(
             "end_attack"
         );
-
 
         playClick();
     }
@@ -1848,11 +1635,9 @@ BASE V4
         const container =
             $("garageContainer");
 
-
         if (!container) {
             return;
         }
-
 
         const garage =
             Array.isArray(
@@ -1860,7 +1645,6 @@ BASE V4
             )
                 ? state.profile.garage
                 : [];
-
 
         if (!garage.length) {
 
@@ -1892,7 +1676,6 @@ BASE V4
             return;
         }
 
-
         container.innerHTML =
             garage
                 .map(
@@ -1904,7 +1687,6 @@ BASE V4
                                 ? vehicle
                                 : vehicle?.id;
 
-
                         const catalogVehicle =
                             [
                                 ...(state.catalog
@@ -1915,16 +1697,13 @@ BASE V4
                             ]
                                 .find(
                                     x =>
-                                        x.id ===
-                                        id
+                                        x.id === id
                                 );
-
 
                         const brand =
                             catalogVehicle?.brand ||
                             vehicle?.brand ||
                             "";
-
 
                         const model =
                             catalogVehicle?.model ||
@@ -1932,7 +1711,6 @@ BASE V4
                             vehicle?.model ||
                             vehicle?.name ||
                             "Автомобиль";
-
 
                         return `
 
@@ -1982,10 +1760,8 @@ BASE V4
         const sound =
             $("soundToggle");
 
-
         const vibration =
             $("vibrationToggle");
-
 
         if (sound) {
 
@@ -1994,7 +1770,6 @@ BASE V4
                     "strong",
                     sound
                 );
-
 
             if (value) {
 
@@ -2005,7 +1780,6 @@ BASE V4
             }
         }
 
-
         if (vibration) {
 
             const value =
@@ -2013,7 +1787,6 @@ BASE V4
                     "strong",
                     vibration
                 );
-
 
             if (value) {
 
@@ -2041,22 +1814,18 @@ BASE V4
             title
         );
 
-
         setText(
             "modalText",
             text
         );
-
 
         setText(
             "modalIcon",
             icon
         );
 
-
         const overlay =
             $("modalOverlay");
-
 
         if (overlay) {
 
@@ -2071,7 +1840,6 @@ BASE V4
 
         const overlay =
             $("modalOverlay");
-
 
         if (overlay) {
 
@@ -2094,30 +1862,24 @@ BASE V4
         const container =
             $("toastContainer");
 
-
         if (!container) {
             return;
         }
-
 
         const element =
             document.createElement(
                 "div"
             );
 
-
         element.className =
             `toast toast-${type}`;
-
 
         element.textContent =
             String(message);
 
-
         container.appendChild(
             element
         );
-
 
         requestAnimationFrame(
             () => {
@@ -2128,14 +1890,12 @@ BASE V4
             }
         );
 
-
         setTimeout(
             () => {
 
                 element.classList.remove(
                     "show"
                 );
-
 
                 setTimeout(
                     () => {
@@ -2156,14 +1916,11 @@ BASE V4
        BOOTSTRAP
     ====================================================== */
 
-    function applyBootstrap(
-        data
-    ) {
+    function applyBootstrap(data) {
 
         if (!data) {
             return;
         }
-
 
         if (
             data.profile
@@ -2172,7 +1929,6 @@ BASE V4
             state.profile =
                 data.profile;
         }
-
 
         if (
             data.catalog
@@ -2186,18 +1942,14 @@ BASE V4
             };
         }
 
-
         state.bootstrapped =
             true;
 
-
         renderAll();
-
 
         showScreen(
             "mainScreen"
         );
-
 
         showView(
             "home"
@@ -2219,7 +1971,6 @@ BASE V4
 
         renderSettings();
 
-
         if (
             state.currentView ===
             "stake"
@@ -2227,7 +1978,6 @@ BASE V4
 
             renderStakes();
         }
-
 
         if (
             state.currentView ===
@@ -2241,301 +1991,323 @@ BASE V4
 
 
     /* =====================================================
-       SOCKET CONNECT
+       SOCKET
     ====================================================== */
 
-    socket.on(
-        "connect",
-        () => {
-
-            state.connected =
-                true;
+    let socket;
 
 
-            const loadingText =
-                qs(
-                    ".loading-text",
-                    $("loadingScreen")
+    function createSocket() {
+
+        const auth =
+            getSocketAuth();
+
+        console.log(
+            "[Heavy Lux] Socket auth mode:",
+            state.telegram
+                ? "TELEGRAM"
+                : "DEV"
+        );
+
+        socket =
+            io({
+
+                transports: [
+                    "websocket",
+                    "polling"
+                ],
+
+                autoConnect: false,
+
+                auth
+            });
+
+
+        /* =================================================
+           CONNECT
+        ================================================== */
+
+        socket.on(
+            "connect",
+            () => {
+
+                state.connected =
+                    true;
+
+                const loadingText =
+                    qs(
+                        ".loading-text",
+                        $("loadingScreen")
+                    );
+
+                if (
+                    loadingText
+                ) {
+
+                    loadingText.textContent =
+                        "Загрузка профиля...";
+                }
+
+                console.log(
+                    "[Heavy Lux] connected:",
+                    socket.id
+                );
+            }
+        );
+
+
+        /* =================================================
+           DISCONNECT
+        ================================================== */
+
+        socket.on(
+            "disconnect",
+            () => {
+
+                state.connected =
+                    false;
+
+                if (
+                    state.bootstrapped
+                ) {
+
+                    toast(
+                        "Соединение с сервером потеряно",
+                        "error"
+                    );
+                }
+            }
+        );
+
+
+        /* =================================================
+           CONNECT ERROR
+        ================================================== */
+
+        socket.on(
+            "connect_error",
+            error => {
+
+                console.error(
+                    "[Heavy Lux] Socket error:",
+                    error
                 );
 
+                if (
+                    !state.bootstrapped
+                ) {
 
-            if (
-                loadingText
-            ) {
-
-                loadingText.textContent =
-                    "Загрузка профиля...";
-            }
-
-
-            console.log(
-                "[Heavy Lux] connected:",
-                socket.id
-            );
-        }
-    );
-
-
-    /* =====================================================
-       DISCONNECT
-    ====================================================== */
-
-    socket.on(
-        "disconnect",
-        () => {
-
-            state.connected =
-                false;
-
-
-            if (
-                state.bootstrapped
-            ) {
+                    showAuth();
+                }
 
                 toast(
-                    "Соединение с сервером потеряно",
+                    "Не удалось подключиться к серверу",
                     "error"
                 );
             }
-        }
-    );
+        );
 
 
-    /* =====================================================
-       CONNECT ERROR
-    ====================================================== */
+        /* =================================================
+           BOOTSTRAP
+        ================================================== */
 
-    socket.on(
-        "connect_error",
-        error => {
-
-            console.error(
-                "[Heavy Lux] Socket error:",
-                error
-            );
-
-
-            if (
-                !state.bootstrapped
-            ) {
-
-                showAuth();
-            }
-
-
-            toast(
-                "Не удалось подключиться к серверу",
-                "error"
-            );
-        }
-    );
-
-
-    /* =====================================================
-       BOOTSTRAP
-    ====================================================== */
-
-    socket.on(
-        "bootstrap",
-        data => {
-
-            console.log(
-                "[Heavy Lux] bootstrap:",
-                data
-            );
-
-
-            applyBootstrap(
-                data
-            );
-        }
-    );
-
-
-    /* =====================================================
-       AUTH ERROR
-    ====================================================== */
-
-    socket.on(
-        "auth_error",
-        data => {
-
-            console.error(
-                "[Heavy Lux] auth:",
-                data
-            );
-
-
-            showAuth();
-
-
-            toast(
-                data?.message ||
-                "Ошибка авторизации",
-                "error"
-            );
-        }
-    );
-
-
-    /* =====================================================
-       ROOM STATE
-    ====================================================== */
-
-    socket.on(
-        "room_state",
-        room => {
-
-            console.log(
-                "[Heavy Lux] room:",
-                room
-            );
-
-
-            handleRoomState(
-                room
-            );
-        }
-    );
-
-
-    /* =====================================================
-       GAME STATE
-    ====================================================== */
-
-    socket.on(
-        "game_state",
-        game => {
-
-            console.log(
-                "[Heavy Lux] game:",
-                game
-            );
-
-
-            handleGameState(
-                game
-            );
-        }
-    );
-
-
-    /* =====================================================
-       PROFILE UPDATE
-    ====================================================== */
-
-    socket.on(
-        "profile",
-        profile => {
-
-            if (!profile) {
-                return;
-            }
-
-
-            state.profile =
-                profile;
-
-
-            renderProfileSummary();
-
-            renderProfile();
-
-            renderGarage();
-        }
-    );
-
-
-    /* =====================================================
-       TOAST
-    ====================================================== */
-
-    socket.on(
-        "toast",
-        data => {
-
-            toast(
-                data?.message ||
-                "Сообщение",
-
-                data?.type ||
-                "info"
-            );
-        }
-    );
-
-
-    /* =====================================================
-       QUICK MATCH WAIT
-    ====================================================== */
-
-    socket.on(
-        "quick_match_wait",
-        data => {
-
-            setText(
-                "matchingStatus",
-                "Ожидаем соперника..."
-            );
-
-
-            setText(
-                "matchingPlayers",
-
-                `${data?.players || 1} / ${
-                    data?.maxPlayers || 2
-                }`
-            );
-
-
-            if (
-                data?.roomId
-            ) {
+        socket.on(
+            "bootstrap",
+            data => {
 
                 console.log(
-                    "[Heavy Lux] waiting room:",
-                    data.roomId
+                    "[Heavy Lux] bootstrap:",
+                    data
+                );
+
+                applyBootstrap(
+                    data
                 );
             }
-        }
-    );
+        );
 
 
-    /* =====================================================
-       QUICK MESSAGE
-    ====================================================== */
+        /* =================================================
+           AUTH ERROR
+        ================================================== */
 
-    socket.on(
-        "quick_message",
-        data => {
+        socket.on(
+            "auth_error",
+            data => {
 
-            if (
-                data?.text
-            ) {
+                console.error(
+                    "[Heavy Lux] auth:",
+                    data
+                );
+
+                state.bootstrapped =
+                    false;
+
+                showAuth();
 
                 toast(
-                    data.text,
+                    data?.message ||
+                    "Ошибка авторизации",
+                    "error"
+                );
+            }
+        );
+
+
+        /* =================================================
+           ROOM
+        ================================================== */
+
+        socket.on(
+            "room_state",
+            room => {
+
+                console.log(
+                    "[Heavy Lux] room:",
+                    room
+                );
+
+                handleRoomState(
+                    room
+                );
+            }
+        );
+
+
+        /* =================================================
+           GAME
+        ================================================== */
+
+        socket.on(
+            "game_state",
+            game => {
+
+                console.log(
+                    "[Heavy Lux] game:",
+                    game
+                );
+
+                handleGameState(
+                    game
+                );
+            }
+        );
+
+
+        /* =================================================
+           PROFILE
+        ================================================== */
+
+        socket.on(
+            "profile",
+            profile => {
+
+                if (!profile) {
+                    return;
+                }
+
+                state.profile =
+                    profile;
+
+                renderProfileSummary();
+
+                renderProfile();
+
+                renderGarage();
+            }
+        );
+
+
+        /* =================================================
+           TOAST
+        ================================================== */
+
+        socket.on(
+            "toast",
+            data => {
+
+                toast(
+                    data?.message ||
+                    "Сообщение",
+
+                    data?.type ||
                     "info"
                 );
             }
-        }
-    );
+        );
 
 
-    /* =====================================================
-       ROOMS
-    ====================================================== */
+        /* =================================================
+           QUICK MATCH WAIT
+        ================================================== */
 
-    socket.on(
-        "rooms_list",
-        rooms => {
+        socket.on(
+            "quick_match_wait",
+            data => {
 
-            console.log(
-                "[Heavy Lux] rooms:",
-                rooms
-            );
-        }
-    );
+                setText(
+                    "matchingStatus",
+                    "Ожидаем соперника..."
+                );
+
+                setText(
+                    "matchingPlayers",
+
+                    `${data?.players || 1} / ${
+                        data?.maxPlayers || 2
+                    }`
+                );
+
+                if (
+                    data?.roomId
+                ) {
+
+                    console.log(
+                        "[Heavy Lux] waiting room:",
+                        data.roomId
+                    );
+                }
+            }
+        );
+
+
+        /* =================================================
+           QUICK MESSAGE
+        ================================================== */
+
+        socket.on(
+            "quick_message",
+            data => {
+
+                if (
+                    data?.text
+                ) {
+
+                    toast(
+                        data.text,
+                        "info"
+                    );
+                }
+            }
+        );
+
+
+        /* =================================================
+           ROOMS
+        ================================================== */
+
+        socket.on(
+            "rooms_list",
+            rooms => {
+
+                console.log(
+                    "[Heavy Lux] rooms:",
+                    rooms
+                );
+            }
+        );
+    }
 
 
     /* =====================================================
@@ -2547,10 +2319,7 @@ BASE V4
         const playButton =
             $("playButton");
 
-
-        if (
-            playButton
-        ) {
+        if (playButton) {
 
             playButton.addEventListener(
                 "click",
@@ -2569,10 +2338,7 @@ BASE V4
         const profileButton =
             $("profileButton");
 
-
-        if (
-            profileButton
-        ) {
+        if (profileButton) {
 
             profileButton.addEventListener(
                 "click",
@@ -2591,10 +2357,7 @@ BASE V4
         const settingsButton =
             $("settingsButton");
 
-
-        if (
-            settingsButton
-        ) {
+        if (settingsButton) {
 
             settingsButton.addEventListener(
                 "click",
@@ -2620,9 +2383,7 @@ BASE V4
                     () => {
 
                         const view =
-                            button.dataset
-                                .view;
-
+                            button.dataset.view;
 
                         if (view) {
 
@@ -2648,8 +2409,7 @@ BASE V4
                     () => {
 
                         showView(
-                            button.dataset
-                                .back ||
+                            button.dataset.back ||
                             "home"
                         );
 
@@ -2662,7 +2422,6 @@ BASE V4
 
         const cancelMatchButton =
             $("cancelMatchButton");
-
 
         if (
             cancelMatchButton
@@ -2678,10 +2437,7 @@ BASE V4
         const takeButton =
             $("takeButton");
 
-
-        if (
-            takeButton
-        ) {
+        if (takeButton) {
 
             takeButton.addEventListener(
                 "click",
@@ -2693,10 +2449,7 @@ BASE V4
         const passButton =
             $("passButton");
 
-
-        if (
-            passButton
-        ) {
+        if (passButton) {
 
             passButton.addEventListener(
                 "click",
@@ -2708,10 +2461,7 @@ BASE V4
         const modalClose =
             $("modalClose");
 
-
-        if (
-            modalClose
-        ) {
+        if (modalClose) {
 
             modalClose.addEventListener(
                 "click",
@@ -2723,10 +2473,7 @@ BASE V4
         const modalConfirm =
             $("modalConfirm");
 
-
-        if (
-            modalConfirm
-        ) {
+        if (modalConfirm) {
 
             modalConfirm.addEventListener(
                 "click",
@@ -2738,10 +2485,7 @@ BASE V4
         const modalOverlay =
             $("modalOverlay");
 
-
-        if (
-            modalOverlay
-        ) {
+        if (modalOverlay) {
 
             modalOverlay.addEventListener(
                 "click",
@@ -2762,10 +2506,7 @@ BASE V4
         const soundToggle =
             $("soundToggle");
 
-
-        if (
-            soundToggle
-        ) {
+        if (soundToggle) {
 
             soundToggle.addEventListener(
                 "click",
@@ -2773,7 +2514,6 @@ BASE V4
 
                     state.sound =
                         !state.sound;
-
 
                     saveSettings();
 
@@ -2788,10 +2528,7 @@ BASE V4
         const vibrationToggle =
             $("vibrationToggle");
 
-
-        if (
-            vibrationToggle
-        ) {
+        if (vibrationToggle) {
 
             vibrationToggle.addEventListener(
                 "click",
@@ -2800,11 +2537,9 @@ BASE V4
                     state.vibration =
                         !state.vibration;
 
-
                     saveSettings();
 
                     renderSettings();
-
 
                     if (
                         state.vibration
@@ -2820,17 +2555,15 @@ BASE V4
         const logoutButton =
             $("logoutButton");
 
-
-        if (
-            logoutButton
-        ) {
+        if (logoutButton) {
 
             logoutButton.addEventListener(
                 "click",
                 () => {
 
-                    socket.disconnect();
-
+                    if (socket) {
+                        socket.disconnect();
+                    }
 
                     state.profile =
                         null;
@@ -2844,7 +2577,6 @@ BASE V4
                     state.bootstrapped =
                         false;
 
-
                     showAuth();
                 }
             );
@@ -2854,7 +2586,6 @@ BASE V4
         const telegramLoginButton =
             $("telegramLoginButton");
 
-
         if (
             telegramLoginButton
         ) {
@@ -2863,7 +2594,7 @@ BASE V4
                 "click",
                 () => {
 
-                    openTelegram();
+                    connectTelegram();
                 }
             );
         }
@@ -2871,7 +2602,6 @@ BASE V4
 
         const testLoginButton =
             $("testLoginButton");
-
 
         if (
             testLoginButton
@@ -2881,7 +2611,7 @@ BASE V4
                 "click",
                 () => {
 
-                    location.reload();
+                    connectDev();
                 }
             );
         }
@@ -2889,91 +2619,129 @@ BASE V4
 
 
     /* =====================================================
-       TELEGRAM
+       TELEGRAM LOGIN
     ====================================================== */
 
-    function openTelegram() {
+    function connectTelegram() {
 
-        try {
+        const auth =
+            getTelegramAuth();
 
-            if (
-                window.Telegram &&
-                window.Telegram.WebApp
-            ) {
+        if (!auth) {
 
-                window.Telegram.WebApp.ready();
-
-
-                const webApp =
-                    window.Telegram.WebApp;
-
-
-                const user =
-                    webApp
-                        .initDataUnsafe
-                        ?.user;
-
-
-                if (user) {
-
-                    socket.auth = {
-
-                        initData:
-                            webApp.initData,
-
-                        devId:
-                            String(
-                                user.id
-                            ),
-
-                        username:
-                            user.username ||
-                            "",
-
-                        name:
-                            user.first_name ||
-                            "Игрок"
-                    };
-
-
-                    if (
-                        !socket.connected
-                    ) {
-
-                        socket.connect();
-
-                    } else {
-
-                        /*
-                         * Если socket уже был
-                         * подключён в DEV-режиме,
-                         * переподключаемся уже
-                         * с Telegram auth.
-                         */
-
-                        socket.disconnect();
-
-                        socket.connect();
-                    }
-
-
-                    return;
-                }
-            }
-
-        } catch (error) {
-
-            console.error(
-                "[Heavy Lux] Telegram:",
-                error
+            toast(
+                "Открой игру через Telegram",
+                "info"
             );
+
+            return;
         }
 
+        /*
+         * Если Socket ещё не создан,
+         * создаём его с Telegram auth.
+         */
 
-        toast(
-            "Открой игру через Telegram",
-            "info"
-        );
+        if (!socket) {
+
+            createSocket();
+
+        } else {
+
+            socket.auth =
+                auth;
+        }
+
+        state.telegram =
+            true;
+
+        if (
+            !socket.connected
+        ) {
+
+            socket.connect();
+        }
+    }
+
+
+    /* =====================================================
+       DEV LOGIN
+    ====================================================== */
+
+    function connectDev() {
+
+        const auth = {
+
+            devId:
+                getDevId(),
+
+            username:
+                "demo",
+
+            name:
+                "Игрок"
+        };
+
+        state.telegram =
+            false;
+
+        if (!socket) {
+
+            createSocket();
+
+        } else {
+
+            socket.auth =
+                auth;
+        }
+
+        if (
+            !socket.connected
+        ) {
+
+            socket.connect();
+        }
+    }
+
+
+    /* =====================================================
+       INITIAL CONNECTION
+    ====================================================== */
+
+    function connectInitial() {
+
+        /*
+         * Сначала пытаемся определить,
+         * запущена ли игра внутри Telegram.
+         */
+
+        const telegramAuth =
+            getTelegramAuth();
+
+        if (telegramAuth) {
+
+            state.telegram =
+                true;
+
+            createSocket();
+
+            socket.auth =
+                telegramAuth;
+
+        } else {
+
+            /*
+             * Обычный браузер.
+             * Работаем через DEV ID.
+             */
+
+            state.telegram =
+                false;
+
+            createSocket();
+        }
+
+        socket.connect();
     }
 
 
@@ -2987,11 +2755,16 @@ BASE V4
 
         bindUI();
 
-
         showScreen(
             "loadingScreen"
         );
 
+        /*
+         * Подключаемся сразу с правильным
+         * типом авторизации.
+         */
+
+        connectInitial();
 
         setTimeout(
             () => {
@@ -3029,7 +2802,9 @@ BASE V4
 
         state,
 
-        socket,
+        getSocket() {
+            return socket;
+        },
 
         showView,
 
@@ -3039,9 +2814,12 @@ BASE V4
 
         refreshRooms() {
 
-            socket.emit(
-                "list_rooms"
-            );
+            if (socket) {
+
+                socket.emit(
+                    "list_rooms"
+                );
+            }
         },
 
         getState() {
