@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    >
+
+    <title>Heavy Lux Card</title>
+
+    <meta
+        name="theme-color"
+        content="#08090c"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"
+    >
+
+    <link rel="stylesheet" href="/style.css">
+
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- =====================================================
+         LOADING
+    ====================================================== -->
+
+    <section
+        id="loadingScreen"
+        class="screen loading-screen"
+    >
+        <div class="loading-logo">
+            <div class="logo-mark">HL</div>
+
+            <div class="logo-title">
+                HEAVY LUX
+            </div>
+
+            <div class="logo-subtitle">
+                CARD
+            </div>
+        </div>
+
+        <div class="loading-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="loading-text">
+            Подключение...
+        </div>
+    </section>
+
+
+    <!-- =====================================================
+         AUTH / START
+    ====================================================== -->
+
+    <section
+        id="authScreen"
+        class="screen hidden"
+    >
+
+        <div class="auth-background"></div>
+
+        <div class="auth-content">
+
+            <div class="brand-block">
+
+                <div class="brand-emblem">
+                    HL
+                </div>
+
+                <h1>
+                    HEAVY LUX
+                </h1>
+
+                <div class="brand-divider"></div>
+
+                <p>
+                    CARD
+                </p>
+
+            </div>
+
+            <div class="auth-card">
+
+                <div class="auth-card-title">
+                    Добро пожаловать
+                </div>
+
+                <div class="auth-card-text">
+                    Онлайн-Дурак нового поколения.
+                    Только реальные игроки.
+                </div>
+
+                <button
+                    id="telegramLoginButton"
+                    class="primary-button"
+                    type="button"
+                >
+                    <span class="button-icon">
+                        TG
+                    </span>
+
+                    <span>
+                        Войти через Telegram
+                    </span>
+                </button>
+
+                <button
+                    id="testLoginButton"
+                    class="secondary-button hidden"
+                    type="button"
+                >
+                    Тестовый вход
+                </button>
+
+            </div>
+
+            <div class="auth-footer">
+                HEAVY LUX CARD
+                <span>•</span>
+                36 КАРТ
+                <span>•</span>
+                1 × 1
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         MAIN APP
+    ====================================================== -->
+
+    <main
+        id="mainScreen"
+        class="screen app-screen hidden"
+    >
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <button
+                id="profileButton"
+                class="icon-button"
+                type="button"
+                aria-label="Профиль"
+            >
+                <span class="avatar">
+                    ?
+                </span>
+            </button>
+
+            <div class="topbar-brand">
+                <div class="topbar-title">
+                    HEAVY LUX
+                </div>
+
+                <div class="topbar-subtitle">
+                    CARD
+                </div>
+            </div>
+
+            <button
+                id="settingsButton"
+                class="icon-button"
+                type="button"
+                aria-label="Настройки"
+            >
+                ⚙
+            </button>
+
+        </header>
+
+
+        <!-- PLAYER SUMMARY -->
+
+        <section class="player-summary">
+
+            <div class="player-info">
+
+                <div
+                    id="playerAvatar"
+                    class="player-avatar"
+                >
+                    ?
+                </div>
+
+                <div class="player-data">
+
+                    <div
+                        id="playerName"
+                        class="player-name"
+                    >
+                        Игрок
+                    </div>
+
+                    <div class="player-level-row">
+
+                        <span>
+                            Уровень
+                        </span>
+
+                        <strong id="playerLevel">
+                            1
+                        </strong>
+
+                    </div>
+
+                    <div class="xp-bar">
+
+                        <div
+                            id="xpProgress"
+                            class="xp-progress"
+                            style="width: 0%"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="balance-block">
+
+                <div class="balance-label">
+                    БАЛАНС
+                </div>
+
+                <div
+                    id="playerBalance"
+                    class="balance-value"
+                >
+                    0
+                </div>
+
+                <div class="balance-currency">
+                    LUX
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HOME
+        ================================================== -->
+
+        <section
+            id="homeView"
+            class="view active"
+        >
+
+            <div class="hero-card">
+
+                <div class="hero-glow"></div>
+
+                <div class="hero-content">
+
+                    <div class="hero-kicker">
+                        КЛАССИЧЕСКИЙ ДУРАК
+                    </div>
+
+                    <h2>
+                        ИГРАЙ
+                    </h2>
+
+                    <p>
+                        Подкидной режим
+                        <br>
+                        36 карт • реальные игроки
+                    </p>
+
+                    <button
+                        id="playButton"
+                        class="play-button"
+                        type="button"
+                    >
+                        <span>
+                            ИГРАТЬ
+                        </span>
+
+                        <span class="play-arrow">
+                            →
+                        </span>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- QUICK INFO -->
+
+            <div class="section-heading">
+
+                <span>
+                    РЕЖИМ
+                </span>
+
+                <small>
+                    ONLINE
+                </small>
+
+            </div>
+
+            <div class="mode-card">
+
+                <div class="mode-icon">
+                    ♠
+                </div>
+
+                <div class="mode-info">
+
+                    <strong>
+                        Подкидной
+                    </strong>
+
+                    <span>
+                        1 × 1 • 36 карт
+                    </span>
+
+                </div>
+
+                <div class="mode-status">
+                    LIVE
+                </div>
+
+            </div>
+
+
+            <!-- STATS -->
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <span class="stat-label">
+                        ИГР
+                    </span>
+
+                    <strong
+                        id="gamesPlayed"
+                        class="stat-value"
+                    >
+                        0
+                    </strong>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <span class="stat-label">
+                        ПОБЕД
+                    </span>
+
+                    <strong
+                        id="gamesWon"
+                        class="stat-value"
+                    >
+                        0
+                    </strong>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <span class="stat-label">
+                        ПОРАЖЕНИЙ
+                    </span>
+
+                    <strong
+                        id="gamesLost"
+                        class="stat-value"
+                    >
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             STAKE SELECTION
+        ================================================== -->
+
+        <section
+            id="stakeView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="home"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div>
+                    <div class="view-title">
+                        ВЫБОР СТАВКИ
+                    </div>
+
+                    <div class="view-subtitle">
+                        Выбери уровень стола
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div
+                id="stakesContainer"
+                class="stakes-list"
+            >
+
+                <!-- JS вставит ставки -->
+
+            </div>
+
+
+            <div class="stake-warning">
+
+                <div class="warning-icon">
+                    !
+                </div>
+
+                <div>
+                    <strong>
+                        Внимание
+                    </strong>
+
+                    <span>
+                        Ставка резервируется сервером
+                        до окончания партии.
+                    </span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MATCHMAKING
+        ================================================== -->
+
+        <section
+            id="matchingView"
+            class="view hidden"
+        >
+
+            <div class="matching-screen">
+
+                <div class="matching-logo">
+                    HL
+                </div>
+
+                <div class="matching-title">
+                    ПОИСК СОПЕРНИКА
+                </div>
+
+                <div
+                    id="matchingStake"
+                    class="matching-stake"
+                >
+                    —
+                </div>
+
+                <div class="search-animation">
+
+                    <div class="search-ring ring-1"></div>
+                    <div class="search-ring ring-2"></div>
+                    <div class="search-ring ring-3"></div>
+
+                    <div class="search-center">
+                        ⚔
+                    </div>
+
+                </div>
+
+                <div
+                    id="matchingStatus"
+                    class="matching-status"
+                >
+                    Ищем игрока...
+                </div>
+
+                <div
+                    id="matchingPlayers"
+                    class="matching-players"
+                >
+                    1 / 2
+                </div>
+
+                <button
+                    id="cancelMatchButton"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Отменить поиск
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             GAME TABLE
+        ================================================== -->
+
+        <section
+            id="gameView"
+            class="view game-view hidden"
+        >
+
+            <!-- GAME HEADER -->
+
+            <div class="game-header">
+
+                <div class="game-player">
+
+                    <div
+                        id="opponentAvatar"
+                        class="game-avatar"
+                    >
+                        ?
+                    </div>
+
+                    <div>
+
+                        <strong id="opponentName">
+                            Соперник
+                        </strong>
+
+                        <span>
+                            <b id="opponentCards">
+                                6
+                            </b>
+                            карт
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="game-pot">
+
+                    <span>
+                        БАНК
+                    </span>
+
+                    <strong id="gamePot">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- TABLE -->
+
+            <div
+                id="gameTable"
+                class="game-table"
+            >
+
+                <div class="table-center">
+
+                    <div
+                        id="trumpCard"
+                        class="trump-card"
+                    >
+                        <div class="card-placeholder">
+                            ♠
+                        </div>
+                    </div>
+
+                    <div
+                        id="deckCounter"
+                        class="deck-counter"
+                    >
+                        24
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="tableCards"
+                    class="table-cards"
+                >
+                    <!-- Cards inserted by JS -->
+                </div>
+
+            </div>
+
+
+            <!-- GAME STATUS -->
+
+            <div
+                id="gameStatus"
+                class="game-status"
+            >
+                Ожидание хода...
+            </div>
+
+
+            <!-- PLAYER HAND -->
+
+            <div
+                id="playerHand"
+                class="player-hand"
+            >
+                <!-- Cards inserted by JS -->
+            </div>
+
+
+            <!-- GAME ACTIONS -->
+
+            <div class="game-actions">
+
+                <button
+                    id="takeButton"
+                    class="game-action danger"
+                    type="button"
+                >
+                    ВЗЯТЬ
+                </button>
+
+                <button
+                    id="passButton"
+                    class="game-action"
+                    type="button"
+                >
+                    БИТО
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PROFILE
+        ================================================== -->
+
+        <section
+            id="profileView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="home"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div class="view-title">
+                    ПРОФИЛЬ
+                </div>
+
+            </div>
+
+
+            <div class="profile-card">
+
+                <div
+                    id="profileAvatar"
+                    class="profile-avatar"
+                >
+                    ?
+                </div>
+
+                <div
+                    id="profileName"
+                    class="profile-name"
+                >
+                    Игрок
+                </div>
+
+                <div
+                    id="profileUsername"
+                    class="profile-username"
+                >
+                    @username
+                </div>
+
+                <div class="profile-level">
+                    LEVEL
+                    <strong id="profileLevel">
+                        1
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="profile-stats">
+
+                <div>
+                    <span>
+                        ИГР
+                    </span>
+
+                    <strong id="profileGames">
+                        0
+                    </strong>
+                </div>
+
+                <div>
+                    <span>
+                        ПОБЕД
+                    </span>
+
+                    <strong id="profileWins">
+                        0
+                    </strong>
+                </div>
+
+                <div>
+                    <span>
+                        ПОРАЖЕНИЙ
+                    </span>
+
+                    <strong id="profileLosses">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="profile-section">
+
+                <div class="section-heading">
+                    <span>
+                        ЭКОНОМИКА
+                    </span>
+                </div>
+
+                <div class="profile-row">
+
+                    <span>
+                        Баланс
+                    </span>
+
+                    <strong id="profileBalance">
+                        0 LUX
+                    </strong>
+
+                </div>
+
+                <div class="profile-row">
+
+                    <span>
+                        Пассивный доход
+                    </span>
+
+                    <strong id="profileIncome">
+                        0 LUX
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             GARAGE
+        ================================================== -->
+
+        <section
+            id="garageView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="home"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div>
+                    <div class="view-title">
+                        ГАРАЖ
+                    </div>
+
+                    <div class="view-subtitle">
+                        Твои автомобили
+                    </div>
+                </div>
+
+            </div>
+
+            <div
+                id="garageContainer"
+                class="garage-list"
+            >
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        🚘
+                    </div>
+
+                    <strong>
+                        Гараж пуст
+                    </strong>
+
+                    <span>
+                        Купленные автомобили
+                        появятся здесь.
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SETTINGS
+        ================================================== -->
+
+        <section
+            id="settingsView"
+            class="view hidden"
+        >
+
+            <div class="view-header">
+
+                <button
+                    class="back-button"
+                    data-back="home"
+                    type="button"
+                >
+                    ←
+                </button>
+
+                <div class="view-title">
+                    НАСТРОЙКИ
+                </div>
+
+            </div>
+
+
+            <div class="settings-list">
+
+                <button
+                    class="settings-row"
+                    type="button"
+                    id="soundToggle"
+                >
+                    <span>
+                        Звук
+                    </span>
+
+                    <strong>
+                        ВКЛ
+                    </strong>
+                </button>
+
+                <button
+                    class="settings-row"
+                    type="button"
+                    id="vibrationToggle"
+                >
+                    <span>
+                        Вибрация
+                    </span>
+
+                    <strong>
+                        ВКЛ
+                    </strong>
+                </button>
+
+                <button
+                    class="settings-row"
+                    type="button"
+                    id="logoutButton"
+                >
+                    <span>
+                        Выйти
+                    </span>
+
+                    <strong>
+                        →
+                    </strong>
+                </button>
+
+            </div>
+
+            <div class="settings-version">
+                HEAVY LUX CARD
+                <span>
+                    BASE V3
+                </span>
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             BOTTOM NAVIGATION
+        ================================================== -->
+
+        <nav
+            id="bottomNavigation"
+            class="bottom-nav"
+        >
+
+            <button
+                class="nav-item active"
+                data-view="home"
+                type="button"
+            >
+                <span class="nav-icon">
+                    ◆
+                </span>
+
+                <span>
+                    ИГРА
+                </span>
+            </button>
+
+            <button
+                class="nav-item"
+                data-view="profile"
+                type="button"
+            >
+                <span class="nav-icon">
+                    ●
+                </span>
+
+                <span>
+                    ПРОФИЛЬ
+                </span>
+            </button>
+
+            <button
+                class="nav-item"
+                data-view="garage"
+                type="button"
+            >
+                <span class="nav-icon">
+                    ▣
+                </span>
+
+                <span>
+                    ГАРАЖ
+                </span>
+            </button>
+
+            <button
+                class="nav-item"
+                data-view="settings"
+                type="button"
+            >
+                <span class="nav-icon">
+                    ⚙
+                </span>
+
+                <span>
+                    ЕЩЁ
+                </span>
+            </button>
+
+        </nav>
+
+    </main>
+
+
+    <!-- =====================================================
+         MODALS
+    ====================================================== -->
+
+    <div
+        id="modalOverlay"
+        class="modal-overlay hidden"
+    >
+
+        <div
+            id="modal"
+            class="modal"
+        >
+
+            <button
+                id="modalClose"
+                class="modal-close"
+                type="button"
+            >
+                ×
+            </button>
+
+            <div
+                id="modalIcon"
+                class="modal-icon"
+            >
+                !
+            </div>
+
+            <div
+                id="modalTitle"
+                class="modal-title"
+            >
+                Сообщение
+            </div>
+
+            <div
+                id="modalText"
+                class="modal-text"
+            >
+                —
+            </div>
+
+            <button
+                id="modalConfirm"
+                class="primary-button"
+                type="button"
+            >
+                ПОНЯТНО
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
+
+    <div
+        id="toastContainer"
+        class="toast-container"
+    ></div>
+
+
+    <!-- =====================================================
+         CLIENT
+    ====================================================== -->
+
+    <script>
+
+        window.HEAVY_LUX = {
+            version: "BASE_V3",
+            game: "durak",
+            deck: 36,
+            players: 2,
+            ai: false,
+            bot: false
+        };
+
+    </script>
+
+    <script src="/app.js"></script>
+
+</body>
+</html>
