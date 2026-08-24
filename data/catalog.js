@@ -1,201 +1,91 @@
 "use strict";
 
-/*
-=========================================================
-HEAVY LUX CARD
-CATALOG
-BASE V3
-=========================================================
-*/
-
-
-/*
-=========================================================
-VEHICLES
-=========================================================
-*/
-
-const VEHICLES = Object.freeze(
-  [
-    ["BMW", "3 Series", 65000],
-    ["Mercedes-Benz", "C-Class", 70000],
-    ["Audi", "A4", 68000],
-    ["Toyota", "Camry", 52000],
-    ["Kia", "K5", 43000],
-    ["Hyundai", "Sonata", 40000],
-    ["Volkswagen", "Tiguan", 48000],
-    ["Skoda", "Kodiaq", 50000],
-    ["Lexus", "ES", 85000],
-    ["Volvo", "XC60", 78000],
-
-    ["BMW", "5 Series", 110000],
-    ["Mercedes-Benz", "E-Class", 115000],
-    ["Audi", "A6", 108000],
-    ["Land Rover", "Discovery Sport", 125000],
-    ["Genesis", "G80", 120000],
-    ["Toyota", "Land Cruiser", 150000],
-    ["Porsche", "Macan", 160000],
-    ["BMW", "X5", 170000],
-    ["Mercedes-Benz", "GLE", 175000],
-    ["Audi", "Q8", 180000],
-  ].map(([brand, model, price], i) => ({
-    id: `motors_${i + 1}`,
-    brand,
-    model,
-    price,
-  }))
-);
-
-
-/*
-=========================================================
-EXCLUSIVE VEHICLES
-=========================================================
-*/
+const VEHICLES = [
+  ["Toyota", "Camry", 52000],
+  ["Kia", "K5", 43000],
+  ["Hyundai", "Sonata", 40000],
+  ["Volkswagen", "Tiguan", 48000],
+  ["Skoda", "Kodiaq", 50000],
+  ["BMW", "3 Series", 65000],
+  ["Mercedes-Benz", "C-Class", 70000],
+  ["Audi", "A4", 68000],
+  ["BMW", "5 Series", 95000],
+  ["Mercedes-Benz", "E-Class", 105000],
+  ["Audi", "Q5", 98000],
+  ["BMW", "X5", 125000],
+  ["Mercedes-Benz", "GLE", 132000],
+  ["Land Rover", "Range Rover Sport", 175000],
+  ["Porsche", "Cayenne", 165000],
+  ["BMW", "X7", 185000],
+  ["Mercedes-Benz", "S-Class", 220000],
+  ["Mercedes-Benz", "G-Class", 260000],
+  ["Porsche", "911 Carrera", 240000],
+  ["BMW", "M5", 190000],
+].map(([brand, model, price], i) => ({
+  id: `hm_${i + 1}`,
+  brand,
+  model,
+  price,
+  category: "Heavy Motors",
+}));
 
 const EXCLUSIVE = [
-  ["BMW", "M5 Competition", 280000, ""],
-  ["Mercedes-Benz", "AMG GT 63 S", 320000, ""],
-  ["Audi", "RS Q8", 290000, ""],
-  ["Porsche", "911 Turbo S", 420000, ""],
-
-  ["BMW", "M8 Competition MANSORY", 430000, "MANSORY"],
+  ["Mercedes-Benz", "S 580", 320000, "stock"],
+  ["BMW", "M8 Competition", 340000, "stock"],
+  ["Audi", "RS Q8", 330000, "stock"],
+  ["Porsche", "911 Turbo S", 430000, "stock"],
+  ["BMW", "X7 M60i MANSORY", 480000, "MANSORY"],
   ["Mercedes-Benz", "G 63 BRABUS", 520000, "BRABUS"],
-  ["Porsche", "Cayenne Turbo HAMANN", 390000, "HAMANN"],
-  ["Audi", "RS7 MANSORY", 410000, "MANSORY"],
-
-  ["Lamborghini", "Huracán", 650000, ""],
-  ["Ferrari", "488 GTB", 720000, ""],
-  ["McLaren", "720S", 700000, ""],
-
-  ["Porsche", "918 Spyder", 1800000, ""],
-  ["Lamborghini", "Revuelto", 1200000, ""],
-  ["Ferrari", "SF90 Stradale", 1300000, ""],
-  ["McLaren", "750S", 850000, ""],
+  ["Mercedes-Benz", "S 580 BRABUS", 500000, "BRABUS"],
+  ["Porsche", "Cayenne Turbo GT", 460000, "stock"],
+  ["Audi", "RS 7", 390000, "stock"],
+  ["BMW", "XM Label", 410000, "stock"],
+  ["Mercedes-Benz", "Maybach S 680", 560000, "stock"],
+  ["Porsche", "911 GT3 RS", 590000, "stock"],
+  ["McLaren", "750S", 720000, "stock"],
+  ["Ferrari", "296 GTB", 760000, "stock"],
+  ["Lamborghini", "Huracan Tecnica", 780000, "stock"],
 ].map(([brand, model, price, tuning], i) => ({
-  id: `exclusive_${i + 1}`,
+  id: `he_${i + 1}`,
   brand,
   model,
   price,
   tuning,
+  category: "Heavy Exclusive",
 }));
-
-
-/*
-=========================================================
-PROPERTY
-=========================================================
-*/
 
 const PROPERTY = [
-  ["lux", "Heavy Residence", "45000"],
-  ["lux", "Skyline Apartment", "70000"],
-  ["lux", "Black House", "95000"],
-
-  ["absolute", "Absolute Penthouse", "160000"],
-  ["absolute", "Royal Residence", "220000"],
-  ["absolute", "Grand Villa", "300000"],
-
-  ["legend", "Legend Estate", "500000"],
-  ["legend", "Imperial Mansion", "750000"],
-  ["legend", "Golden Coast Villa", "1000000"],
-
-  ["brutal", "Brutal Palace", "1600000"],
-  ["brutal", "Black Crown Estate", "2500000"],
-].map(([tier, name, price], i) => ({
-  id: `property_${i + 1}`,
-  tier,
-  name,
-  price: Number(price),
-}));
-
-
-/*
-=========================================================
-PROPERTY COLORS
-=========================================================
-*/
+  ["lux_apartment", "Lux Apartment", "Lux", 90000],
+  ["lux_cottage", "Lux Cottage", "Lux", 125000],
+  ["lux_residence", "Lux Residence", "Lux", 170000],
+  ["absolute_house", "Absolute House", "Absolute", 240000],
+  ["absolute_penthouse", "Absolute Penthouse", "Absolute", 320000],
+  ["absolute_sea", "Penthouse у моря", "Absolute", 390000],
+  ["legend_mansion", "Legend Mansion", "Legend", 520000],
+  ["legend_estate", "Legend Estate", "Legend", 680000],
+  ["legend_palace", "Legend Palace", "Legend", 850000],
+  ["brutal_residence", "Brutal Residence", "Brutal", 1100000],
+  ["brutal_villa", "Brutal Villa", "Brutal", 1450000],
+  ["brutal_palace", "Brutal Palace", "Brutal", 1900000],
+].map(([id, name, tier, price]) => ({ id, name, tier, price }));
 
 const PROPERTY_COLORS = Object.freeze({
-  lux: "#79a9ff",
-  absolute: "#b98cff",
-  legend: "#ffd15c",
-  brutal: "#ff5f6d",
+  Lux: "#6e9cff",
+  Absolute: "#c7a1ff",
+  Legend: "#e8bd62",
+  Brutal: "#ff6b62",
 });
 
+const BUSINESSES = [
+  ["restaurant", "Ресторан", 180000],
+  ["nightclub", "Ночной клуб", 260000],
+  ["hotel", "Отель", 420000],
+  ["factory", "Фабрика", 650000],
+  ["oil_terminal", "Нефтяной терминал", 1100000],
+].map(([id, name, price]) => ({ id, name, price, maxOwned: 3 }));
 
-/*
-=========================================================
-QUICK PHRASES
-=========================================================
-*/
-
-const QUICK_PHRASES = Object.freeze([
-  "Спасибо за игру!",
-  "Хорошей игры!",
-  "Охх…",
-  "Скорее!",
-]);
-
-
-/*
-=========================================================
-BEAUTIFUL NUMBER PRICE
-=========================================================
-*/
-
-function numberPrice(value) {
-  const digits = value.match(/\d+/)?.[0] || "";
-  const letters = value.match(/[А-ЯЁ]/gi)?.[0] || "";
-
-  let score = 1000;
-
-  /*
-  Triple identical digits:
-  111
-  222
-  777
-  etc.
-  */
-
-  if (/([0-9])\1\1/.test(digits)) {
-    score += 12000;
-  }
-
-  /*
-  Special combinations
-  */
-
-  if (/777|888|999|001|007/.test(digits)) {
-    score += 8000;
-  }
-
-  /*
-  Triple identical letters
-  */
-
-  if (/([А-ЯЁ])\1\1/.test(letters)) {
-    score += 10000;
-  }
-
-  /*
-  Premium first letters
-  */
-
-  if (/^[АУЕО]/i.test(value)) {
-    score += 1500;
-  }
-
-  return score;
-}
-
-
-/*
-=========================================================
-BEAUTIFUL LICENSE PLATES
-=========================================================
-*/
-
+const PLATE_LETTERS = "АВЕКМНОРСТУХ";
+const REGIONS = [77, 97, 99, 177, 197, 199];
 const BEAUTIFUL_NUMBERS = [
   "А111АА77",
   "А222АА77",
@@ -206,7 +96,6 @@ const BEAUTIFUL_NUMBERS = [
   "А777АА77",
   "А888АА77",
   "А999АА77",
-
   "У111УУ77",
   "У222УУ77",
   "У333УУ77",
@@ -216,39 +105,90 @@ const BEAUTIFUL_NUMBERS = [
   "У777УУ77",
   "У888УУ77",
   "У999УУ77",
-
   "Е111ЕЕ77",
-  "Е222ЕЕ77",
-  "Е333ЕЕ77",
-  "Е444ЕЕ77",
-  "Е555ЕЕ77",
   "Е777ЕЕ77",
-  "Е888ЕЕ77",
-  "Е999ЕЕ77",
-
-  "Х777ХХ77",
-  "Х888ХХ77",
-  "Х999ХХ77",
-
+  "М111ММ77",
   "М777ММ77",
+  "Х111ХХ77",
+  "Х777ХХ77",
+  "О777ОО77",
+  "К777КК77",
+  "Т777ТТ77",
+  "С777СС77",
+  "В777ВВ77",
+  "Р777РР77",
 ].map((plate, i) => ({
   id: `beautiful_${i + 1}`,
   plate,
-  price: numberPrice(plate) + 25000,
+  price: 35000 + i * 7500,
+  status: "available",
+  beautiful: true,
 }));
 
+function generateNormalPlates(count = 12000) {
+  const result = [];
+  let n = 0;
+  for (const region of REGIONS) {
+    for (let number = 1; number <= 999 && result.length < count; number++) {
+      const digits = String(number).padStart(3, "0");
+      const a = PLATE_LETTERS[(number + region) % PLATE_LETTERS.length];
+      const b = PLATE_LETTERS[(number * 3 + region) % PLATE_LETTERS.length];
+      const c = PLATE_LETTERS[(number * 7 + region) % PLATE_LETTERS.length];
+      const plate = `${a}${digits}${b}${c}${region}`;
+      result.push({
+        id: `plate_${++n}`,
+        plate,
+        price: 1200 + (number % 40) * 75,
+        status: "available",
+        beautiful: false,
+      });
+    }
+  }
+  return result;
+}
 
-/*
-=========================================================
-EXPORT
-=========================================================
-*/
+const NORMAL_PLATES = generateNormalPlates();
+const QUICK_PHRASES = Object.freeze([
+  "Спасибо за игру!",
+  "Хорошей игры!",
+  "Охх…",
+  "Скорее!",
+]);
+const STAKES = Object.freeze([100, 250, 500, 1000, 2500, 5000, 10000]);
+const RANKS = Object.freeze([
+  { min: 0, name: "Новичок", icon: "I" },
+  { min: 900, name: "Игрок", icon: "II" },
+  { min: 1000, name: "Картёжник", icon: "III" },
+  { min: 1150, name: "Опытный", icon: "IV" },
+  { min: 1350, name: "Авторитет", icon: "V" },
+  { min: 1600, name: "Тяжеловес", icon: "VI" },
+  { min: 1900, name: "Легенда", icon: "VII" },
+]);
+
+function rankForRating(rating) {
+  let current = RANKS[0];
+  for (const rank of RANKS) if (rating >= rank.min) current = rank;
+  return current;
+}
+function getPlateById(id) {
+  return (
+    NORMAL_PLATES.find((x) => x.id === id) ||
+    BEAUTIFUL_NUMBERS.find((x) => x.id === id) ||
+    null
+  );
+}
 
 module.exports = {
   VEHICLES,
   EXCLUSIVE,
   PROPERTY,
   PROPERTY_COLORS,
+  BUSINESSES,
+  NORMAL_PLATES,
   BEAUTIFUL_NUMBERS,
   QUICK_PHRASES,
+  STAKES,
+  RANKS,
+  rankForRating,
+  getPlateById,
 };
