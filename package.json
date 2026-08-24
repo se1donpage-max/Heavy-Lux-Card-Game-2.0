@@ -4,7 +4,8 @@
   "description": "Heavy Lux Card - online Durak 36 cards with Heavy Motors and Heavy Exclusive",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node game/engine.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
