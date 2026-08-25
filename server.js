@@ -21,6 +21,7 @@ const START_HC = 20000;
 const MAX_LEVEL = 100;
 const XP_PER_LEVEL = 1000;
 const MATCH_RAKE = 0.05;
+const ADMIN_TELEGRAM_ID = idOf(process.env.ADMIN_TELEGRAM_ID || "799081382");
 
 const app = express();
 const server = http.createServer(app);
@@ -49,6 +50,8 @@ function money(v) { return Math.max(0, Math.floor(Number(v) || 0)); }
 function levelForXp(xp) { return Math.min(MAX_LEVEL, 1 + Math.floor(Math.max(0, xp) / XP_PER_LEVEL)); }
 function rankInfo(p) { return rankForRating(p.rating); }
 function initials(name) { return safeName(name).split(/\s+/).map(x => x[0]).join("").slice(0, 2).toUpperCase() || "HL"; }
+function isAdminPlayer(p) { return !!p && idOf(p.telegramId || p.id) === ADMIN_TELEGRAM_ID; }
+function requireAdmin(socket) { const p = players.get(socket.data.playerId); if (!BOT_TOKEN || !socket.data.telegramVerified || !isAdminPlayer(p)) throw new Error("Доступ к админ-панели запрещён"); return p; }
 
 function newPlayer(id, tg = {}) {
   return {
@@ -64,7 +67,7 @@ function publicProfile(p) {
   const plate = displayVehicle?.plateId ? getPlateById(displayVehicle.plateId) : null;
   return {
     id: p.id, name: p.name, username: p.username, avatar: p.avatar, initials: initials(p.name), level: p.level, xp: p.xp, hc: p.hc,
-    rating: p.rating, rank: rankInfo(p), wins: p.wins, losses: p.losses, draws: p.draws,
+    rating: p.rating, rank: rankInfo(p), isAdmin: isAdminPlayer(p), wins: p.wins, losses: p.losses, draws: p.draws,
     displayProperty: p.properties.find(x => x.id === p.displayProperty) || null,
     displayVehicle: displayVehicle ? { ...displayVehicle, plate: plate?.plate || null } : null,
     garage: p.garage, plates: p.plates.map(id => getPlateById(id)).filter(Boolean), properties: p.properties, businesses: p.businesses
@@ -117,7 +120,7 @@ async function authenticate(socket) {
   if (!checked.ok) throw new Error(checked.error);
   const tg = checked.user || { id: a.devId || `dev_${socket.id}`, username: a.username || "demo", first_name: a.name || "Игрок", photo_url: "" };
   const p = await loadPlayer(String(tg.id || a.devId || socket.id), tg);
-  socket.data.playerId = p.id; sockets.set(p.id, socket.id); return p;
+  socket.data.playerId = p.id; socket.data.telegramVerified = !!BOT_TOKEN && checked.ok && /^\d+$/.test(idOf(tg.id)); sockets.set(p.id, socket.id); return p;
 }
 
 function socketFor(id) { const sid = sockets.get(id); return sid ? io.sockets.sockets.get(sid) || null : null; }
@@ -251,6 +254,36 @@ io.on("connection", socket => {
   socket.on("rematch", (cb=()=>{}) => { try { const room=requireRoom(socket); if(!room.playerIds.includes(playerId)) throw new Error("Нет доступа"); room.rematchVotes = room.rematchVotes || new Set(); room.rematchVotes.add(playerId); if(room.rematchVotes.size === room.playerIds.length){ room.rematchVotes.clear(); resetForRematch(room); } else { ok(socket,"Ждём соперников на реванш"); } cb({ok:true}); } catch(e){error(socket,e.message);cb({ok:false,error:e.message});} });
   socket.on("phrase", ({phrase}) => { if(!QUICK_PHRASES.includes(phrase)) return; const room=findRoom(playerId); if(!room || room.status!=="PLAYING") return; for(const id of room.playerIds) socketFor(id)?.emit("phrase",{playerId,phrase}); });
   socket.on("profile_get", ({playerId: targetId}={}) => { const target=players.get(idOf(targetId)); if(target) socket.emit("player_preview", publicProfile(target)); });
+  socket.on("admin_get", async ({ telegramId } = {}, cb = () => {}) => {
+    try {
+      requireAdmin(socket);
+      const targetId = idOf(telegramId);
+      if (!targetId || !/^\d+$/.test(targetId)) throw new Error("Укажите корректный Telegram ID");
+      const target = await loadPlayer(targetId, { id: targetId });
+      cb({ ok: true, player: publicProfile(target) });
+    } catch (e) { error(socket, e.message); cb({ ok: false, error: e.message }); }
+  });
+  socket.on("admin_set_player", async ({ telegramId, level, rating, hc } = {}, cb = () => {}) => {
+    try {
+      requireAdmin(socket);
+      const targetId = idOf(telegramId);
+      if (!targetId || !/^\d+$/.test(targetId)) throw new Error("Укажите корректный Telegram ID");
+      const target = await loadPlayer(targetId, { id: targetId });
+      const nextLevel = Math.min(MAX_LEVEL, Math.max(1, Math.floor(Number(level))));
+      const nextRating = Math.max(0, Math.floor(Number(rating)));
+      const nextHc = Math.max(0, Math.floor(Number(hc)));
+      if (![nextLevel, nextRating, nextHc].every(Number.isFinite)) throw new Error("Укажите корректные значения");
+      target.level = nextLevel;
+      target.xp = (nextLevel - 1) * XP_PER_LEVEL;
+      target.rating = nextRating;
+      target.hc = nextHc;
+      target.lastSeenAt = Date.now();
+      await savePlayer(target);
+      emitProfile(target);
+      cb({ ok: true, player: publicProfile(target) });
+      ok(socket, `Профиль ${targetId} обновлён`);
+    } catch (e) { error(socket, e.message); cb({ ok: false, error: e.message }); }
+  });
   socket.on("set_display", async ({vehicleId, propertyId}, cb=()=>{}) => { try { const p=players.get(playerId); if(vehicleId!==undefined){if(vehicleId!==null&&!getVehicle(p,vehicleId)) throw new Error("Автомобиль не найден");p.displayVehicle=vehicleId;} if(propertyId!==undefined){if(propertyId!==null&&!p.properties.some(x=>x.id===propertyId)) throw new Error("Недвижимость не найдена");p.displayProperty=propertyId;} await savePlayer(p); emitProfile(p); cb({ok:true}); } catch(e){error(socket,e.message);cb({ok:false,error:e.message});} });
   socket.on("buy_vehicle", async ({catalogId, exclusive=false}, cb=()=>{}) => { try { const p=players.get(playerId); const list=exclusive?EXCLUSIVE:VEHICLES; const item=list.find(x=>x.id===catalogId); if(!item) throw new Error("Автомобиль не найден"); const result=buyVehicle(p,item); await savePlayer(p); emitProfile(p); cb({ok:true,result}); }catch(e){error(socket,e.message);cb({ok:false,error:e.message});} });
   socket.on("buy_property", async ({catalogId},cb=()=>{})=>{try{const p=players.get(playerId);const item=PROPERTY.find(x=>x.id===catalogId);if(!item)throw new Error("Недвижимость не найдена");const result=buyProperty(p,item);await savePlayer(p);emitProfile(p);cb({ok:true,result});}catch(e){error(socket,e.message);cb({ok:false,error:e.message});}});
@@ -275,7 +308,7 @@ app.get("/api/market", (req,res)=>res.json(publicMarket()));
 app.post("/api/auth/telegram", async (req,res)=>{const checked=telegramCheck(req.body?.initData||"");if(!checked.ok)return res.status(401).json(checked);const tg=checked.user||{id:req.body?.devId||"demo",first_name:"Игрок"};const p=await loadPlayer(String(tg.id),tg);res.json({ok:true,profile:publicProfile(p)});});
 app.get(/.*/, (req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 
-server.listen(PORT,()=>console.log(`[Heavy Lux Card] listening on ${PORT} | telegram=${!!BOT_TOKEN} | postgres=${!!db}`));
+server.listen(PORT,()=>console.log(`[Heavy Lux Card] listening on ${PORT} | telegram=${!!BOT_TOKEN} | postgres=${!!db} | admin=${ADMIN_TELEGRAM_ID}`));
 
 process.on("SIGTERM", async()=>{try{for(const p of players.values())await savePlayer(p);if(db)await db.end();}finally{process.exit(0);}});
 process.on("SIGINT", async()=>{try{for(const p of players.values())await savePlayer(p);if(db)await db.end();}finally{process.exit(0);}});
