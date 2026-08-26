@@ -1,6 +1,6 @@
 {
   "name": "heavy-lux-card",
-  "version": "8.2.0",
+  "version": "10.0.0",
   "description": "Heavy Lux Card - online Durak 36 cards with Heavy Motors and Heavy Exclusive",
   "main": "server.js",
   "scripts": {
