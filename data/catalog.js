@@ -190,26 +190,20 @@ const STAKES = Object.freeze([
   10000
 ]);
 
+const RATING_MAX = 12000;
+
 const RANKS = Object.freeze([
-  { min: 0, name: "Новичок", icon: "I" },
-  { min: 900, name: "Игрок", icon: "II" },
-  { min: 1000, name: "Картёжник", icon: "III" },
-  { min: 1150, name: "Опытный", icon: "IV" },
-  { min: 1350, name: "Авторитет", icon: "V" },
-  { min: 1600, name: "Тяжеловес", icon: "VI" },
-  { min: 1900, name: "Легенда", icon: "VII" }
+  { min: 0, max: 1999, name: "Новичок", color: "#48d17d", icon: "I" },
+  { min: 2000, max: 3999, name: "Любитель", color: "#68a7ff", icon: "II" },
+  { min: 4000, max: 5999, name: "Профессионал", color: "#45d9d0", icon: "III" },
+  { min: 6000, max: 7999, name: "Ас", color: "#ffd166", icon: "IV" },
+  { min: 8000, max: 9999, name: "Эксперт", color: "#ff8b5c", icon: "V" },
+  { min: 10000, max: 12000, name: "Легенда", color: "#b66cff", icon: "VI" }
 ]);
 
 function rankForRating(rating) {
-  let current = RANKS[0];
-
-  for (const rank of RANKS) {
-    if (rating >= rank.min) {
-      current = rank;
-    }
-  }
-
-  return current;
+  const value = Math.max(0, Math.min(RATING_MAX, Math.floor(Number(rating) || 0)));
+  return RANKS.find(rank => value >= rank.min && value <= rank.max) || RANKS[RANKS.length - 1];
 }
 
 function getPlateById(id) {
@@ -231,6 +225,7 @@ module.exports = {
   QUICK_PHRASES,
   STAKES,
   RANKS,
+  RATING_MAX,
   rankForRating,
   getPlateById
 };
