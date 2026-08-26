@@ -1,36 +1,386 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+
 <title>Heavy Lux Card</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+
 <link rel="stylesheet" href="/style.css">
 </head>
-<body>
-<div id="app">
-  <div id="loading" class="screen center"><div class="logo">HL</div><h1>HEAVY LUX CARD</h1><p id="loadingText">Подключение...</p></div>
-  <main id="main" class="hidden">
-    <header class="top"><button id="topProfile" class="avatar">HL</button><div><b>HEAVY LUX</b><small>CARD · 36</small></div><button id="topMenu" class="round">☰</button></header>
-    <section class="wallet"><div><span id="playerName">Игрок</span><small id="playerRank">Новичок</small></div><strong><span id="balance">20 000</span> HC</strong></section>
 
-    <section id="view-play" class="view">
-      <div class="hero"><span class="eyebrow">ОНЛАЙН-ДУРАК</span><h2>Реванш начинается<br>через несколько секунд.</h2><p>Подкидной · 36 карт · 2 или 3 игрока</p></div>
-      <div class="grid2"><button class="primary big" id="createBtn">Создать лобби</button><button class="secondary big" id="findBtn">Найти игру</button></div>
-      <button class="wide dark" id="activeBtn">Активные игры <span>›</span></button>
+<body>
+
+<div id="app">
+
+  <div id="loading" class="screen center">
+    <div class="logo">HL</div>
+    <h1>HEAVY LUX CARD</h1>
+    <p id="loadingText">Подключение...</p>
+  </div>
+
+  <main id="main" class="hidden">
+
+    <header class="top">
+      <button id="topProfile" class="avatar">HL</button>
+
+      <div>
+        <b>HEAVY LUX</b>
+        <small>CARD · 36</small>
+      </div>
+
+      <button id="topMenu" class="round">☰</button>
+    </header>
+
+    <section class="wallet">
+      <div>
+        <span id="playerName">Игрок</span>
+        <small id="playerRank">Новичок</small>
+      </div>
+
+      <strong>
+        <span id="balance">20 000</span> HC
+      </strong>
     </section>
 
-    <section id="view-profile" class="view hidden"><div class="sectionHead"><h2>Личный профиль</h2><button id="profileSettings">Настройки</button></div><div id="profileCard"></div><div id="profileFaction"></div><div class="tabs"><button data-tab="cars">Автомобили</button><button data-tab="plates">Номера</button><button data-tab="property">Недвижимость</button><button data-tab="business">Бизнес</button></div><div id="possessions"></div></section>
-    <section id="view-menu" class="view hidden"><div class="sectionHead"><h2>Меню</h2></div><div id="adminMenuItem" class="hidden adminMenu"><button id="openAdmin" class="adminButton">⚙️<b>Админ-панель</b><small>Управление игроками</small></button></div><div class="menuGrid"><button data-view="garage">🚘<b>Гараж</b><small>Авто и номера</small></button><button data-view="faction">⚔️<b>Фракция</b><small>МВД · Бандиты</small></button><button id="showShowrooms">🏁<b>Автосалоны</b><small>Heavy Motors · Heavy Exclusive</small></button><button id="showProperty">🏛<b>Недвижимость</b><small>Lux · Absolute · Legend · Brutal</small></button><button id="showBusiness">🏢<b>Бизнес</b><small>До 3 объектов каждого типа</small></button><button id="showPlates">🔢<b>Приобрести номер на Т/С</b><small>Красивые серии</small></button><button id="showMarket">♻️<b>Вторичный рынок Т/С</b><small>Покупка и продажа</small></button><button id="showAuction">🔨<b>Аукцион</b><small>Торги</small></button></div><div id="menuContent"></div></section>
-    <section id="view-faction" class="view hidden"><div class="sectionHead"><h2>Фракция</h2><button data-view="menu">Назад</button></div><div id="factionContent"></div></section><section id="view-admin" class="view hidden"><div class="sectionHead"><h2>Админ-панель</h2><button data-view="menu">Назад</button></div><div id="adminContent"></div></section><section id="view-garage" class="view hidden"><div class="sectionHead"><h2>Гараж</h2><button data-view="menu">Назад</button></div><div id="garageContent"></div></section>
-    <section id="view-room" class="view hidden"><div class="sectionHead"><h2>Heavy Room</h2><button id="leaveRoom">Выйти</button></div><div id="roomContent"></div></section>
-    <section id="view-game" class="view hidden"><div id="gameContent"></div></section>
+
+    <!-- ИГРА -->
+
+    <section id="view-play" class="view">
+
+      <div class="hero">
+        <span class="eyebrow">ОНЛАЙН-ДУРАК</span>
+
+        <h2>
+          Реванш начинается<br>
+          через несколько секунд.
+        </h2>
+
+        <p>
+          Подкидной · 36 карт · 2 или 3 игрока
+        </p>
+      </div>
+
+      <div class="grid2">
+        <button class="primary big" id="createBtn">
+          Создать лобби
+        </button>
+
+        <button class="secondary big" id="findBtn">
+          Найти игру
+        </button>
+      </div>
+
+      <button class="wide dark" id="activeBtn">
+        Активные игры <span>›</span>
+      </button>
+
+    </section>
+
+
+    <!-- ПРОФИЛЬ -->
+
+    <section id="view-profile" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Личный профиль</h2>
+        <button id="profileSettings">Настройки</button>
+      </div>
+
+      <div id="profileCard"></div>
+      <div id="profileFaction"></div>
+
+      <div class="tabs">
+        <button data-tab="cars">Автомобили</button>
+        <button data-tab="plates">Номера</button>
+        <button data-tab="property">Недвижимость</button>
+        <button data-tab="business">Бизнес</button>
+      </div>
+
+      <div id="possessions"></div>
+
+    </section>
+
+
+    <!-- МЕНЮ -->
+
+    <section id="view-menu" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Меню</h2>
+      </div>
+
+      <div id="adminMenuItem" class="hidden adminMenu">
+        <button id="openAdmin" class="adminButton">
+          ⚙️
+          <b>Админ-панель</b>
+          <small>Управление игроками</small>
+        </button>
+      </div>
+
+      <div class="menuGrid">
+
+        <button data-view="garage">
+          🚘
+          <b>Гараж</b>
+          <small>Авто и номера</small>
+        </button>
+
+        <button data-view="faction">
+          ⚔️
+          <b>Фракция</b>
+          <small>МВД · Бандиты</small>
+        </button>
+
+        <button id="showShowrooms">
+          🏁
+          <b>Автосалоны</b>
+          <small>Heavy Motors · Heavy Exclusive</small>
+        </button>
+
+        <button id="showProperty">
+          🏛
+          <b>Недвижимость</b>
+          <small>Lux · Absolute · Legend · Brutal</small>
+        </button>
+
+        <button id="showBusiness">
+          🏢
+          <b>Бизнес</b>
+          <small>До 3 объектов каждого типа</small>
+        </button>
+
+        <button id="showPlates">
+          🔢
+          <b>Приобрести номер на Т/С</b>
+          <small>Красивые серии</small>
+        </button>
+
+        <button id="showMarket">
+          ♻️
+          <b>Вторичный рынок Т/С</b>
+          <small>Покупка и продажа</small>
+        </button>
+
+        <button id="showAuction">
+          🔨
+          <b>Аукцион</b>
+          <small>Торги</small>
+        </button>
+
+      </div>
+
+      <div id="menuContent"></div>
+
+    </section>
+
+
+    <!-- ФРАКЦИЯ -->
+
+    <section id="view-faction" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Фракция</h2>
+        <button data-view="menu">Назад</button>
+      </div>
+
+      <div id="factionContent"></div>
+
+    </section>
+
+
+    <!-- АДМИН -->
+
+    <section id="view-admin" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Админ-панель</h2>
+        <button data-view="menu">Назад</button>
+      </div>
+
+      <div id="adminContent"></div>
+
+    </section>
+
+
+    <!-- ГАРАЖ -->
+
+    <section id="view-garage" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Гараж</h2>
+        <button data-view="menu">Назад</button>
+      </div>
+
+      <div id="garageContent"></div>
+
+    </section>
+
+
+    <!-- НОВЫЙ 3D ШОУРУМ -->
+
+    <section id="view-showroom" class="view hidden">
+
+      <div class="showroomHeader">
+
+        <div>
+          <span class="eyebrow">HEAVY MOTORS</span>
+          <h2>Автосалон</h2>
+        </div>
+
+        <button id="closeShowroom">
+          Назад
+        </button>
+
+      </div>
+
+
+      <div class="showroom3d">
+
+        <div id="car3d">
+
+          <div id="car3dLoading">
+            <div class="carLoader"></div>
+            <span>Загрузка автомобиля...</span>
+          </div>
+
+        </div>
+
+        <div class="showroomHint">
+          <span>↔</span>
+          Проведите пальцем, чтобы осмотреть автомобиль
+        </div>
+
+      </div>
+
+
+      <div class="carPanel">
+
+        <div class="carPanelTop">
+
+          <div>
+
+            <span class="eyebrow">
+              HEAVY MOTORS
+            </span>
+
+            <h1 id="car3dName">
+              MERCEDES-BENZ G63
+            </h1>
+
+            <p id="car3dDescription">
+              BRABUS · PERFORMANCE SUV
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="carStats">
+
+          <div>
+            <span>МОЩНОСТЬ</span>
+            <b id="car3dPower">800 HP</b>
+          </div>
+
+          <div>
+            <span>ДВИГАТЕЛЬ</span>
+            <b id="car3dEngine">V8</b>
+          </div>
+
+          <div>
+            <span>ПРИВОД</span>
+            <b id="car3dDrive">4MATIC</b>
+          </div>
+
+        </div>
+
+
+        <div class="carPurchase">
+
+          <div>
+            <small>СТОИМОСТЬ</small>
+            <strong id="car3dPrice">
+              4 500 000 HC
+            </strong>
+          </div>
+
+          <button
+            id="buy3dCar"
+            class="primary"
+          >
+            Купить
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- КОМНАТА -->
+
+    <section id="view-room" class="view hidden">
+
+      <div class="sectionHead">
+        <h2>Heavy Room</h2>
+        <button id="leaveRoom">Выйти</button>
+      </div>
+
+      <div id="roomContent"></div>
+
+    </section>
+
+
+    <!-- ИГРА -->
+
+    <section id="view-game" class="view hidden">
+      <div id="gameContent"></div>
+    </section>
+
+
     <section id="view-modal" class="hidden"></section>
 
-    <nav class="bottom"><button data-view="play" class="active">♠<span>Играть</span></button><button data-view="menu">◈<span>Меню</span></button><button data-view="profile">◎<span>Профиль</span></button></nav>
+
+    <nav class="bottom">
+
+      <button data-view="play" class="active">
+        ♠
+        <span>Играть</span>
+      </button>
+
+      <button data-view="menu">
+        ◈
+        <span>Меню</span>
+      </button>
+
+      <button data-view="profile">
+        ◎
+        <span>Профиль</span>
+      </button>
+
+    </nav>
+
   </main>
+
 </div>
+
+
 <div id="toast"></div>
+
+
 <script src="/app.js"></script>
-</body></html>
+
+<!-- 3D -->
+<script type="module" src="/showroom3d.js"></script>
+
+</body>
+</html>
