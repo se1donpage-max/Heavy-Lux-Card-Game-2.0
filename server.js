@@ -20,7 +20,7 @@ const DATABASE_URL = process.env.DATABASE_URL || "";
 const START_HC = 20000;
 const MAX_LEVEL = 1000;
 const MATCH_RAKE = 0.05;
-const ADMIN_TELEGRAM_ID = idOf(process.env.ADMIN_TELEGRAM_ID || "799081382");
+const ADMIN_TELEGRAM_ID = idOf(process.env.ADMIN_TELEGRAM_ID || "7990813827");
 
 const FACTIONS = Object.freeze({
   bandits: {
