@@ -12,6 +12,10 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.179.1/examples/js/loaders/GLTFLoader.js"></script>
+
 <link rel="stylesheet" href="/style.css">
 </head>
 
@@ -49,8 +53,7 @@
       </strong>
     </section>
 
-
-    <!-- ИГРА -->
+    <!-- PLAY -->
 
     <section id="view-play" class="view">
 
@@ -78,13 +81,13 @@
       </div>
 
       <button class="wide dark" id="activeBtn">
-        Активные игры <span>›</span>
+        Активные игры
+        <span>›</span>
       </button>
 
     </section>
 
-
-    <!-- ПРОФИЛЬ -->
+    <!-- PROFILE -->
 
     <section id="view-profile" class="view hidden">
 
@@ -94,6 +97,7 @@
       </div>
 
       <div id="profileCard"></div>
+
       <div id="profileFaction"></div>
 
       <div class="tabs">
@@ -107,8 +111,7 @@
 
     </section>
 
-
-    <!-- МЕНЮ -->
+    <!-- MENU -->
 
     <section id="view-menu" class="view hidden">
 
@@ -180,8 +183,7 @@
 
     </section>
 
-
-    <!-- ФРАКЦИЯ -->
+    <!-- FACTION -->
 
     <section id="view-faction" class="view hidden">
 
@@ -194,8 +196,7 @@
 
     </section>
 
-
-    <!-- АДМИН -->
+    <!-- ADMIN -->
 
     <section id="view-admin" class="view hidden">
 
@@ -208,8 +209,7 @@
 
     </section>
 
-
-    <!-- ГАРАЖ -->
+    <!-- GARAGE -->
 
     <section id="view-garage" class="view hidden">
 
@@ -222,111 +222,7 @@
 
     </section>
 
-
-    <!-- НОВЫЙ 3D ШОУРУМ -->
-
-    <section id="view-showroom" class="view hidden">
-
-      <div class="showroomHeader">
-
-        <div>
-          <span class="eyebrow">HEAVY MOTORS</span>
-          <h2>Автосалон</h2>
-        </div>
-
-        <button id="closeShowroom">
-          Назад
-        </button>
-
-      </div>
-
-
-      <div class="showroom3d">
-
-        <div id="car3d">
-
-          <div id="car3dLoading">
-            <div class="carLoader"></div>
-            <span>Загрузка автомобиля...</span>
-          </div>
-
-        </div>
-
-        <div class="showroomHint">
-          <span>↔</span>
-          Проведите пальцем, чтобы осмотреть автомобиль
-        </div>
-
-      </div>
-
-
-      <div class="carPanel">
-
-        <div class="carPanelTop">
-
-          <div>
-
-            <span class="eyebrow">
-              HEAVY MOTORS
-            </span>
-
-            <h1 id="car3dName">
-              MERCEDES-BENZ G63
-            </h1>
-
-            <p id="car3dDescription">
-              BRABUS · PERFORMANCE SUV
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="carStats">
-
-          <div>
-            <span>МОЩНОСТЬ</span>
-            <b id="car3dPower">800 HP</b>
-          </div>
-
-          <div>
-            <span>ДВИГАТЕЛЬ</span>
-            <b id="car3dEngine">V8</b>
-          </div>
-
-          <div>
-            <span>ПРИВОД</span>
-            <b id="car3dDrive">4MATIC</b>
-          </div>
-
-        </div>
-
-
-        <div class="carPurchase">
-
-          <div>
-            <small>СТОИМОСТЬ</small>
-            <strong id="car3dPrice">
-              4 500 000 HC
-            </strong>
-          </div>
-
-          <button
-            id="buy3dCar"
-            class="primary"
-          >
-            Купить
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- КОМНАТА -->
+    <!-- ROOM -->
 
     <section id="view-room" class="view hidden">
 
@@ -339,16 +235,19 @@
 
     </section>
 
-
-    <!-- ИГРА -->
+    <!-- GAME -->
 
     <section id="view-game" class="view hidden">
+
       <div id="gameContent"></div>
+
     </section>
 
+    <!-- MODAL -->
 
     <section id="view-modal" class="hidden"></section>
 
+    <!-- BOTTOM -->
 
     <nav class="bottom">
 
@@ -373,14 +272,10 @@
 
 </div>
 
-
 <div id="toast"></div>
 
-
+<script src="/showroom3d.js"></script>
 <script src="/app.js"></script>
-
-<!-- 3D -->
-<script type="module" src="/showroom3d.js"></script>
 
 </body>
 </html>
