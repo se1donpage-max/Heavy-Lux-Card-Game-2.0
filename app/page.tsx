@@ -115,10 +115,40 @@ function EmptySection({
 }) {
   return (
     <div className="empty-section">
-      <div className="section-eyebrow">{eyebrow}</div>
+      <div>{eyebrow}</div>
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="section-coming">COMING SOON</div>
+    </div>
+  );
+}
+
+function Slogan({
+  scene,
+  number,
+  label,
+  firstLine,
+  secondLine,
+}: {
+  scene: string;
+  number: string;
+  label: string;
+  firstLine: string;
+  secondLine: string;
+}) {
+  return (
+    <div
+      className="elite-slogan-break"
+      data-scene={scene}
+    >
+      <div className="elite-slogan-content">
+        <span>{number} / {label}</span>
+        <strong>
+          {firstLine}
+          <br />
+          <em>{secondLine}</em>
+        </strong>
+      </div>
     </div>
   );
 }
@@ -171,27 +201,27 @@ export default function Home() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
+          if (entry.isIntersecting) {
+            const currentScene =
+              entry.target.getAttribute("data-scene");
 
-          const currentScene =
-            entry.target.getAttribute("data-scene");
+            if (currentScene) {
+              setScene(currentScene);
+            }
 
-          if (currentScene) {
-            setScene(currentScene);
-          }
+            entry.target.classList.add("is-visible");
 
-          const sectionId = entry.target.id;
+            const sectionId = entry.target.id;
 
-          if (
-            tabs.some((tab) => tab.id === sectionId)
-          ) {
-            setActiveTab(sectionId as TabId);
+            if (tabs.some((tab) => tab.id === sectionId)) {
+              setActiveTab(sectionId as TabId);
+            }
           }
         });
       },
       {
         root: null,
-        rootMargin: "-35% 0px -45% 0px",
+        rootMargin: "-35% 0px -35% 0px",
         threshold: 0,
       }
     );
@@ -224,7 +254,10 @@ export default function Home() {
       {/* HEADER */}
       <header className="elite-header">
         <div className="elite-brand">
-          <div className="elite-brand-mark">K7</div>
+          <div className="elite-brand-mark">
+            <img src="/k7-logo.jpeg" alt="K7 CREW" />
+          </div>
+
           <div>
             <div className="elite-brand-name">K7 CREW</div>
             <div className="elite-brand-caption">
@@ -251,7 +284,7 @@ export default function Home() {
           </div>
 
           <div className="elite-hero-logo">
-            K7
+            <img src="/k7-logo.jpeg" alt="K7 CREW Logo" />
           </div>
 
           <div className="elite-hero-divider" />
@@ -290,7 +323,7 @@ export default function Home() {
         className="elite-manifesto-section"
         data-scene="manifesto"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             02 / OUR MINDSET
           </div>
@@ -315,13 +348,21 @@ export default function Home() {
         </div>
       </section>
 
+      <Slogan
+        scene="chat"
+        number="03"
+        label="THE CONNECTION"
+        firstLine="ONE CREW."
+        secondLine="ONE PURPOSE."
+      />
+
       {/* CHAT */}
       <section
         id="chat"
         className="elite-content-section"
         data-scene="chat"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             03 / COMMUNICATION
           </div>
@@ -334,13 +375,21 @@ export default function Home() {
         </div>
       </section>
 
+      <Slogan
+        scene="events"
+        number="04"
+        label="THE COMPETITION"
+        firstLine="NO EXCUSES."
+        secondLine="ONLY RESULTS."
+      />
+
       {/* EVENTS */}
       <section
         id="events"
         className="elite-content-section"
         data-scene="events"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             04 / COMPETITION
           </div>
@@ -353,13 +402,21 @@ export default function Home() {
         </div>
       </section>
 
+      <Slogan
+        scene="roster"
+        number="05"
+        label="THE SQUAD"
+        firstLine="STRONGER"
+        secondLine="AS ONE."
+      />
+
       {/* ROSTER */}
       <section
         id="roster"
         className="elite-content-section elite-roster-section"
         data-scene="roster"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             05 / THE SQUAD
           </div>
@@ -432,12 +489,22 @@ export default function Home() {
 
               <div className="elite-roster-total">
                 <span>REGISTERED PLAYERS</span>
-                <strong>{roster.length.toString().padStart(2, "0")}</strong>
+                <strong>
+                  {roster.length.toString().padStart(2, "0")}
+                </strong>
               </div>
             </>
           )}
         </div>
       </section>
+
+      <Slogan
+        scene="news"
+        number="06"
+        label="THE LEGACY"
+        firstLine="BUILT TO"
+        secondLine="BE REMEMBERED."
+      />
 
       {/* NEWS */}
       <section
@@ -445,7 +512,7 @@ export default function Home() {
         className="elite-content-section"
         data-scene="news"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             06 / LATEST UPDATES
           </div>
@@ -458,13 +525,21 @@ export default function Home() {
         </div>
       </section>
 
+      <Slogan
+        scene="stats"
+        number="07"
+        label="THE PERFORMANCE"
+        firstLine="PROVE IT."
+        secondLine="EVERY MATCH."
+      />
+
       {/* STATS */}
       <section
         id="stats"
         className="elite-content-section"
         data-scene="stats"
       >
-        <div className="elite-section-inner">
+        <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             07 / PERFORMANCE
           </div>
@@ -479,16 +554,20 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="elite-footer">
-        <div className="elite-footer-logo">K7</div>
+        <div className="elite-footer-logo">
+          <img src="/k7-logo.jpeg" alt="K7 CREW" />
+        </div>
+
         <div className="elite-footer-slogan">
           SILENT MOVES. DEADLY RESULTS.
         </div>
+
         <div className="elite-footer-copy">
           K7 CREW © 2026
         </div>
       </footer>
 
-      {/* BOTTOM NAVIGATION */}
+      {/* BOTTOM NAVIGATION ONLY */}
       <nav className="elite-bottom-nav">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -504,7 +583,10 @@ export default function Home() {
               aria-label={tab.label}
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon size={21} strokeWidth={isActive ? 2.3 : 1.7} />
+              <Icon
+                size={21}
+                strokeWidth={isActive ? 2.3 : 1.7}
+              />
               <span>{tab.label}</span>
               <i />
             </button>
