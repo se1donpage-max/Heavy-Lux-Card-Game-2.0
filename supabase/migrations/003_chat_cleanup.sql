@@ -1,12 +1,8 @@
 
--- Enable Supabase Cron
-create extension if not exists pg_cron
-with schema pg_catalog;
+-- Enable scheduled database jobs
+create extension if not exists pg_cron;
 
-grant usage on schema cron to postgres;
-grant all privileges on all tables in schema cron to postgres;
-
--- Function for deleting expired chat messages
+-- Delete expired chat messages
 create or replace function public.delete_expired_chat_messages()
 returns bigint
 language plpgsql
@@ -25,14 +21,11 @@ begin
 end;
 $$;
 
--- Restrict direct access to the cleanup function
+-- Restrict access to the cleanup function
 revoke all on function public.delete_expired_chat_messages()
 from public, anon, authenticated;
 
-grant execute on function public.delete_expired_chat_messages()
-to service_role;
-
--- Run cleanup every minute
+-- Schedule cleanup every minute
 select cron.schedule(
   'k7-chat-expiry-cleanup',
   '* * * * *',
