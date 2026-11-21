@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,6 @@ import {
   RefreshCw,
   Crown,
   Shield,
-  ArrowUpRight,
 } from "lucide-react";
 
 type TabId = "chat" | "events" | "roster" | "news" | "stats";
@@ -33,24 +33,48 @@ interface RosterPlayer {
 }
 
 const tabs = [
-  { id: "chat", label: "Chat", icon: MessageCircle, number: "01" },
-  { id: "events", label: "Events", icon: CalendarDays, number: "02" },
-  { id: "roster", label: "Roster", icon: Users, number: "03" },
-  { id: "news", label: "News", icon: Newspaper, number: "04" },
-  { id: "stats", label: "Stats", icon: Trophy, number: "05" },
+  { id: "chat", label: "Chat", icon: MessageCircle },
+  { id: "events", label: "Events", icon: CalendarDays },
+  { id: "roster", label: "Roster", icon: Users },
+  { id: "news", label: "News", icon: Newspaper },
+  { id: "stats", label: "Stats", icon: Trophy },
 ] as const;
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
 
-const sceneWords: Record<TabId | "intro", string[]> = {
-  intro: ["SILENT MOVES", "DEADLY RESULTS", "K7", "NO LIMITS"],
-  chat: ["STAY CONNECTED", "ONE CREW", "NO DISTANCE", "UNITED"],
-  events: ["ENTER THE GAME", "NO SECOND CHANCES", "COMPETE", "TAKE YOUR PLACE"],
-  roster: ["BUILT DIFFERENT", "THE SQUAD", "TRUST THE TEAM", "K7 CREW"],
-  news: ["LATEST SIGNAL", "STAY INFORMED", "THE NEXT MOVE", "BROADCAST"],
-  stats: ["PROVE IT", "EVERY MATCH", "PURE PERFORMANCE", "RESULTS"],
-};
+const slogans = [
+  {
+    number: "01",
+    label: "THE CONNECTION",
+    first: "ONE CREW.",
+    second: "ONE PURPOSE.",
+  },
+  {
+    number: "02",
+    label: "THE COMPETITION",
+    first: "NO EXCUSES.",
+    second: "ONLY RESULTS.",
+  },
+  {
+    number: "03",
+    label: "THE SQUAD",
+    first: "STRONGER",
+    second: "AS ONE.",
+  },
+  {
+    number: "04",
+    label: "THE LEGACY",
+    first: "BUILT TO",
+    second: "BE REMEMBERED.",
+  },
+  {
+    number: "05",
+    label: "THE PERFORMANCE",
+    first: "PROVE IT.",
+    second: "EVERY MATCH.",
+  },
+];
 
 function getPlayerName(player: RosterPlayer) {
   if (player.profiles?.username) {
@@ -67,40 +91,6 @@ function getPlayerName(player: RosterPlayer) {
   }
 
   return `PLAYER_${player.telegram_id}`;
-}
-
-function SceneBackdrop({
-  scene,
-}: {
-  scene: TabId | "intro";
-}) {
-  const words = sceneWords[scene];
-
-  return (
-    <div className={`scene-backdrop scene-${scene}`} aria-hidden="true">
-      <div className="scene-grain" />
-      <div className="scene-orbit scene-orbit-one" />
-      <div className="scene-orbit scene-orbit-two" />
-
-      <div className="scene-typography">
-        {words.map((word, index) => (
-          <span
-            key={`${scene}-${word}`}
-            className={`scene-word scene-word-${index + 1}`}
-          >
-            {word}
-          </span>
-        ))}
-      </div>
-
-      <div className="scene-index">
-        K7 <span> / </span> {scene === "intro" ? "2026" : scene.toUpperCase()}
-      </div>
-
-      <div className="scene-crosshair scene-crosshair-one" />
-      <div className="scene-crosshair scene-crosshair-two" />
-    </div>
-  );
 }
 
 function PlayerCard({
@@ -128,36 +118,40 @@ function PlayerCard({
 
       <div className="roster-player-status">
         {player ? (
-          player.is_captain ? <Crown size={17} /> : <Shield size={17} />
-        ) : (
-          "+"
-        )}
+          player.is_captain ? <Crown size={16} /> : <Shield size={16} />
+        ) : "+"}
       </div>
     </div>
   );
 }
 
-function SectionHeading({
+function Slogan({
   number,
-  title,
-  subtitle,
+  label,
+  first,
+  second,
 }: {
   number: string;
-  title: string;
-  subtitle: string;
+  label: string;
+  first: string;
+  second: string;
 }) {
   return (
-    <div className="section-heading">
-      <div className="section-heading-number">
-        <span>{number}</span>
-        <i />
-        K7 CREW
+    <section className="elite-slogan-break">
+      <div className="elite-slogan-content">
+        <div className="elite-slogan-label">
+          {number} / {label}
+        </div>
+
+        <h2>
+          {first}
+          <br />
+          <span>{second}</span>
+        </h2>
+
+        <div className="elite-slogan-line" />
       </div>
-
-      <h2>{title}<span>.</span></h2>
-
-      <p>{subtitle}</p>
-    </div>
+    </section>
   );
 }
 
@@ -165,41 +159,23 @@ function EmptySection({
   eyebrow,
   title,
   description,
-  number,
 }: {
   eyebrow: string;
   title: string;
   description: string;
-  number: string;
 }) {
   return (
     <div className="empty-section">
-      <div className="empty-section-top">
-        <span>{eyebrow}</span>
-        <span>{number} / 05</span>
-      </div>
-
-      <div className="empty-section-center">
-        <div className="empty-section-symbol">
-          <span />
-          <span />
-          <span />
-        </div>
-
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
-
-      <div className="empty-section-bottom">
-        <span>IN DEVELOPMENT</span>
-        <ArrowUpRight size={17} />
-      </div>
+      <div className="empty-section-eyebrow">{eyebrow}</div>
+      <h3>{title}</h3>
+      <p>{description}</p>
+      <div className="section-coming">COMING SOON</div>
     </div>
   );
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>("chat");
+  const [activeTab, setActiveTab] = useState<TabId>("roster");
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -234,6 +210,7 @@ export default function Home() {
     loadRoster();
   }, []);
 
+  // Navigation and content reveal.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -252,44 +229,122 @@ export default function Home() {
         });
       },
       {
-        rootMargin: "-38% 0px -42% 0px",
-        threshold: 0,
+        rootMargin: "-35% 0px -45% 0px",
       }
     );
 
     sections.forEach((section) => observer.observe(section));
 
-    return () => observer.disconnect();
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        });
+      },
+      {
+        threshold: 0.15,
+      }
+    );
+
+    document
+      .querySelectorAll(".elite-slogan-content, .reveal-content")
+      .forEach((element) => revealObserver.observe(element));
+
+    return () => {
+      observer.disconnect();
+      revealObserver.disconnect();
+    };
   }, []);
 
+  // Scroll-synchronized cinematic typography.
   useEffect(() => {
-    const root = document.documentElement;
+    const background = document.querySelector<HTMLElement>(
+      ".elite-background"
+    );
+
+    const laneOne = document.querySelector<HTMLElement>(
+      ".elite-type-lane-one"
+    );
+
+    const laneTwo = document.querySelector<HTMLElement>(
+      ".elite-type-lane-two"
+    );
+
+    const laneThree = document.querySelector<HTMLElement>(
+      ".elite-type-lane-three"
+    );
+
+    if (!background || !laneOne || !laneTwo || !laneThree) {
+      return;
+    }
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
     let frame = 0;
 
-    const updateScroll = () => {
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(max, Math.max(min, value));
+
+    const updateVisuals = () => {
       frame = 0;
 
-      const scrollY = window.scrollY;
-      const height = window.innerHeight || 1;
+      const scroll = window.scrollY;
       const maxScroll =
-        document.documentElement.scrollHeight - height;
+        document.documentElement.scrollHeight - window.innerHeight;
 
       const progress =
-        maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0;
+        maxScroll > 0 ? clamp(scroll / maxScroll, 0, 1) : 0;
 
-      root.style.setProperty("--scroll-progress", String(progress));
-      root.style.setProperty("--scroll-y", `${scrollY}px`);
+      background.style.setProperty(
+        "--scene-progress",
+        String(progress)
+      );
+
+      if (reduceMotion) {
+        laneOne.style.transform = "none";
+        laneTwo.style.transform = "none";
+        laneThree.style.transform = "none";
+        return;
+      }
+
+      // Every movement is directly tied to the user's scroll position.
+      // No independent animation or automatic movement.
+
+      laneOne.style.transform = `
+        translate3d(${-scroll * 0.24}px, ${scroll * 0.025}px, 0)
+        rotate(-3.5deg)
+      `;
+
+      laneTwo.style.transform = `
+        translate3d(${scroll * 0.18}px, ${-scroll * 0.018}px, 0)
+        rotate(2.4deg)
+      `;
+
+      laneThree.style.transform = `
+        translate3d(${-scroll * 0.105}px, ${scroll * 0.012}px, 0)
+        rotate(-1.2deg)
+      `;
+
+      laneOne.style.opacity = String(0.055 + progress * 0.035);
+      laneTwo.style.opacity = String(0.045 + progress * 0.045);
+      laneThree.style.opacity = String(0.04 + progress * 0.025);
     };
 
     const requestUpdate = () => {
-      if (!frame) {
-        frame = window.requestAnimationFrame(updateScroll);
-      }
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateVisuals);
     };
 
-    updateScroll();
+    updateVisuals();
 
-    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("scroll", requestUpdate, {
+      passive: true,
+    });
+
     window.addEventListener("resize", requestUpdate);
 
     return () => {
@@ -314,25 +369,71 @@ export default function Home() {
   }
 
   return (
-    <main className="cinema-shell">
-      <section className="cinema-intro">
-        <SceneBackdrop scene="intro" />
+    <main className="elite-shell">
+      <div className="elite-background" aria-hidden="true">
+        <div className="elite-background-image" />
+        <div className="elite-background-overlay" />
+        <div className="elite-background-lines" />
 
-        <div className="intro-content">
-          <div className="intro-overline">
-            <span className="intro-dot" />
-            INDEPENDENT ESPORTS COMMUNITY
+        <div className="elite-background-type">
+          <div className="elite-type-lane elite-type-lane-one">
+            <div className="elite-type-track">
+              <span>SILENT MOVES</span>
+              <span>DISCIPLINE OVER EVERYTHING</span>
+              <span>EARN YOUR PLACE</span>
+              <span>EXECUTE WITH PRECISION</span>
+              <span>NO ROOM FOR ERROR</span>
+              <span>BUILT DIFFERENT</span>
+            </div>
           </div>
 
-          <div className="intro-monogram" aria-label="K7 CREW">
-            K<span>7</span>
+          <div className="elite-type-lane elite-type-lane-two">
+            <div className="elite-type-track">
+              <span>ONE CREW</span>
+              <span>CONTROL THE GAME</span>
+              <span>STRONGER AS ONE</span>
+              <span>THE GAME NEVER STOPS</span>
+              <span>ONLY RESULTS</span>
+              <span>MADE FOR PRESSURE</span>
+            </div>
           </div>
 
-          <div className="intro-rule">
-            <span />
-            <span>K7 CREW</span>
-            <span />
+          <div className="elite-type-lane elite-type-lane-three">
+            <div className="elite-type-track">
+              <span>FOCUS</span>
+              <span>ADAPT</span>
+              <span>DOMINATE</span>
+              <span>BEYOND THE LIMIT</span>
+              <span>STAY SHARP</span>
+              <span>PROVE IT</span>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <header className="elite-header">
+        <div className="elite-brand">
+          <div>
+            <div className="elite-brand-name">K7 CREW</div>
+            <div className="elite-brand-caption">
+              PUBG MOBILE ESPORTS
+            </div>
+          </div>
+        </div>
+
+        <div className="elite-header-status">
+          <span />
+          COMMUNITY
+        </div>
+      </header>
+
+      <section id="home" className="elite-hero">
+        <div className="elite-hero-content">
+          <div className="elite-kicker">
+            INDEPENDENT ESPORTS ORGANIZATION
+          </div>
+
+          <div className="elite-hero-divider" />
 
           <h1>
             SILENT MOVES.
@@ -340,108 +441,96 @@ export default function Home() {
             <span>DEADLY RESULTS.</span>
           </h1>
 
-          <p className="intro-description">
-            DISCIPLINE. PRECISION. UNITY.
+          <p className="elite-hero-description">
+            BUILT ON DISCIPLINE.
+            <br />
+            UNITED BY THE GAME.
           </p>
 
           <button
-            className="intro-explore"
-            onClick={() => navigateTo("chat")}
+            className="elite-scroll-hint"
+            onClick={() => navigateTo("manifesto")}
           >
-            <span>EXPLORE THE CREW</span>
-            <ArrowDown size={16} />
+            SCROLL TO EXPLORE
+            <ArrowDown size={15} />
           </button>
         </div>
+      </section>
 
-        <div className="intro-side-note intro-side-left">
-          EST. 2026
-        </div>
+      <section id="manifesto" className="elite-manifesto-section">
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">01 / OUR MINDSET</div>
 
-        <div className="intro-side-note intro-side-right">
-          PUBG MOBILE / ESPORTS
-        </div>
+          <div className="elite-manifesto-title">
+            LESS NOISE.
+            <br />
+            <span>MORE IMPACT.</span>
+          </div>
 
-        <div className="intro-bottom-index">
-          <span>SCROLL TO DISCOVER</span>
-          <span>01 — 05</span>
+          <p className="elite-manifesto-text">
+            No unnecessary words.
+            <br />
+            No wasted movement.
+            <br />
+            Only focus, teamwork and results.
+          </p>
+
+          <div className="elite-manifesto-mark">
+            K7 CREW — EST. 2026
+          </div>
         </div>
       </section>
+
+      <Slogan {...slogans[0]} />
 
       <section
         id="chat"
         data-nav-section
-        className="cinema-section scene-section scene-chat"
+        className="elite-content-section"
       >
-        <SceneBackdrop scene="chat" />
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">02 / COMMUNICATION</div>
 
-        <div className="section-content">
-          <SectionHeading
-            number="01"
-            title="CHAT"
-            subtitle="COMMUNICATION IS THE FOUNDATION."
+          <EmptySection
+            eyebrow="K7 COMMUNITY"
+            title="THE CHAT."
+            description="A place for the crew. Communication and community updates."
           />
-
-          <div className="section-main">
-            <div className="section-watermark">01</div>
-
-            <EmptySection
-              eyebrow="K7 COMMUNITY"
-              title="THE CREW IS HERE."
-              description="A place for communication, coordination and everything happening inside the community."
-              number="01"
-            />
-          </div>
         </div>
       </section>
+
+      <Slogan {...slogans[1]} />
 
       <section
         id="events"
         data-nav-section
-        className="cinema-section scene-section scene-events"
+        className="elite-content-section"
       >
-        <SceneBackdrop scene="events" />
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">03 / COMPETITION</div>
 
-        <div className="section-content">
-          <SectionHeading
-            number="02"
-            title="EVENTS"
-            subtitle="EVERY MATCH IS AN OPPORTUNITY."
+          <EmptySection
+            eyebrow="TOURNAMENTS & MATCHES"
+            title="THE EVENTS."
+            description="Upcoming competitions, matches and team activities."
           />
-
-          <div className="section-main">
-            <div className="section-watermark">02</div>
-
-            <EmptySection
-              eyebrow="TOURNAMENTS / MATCHES"
-              title="ENTER THE GAME."
-              description="Upcoming competitions, matches and important team activities will appear here."
-              number="02"
-            />
-          </div>
         </div>
       </section>
+
+      <Slogan {...slogans[2]} />
 
       <section
         id="roster"
         data-nav-section
-        className="cinema-section scene-section scene-roster"
+        className="elite-content-section elite-roster-section"
       >
-        <SceneBackdrop scene="roster" />
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">04 / THE SQUAD</div>
 
-        <div className="section-content">
-          <SectionHeading
-            number="03"
-            title="ROSTER"
-            subtitle="THE PEOPLE BEHIND K7 CREW."
-          />
-
-          <div className="roster-toolbar">
+          <div className="elite-section-heading">
             <div>
-              <span className="roster-toolbar-label">ACTIVE LINEUP</span>
-              <span className="roster-toolbar-count">
-                {roster.length.toString().padStart(2, "0")}
-                <small> / 07</small>
-              </span>
+              <h2>ROSTER<span>.</span></h2>
+              <p>THE PEOPLE BEHIND K7 CREW.</p>
             </div>
 
             <button
@@ -451,30 +540,25 @@ export default function Home() {
               aria-label="Refresh roster"
             >
               <RefreshCw size={17} />
-              <span>REFRESH</span>
             </button>
           </div>
 
           {loading ? (
-            <div className="elite-loading">
-              <span className="loading-line" />
-              LOADING THE SQUAD...
-            </div>
+            <div className="elite-loading">LOADING THE SQUAD...</div>
           ) : error ? (
             <div className="elite-error">
               <p>{error}</p>
               <button onClick={loadRoster}>TRY AGAIN</button>
             </div>
           ) : (
-            <div className="roster-layout">
-              <div className="roster-column">
-                <div className="roster-group-heading">
-                  <span>MAIN SQUAD</span>
-                  <span>04 POSITIONS</span>
+            <>
+              <div className="elite-roster-group">
+                <div className="elite-roster-label">
+                  MAIN SQUAD <span>04 SLOTS</span>
                 </div>
 
                 <div className="elite-roster-list">
-                  {mainSlots.map((slot, index) => (
+                  {mainSlots.map((slot) => (
                     <PlayerCard
                       key={slot}
                       slot={slot}
@@ -484,10 +568,9 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="roster-column roster-sub-column">
-                <div className="roster-group-heading">
-                  <span>SUBSTITUTES</span>
-                  <span>03 POSITIONS</span>
+              <div className="elite-roster-group">
+                <div className="elite-roster-label">
+                  SUBSTITUTES <span>03 SLOTS</span>
                 </div>
 
                 <div className="elite-roster-list">
@@ -500,106 +583,83 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-            </div>
-          )}
 
-          <div className="roster-footer-line">
-            <span>TEAM STRUCTURE / K7</span>
-            <span>EST. 2026</span>
-          </div>
+              <div className="elite-roster-total">
+                <span>REGISTERED PLAYERS</span>
+                <strong>
+                  {roster.length.toString().padStart(2, "0")}
+                </strong>
+              </div>
+            </>
+          )}
         </div>
       </section>
+
+      <Slogan {...slogans[3]} />
 
       <section
         id="news"
         data-nav-section
-        className="cinema-section scene-section scene-news"
+        className="elite-content-section"
       >
-        <SceneBackdrop scene="news" />
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">05 / LATEST UPDATES</div>
 
-        <div className="section-content">
-          <SectionHeading
-            number="04"
-            title="NEWS"
-            subtitle="THE LATEST FROM OUR WORLD."
+          <EmptySection
+            eyebrow="K7 BROADCAST"
+            title="THE NEWS."
+            description="Announcements, organization updates and important information."
           />
-
-          <div className="section-main">
-            <div className="section-watermark">04</div>
-
-            <EmptySection
-              eyebrow="K7 BROADCAST"
-              title="STAY INFORMED."
-              description="Announcements, organization updates and important information from the crew."
-              number="04"
-            />
-          </div>
         </div>
       </section>
+
+      <Slogan {...slogans[4]} />
 
       <section
         id="stats"
         data-nav-section
-        className="cinema-section scene-section scene-stats"
+        className="elite-content-section"
       >
-        <SceneBackdrop scene="stats" />
+        <div className="elite-section-inner reveal-content">
+          <div className="section-eyebrow">06 / PERFORMANCE</div>
 
-        <div className="section-content">
-          <SectionHeading
-            number="05"
-            title="STATS"
-            subtitle="NUMBERS NEVER LIE."
+          <EmptySection
+            eyebrow="NUMBERS DON'T LIE"
+            title="THE STATS."
+            description="Team performance, results and competitive statistics."
           />
-
-          <div className="section-main">
-            <div className="section-watermark">05</div>
-
-            <EmptySection
-              eyebrow="PERFORMANCE / RESULTS"
-              title="PROVE IT."
-              description="Team performance, match results and competitive statistics will be collected here."
-              number="05"
-            />
-          </div>
         </div>
       </section>
 
-      <footer className="cinema-footer">
-        <div className="footer-monogram">K<span>7</span></div>
-
-        <div className="footer-main">
-          <span>K7 CREW</span>
-          <p>SILENT MOVES. DEADLY RESULTS.</p>
+      <footer className="elite-footer">
+        <div className="elite-footer-slogan">
+          SILENT MOVES. DEADLY RESULTS.
         </div>
 
-        <div className="footer-bottom">
-          <span>INDEPENDENT ESPORTS COMMUNITY</span>
-          <span>© 2026 K7 CREW</span>
+        <div className="elite-footer-copy">
+          K7 CREW © 2026
         </div>
       </footer>
 
-      <nav className="cinema-nav" aria-label="Main navigation">
-        <div className="cinema-nav-inner">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+      <nav className="elite-bottom-nav">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                className={`cinema-nav-item ${isActive ? "active" : ""}`}
-                onClick={() => navigateTo(tab.id)}
-                aria-label={tab.label}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <span className="nav-number">{tab.number}</span>
-                <Icon size={19} strokeWidth={isActive ? 2 : 1.5} />
-                <span className="nav-label">{tab.label}</span>
-                <i />
-              </button>
-            );
-          })}
-        </div>
+          return (
+            <button
+              key={tab.id}
+              className={`elite-nav-item ${isActive ? "active" : ""}`}
+              onClick={() => navigateTo(tab.id)}
+              aria-label={tab.label}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon size={21} strokeWidth={isActive ? 2.3 : 1.7} />
+              <span>{tab.label}</span>
+              <i />
+            </button>
+          );
+        })}
       </nav>
     </main>
   );
