@@ -32,20 +32,49 @@ interface RosterPlayer {
   } | null;
 }
 
-const tabs: {
-  id: TabId;
-  label: string;
-  icon: typeof MessageCircle;
-}[] = [
+const tabs = [
   { id: "chat", label: "Chat", icon: MessageCircle },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "roster", label: "Roster", icon: Users },
   { id: "news", label: "News", icon: Newspaper },
   { id: "stats", label: "Stats", icon: Trophy },
-];
+] as const;
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
+
+const slogans = [
+  {
+    number: "01",
+    label: "THE CONNECTION",
+    first: "ONE CREW.",
+    second: "ONE PURPOSE.",
+  },
+  {
+    number: "02",
+    label: "THE COMPETITION",
+    first: "NO EXCUSES.",
+    second: "ONLY RESULTS.",
+  },
+  {
+    number: "03",
+    label: "THE SQUAD",
+    first: "STRONGER",
+    second: "AS ONE.",
+  },
+  {
+    number: "04",
+    label: "THE LEGACY",
+    first: "BUILT TO",
+    second: "BE REMEMBERED.",
+  },
+  {
+    number: "05",
+    label: "THE PERFORMANCE",
+    first: "PROVE IT.",
+    second: "EVERY MATCH.",
+  },
+];
 
 function getPlayerName(player: RosterPlayer) {
   if (player.profiles?.username) {
@@ -81,26 +110,45 @@ function PlayerCard({
         <div className="roster-player-name">
           {player ? getPlayerName(player) : "OPEN POSITION"}
         </div>
-
         <div className="roster-player-role">
-          {player
-            ? player.game_role || "TEAM MEMBER"
-            : "AVAILABLE"}
+          {player ? player.game_role || "TEAM MEMBER" : "AVAILABLE"}
         </div>
       </div>
 
       <div className="roster-player-status">
         {player ? (
-          player.is_captain ? (
-            <Crown size={16} />
-          ) : (
-            <Shield size={16} />
-          )
-        ) : (
-          "+"
-        )}
+          player.is_captain ? <Crown size={16} /> : <Shield size={16} />
+        ) : "+"}
       </div>
     </div>
+  );
+}
+
+function Slogan({
+  number,
+  label,
+  first,
+  second,
+}: {
+  number: string;
+  label: string;
+  first: string;
+  second: string;
+}) {
+  return (
+    <section className="elite-slogan-break">
+      <div className="elite-slogan-content">
+        <div className="elite-slogan-label">
+          {number} / {label}
+        </div>
+        <h2>
+          {first}
+          <br />
+          <span>{second}</span>
+        </h2>
+        <div className="elite-slogan-line" />
+      </div>
+    </section>
   );
 }
 
@@ -115,7 +163,7 @@ function EmptySection({
 }) {
   return (
     <div className="empty-section">
-      <div>{eyebrow}</div>
+      <div className="empty-section-eyebrow">{eyebrow}</div>
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="section-coming">COMING SOON</div>
@@ -123,40 +171,8 @@ function EmptySection({
   );
 }
 
-function Slogan({
-  scene,
-  number,
-  label,
-  firstLine,
-  secondLine,
-}: {
-  scene: string;
-  number: string;
-  label: string;
-  firstLine: string;
-  secondLine: string;
-}) {
-  return (
-    <div
-      className="elite-slogan-break"
-      data-scene={scene}
-    >
-      <div className="elite-slogan-content">
-        <span>{number} / {label}</span>
-        <strong>
-          {firstLine}
-          <br />
-          <em>{secondLine}</em>
-        </strong>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("roster");
-  const [scene, setScene] = useState("home");
-
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -180,9 +196,7 @@ export default function Home() {
       setRoster(result.roster ?? []);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong"
+        err instanceof Error ? err.message : "Something went wrong"
       );
     } finally {
       setLoading(false);
@@ -195,40 +209,48 @@ export default function Home() {
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
-      "[data-scene]"
+      "[data-nav-section]"
     );
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const currentScene =
-              entry.target.getAttribute("data-scene");
-
-            if (currentScene) {
-              setScene(currentScene);
-            }
-
-            entry.target.classList.add("is-visible");
-
-            const sectionId = entry.target.id;
-
-            if (tabs.some((tab) => tab.id === sectionId)) {
-              setActiveTab(sectionId as TabId);
+            const id = entry.target.id;
+            if (tabs.some((tab) => tab.id === id)) {
+              setActiveTab(id as TabId);
             }
           }
         });
       },
       {
-        root: null,
-        rootMargin: "-35% 0px -35% 0px",
-        threshold: 0,
+        rootMargin: "-35% 0px -45% 0px",
       }
     );
 
     sections.forEach((section) => observer.observe(section));
 
-    return () => observer.disconnect();
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        });
+      },
+      {
+        threshold: 0.15,
+      }
+    );
+
+    document
+      .querySelectorAll(".elite-slogan-content, .reveal-content")
+      .forEach((element) => revealObserver.observe(element));
+
+    return () => {
+      observer.disconnect();
+      revealObserver.disconnect();
+    };
   }, []);
 
   function navigateTo(id: string) {
@@ -243,21 +265,18 @@ export default function Home() {
   }
 
   return (
-    <main className="elite-shell" data-scene={scene}>
-      {/* CINEMATIC BACKGROUND */}
+    <main className="elite-shell">
       <div className="elite-background" aria-hidden="true">
-        <div className="elite-background-glow" />
-        <div className="elite-background-mark">K7</div>
+        <div className="elite-background-image" />
+        <div className="elite-background-overlay" />
         <div className="elite-background-lines" />
       </div>
 
-      {/* HEADER */}
       <header className="elite-header">
         <div className="elite-brand">
           <div className="elite-brand-mark">
             <img src="/k7-logo.jpeg" alt="K7 CREW" />
           </div>
-
           <div>
             <div className="elite-brand-name">K7 CREW</div>
             <div className="elite-brand-caption">
@@ -265,19 +284,13 @@ export default function Home() {
             </div>
           </div>
         </div>
-
         <div className="elite-header-status">
           <span />
           COMMUNITY
         </div>
       </header>
 
-      {/* HERO */}
-      <section
-        id="home"
-        className="elite-hero"
-        data-scene="home"
-      >
+      <section id="home" className="elite-hero">
         <div className="elite-hero-content">
           <div className="elite-kicker">
             INDEPENDENT ESPORTS ORGANIZATION
@@ -305,35 +318,20 @@ export default function Home() {
             className="elite-scroll-hint"
             onClick={() => navigateTo("manifesto")}
           >
-            <span>SCROLL TO EXPLORE</span>
+            SCROLL TO EXPLORE
             <ArrowDown size={15} />
           </button>
         </div>
-
-        <div className="elite-hero-index">
-          <span>01</span>
-          <span className="elite-index-line" />
-          <span>07</span>
-        </div>
       </section>
 
-      {/* MANIFESTO */}
-      <section
-        id="manifesto"
-        className="elite-manifesto-section"
-        data-scene="manifesto"
-      >
+      <section id="manifesto" className="elite-manifesto-section">
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            02 / OUR MINDSET
-          </div>
-
+          <div className="section-eyebrow">01 / OUR MINDSET</div>
           <div className="elite-manifesto-title">
             LESS NOISE.
             <br />
             <span>MORE IMPACT.</span>
           </div>
-
           <p className="elite-manifesto-text">
             No unnecessary words.
             <br />
@@ -341,32 +339,21 @@ export default function Home() {
             <br />
             Only focus, teamwork and results.
           </p>
-
           <div className="elite-manifesto-mark">
             K7 CREW — EST. 2026
           </div>
         </div>
       </section>
 
-      <Slogan
-        scene="chat"
-        number="03"
-        label="THE CONNECTION"
-        firstLine="ONE CREW."
-        secondLine="ONE PURPOSE."
-      />
+      <Slogan {...slogans[0]} />
 
-      {/* CHAT */}
       <section
         id="chat"
+        data-nav-section
         className="elite-content-section"
-        data-scene="chat"
       >
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            03 / COMMUNICATION
-          </div>
-
+          <div className="section-eyebrow">02 / COMMUNICATION</div>
           <EmptySection
             eyebrow="K7 COMMUNITY"
             title="THE CHAT."
@@ -375,25 +362,15 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        scene="events"
-        number="04"
-        label="THE COMPETITION"
-        firstLine="NO EXCUSES."
-        secondLine="ONLY RESULTS."
-      />
+      <Slogan {...slogans[1]} />
 
-      {/* EVENTS */}
       <section
         id="events"
+        data-nav-section
         className="elite-content-section"
-        data-scene="events"
       >
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            04 / COMPETITION
-          </div>
-
+          <div className="section-eyebrow">03 / COMPETITION</div>
           <EmptySection
             eyebrow="TOURNAMENTS & MATCHES"
             title="THE EVENTS."
@@ -402,24 +379,15 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        scene="roster"
-        number="05"
-        label="THE SQUAD"
-        firstLine="STRONGER"
-        secondLine="AS ONE."
-      />
+      <Slogan {...slogans[2]} />
 
-      {/* ROSTER */}
       <section
         id="roster"
+        data-nav-section
         className="elite-content-section elite-roster-section"
-        data-scene="roster"
       >
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            05 / THE SQUAD
-          </div>
+          <div className="section-eyebrow">04 / THE SQUAD</div>
 
           <div className="elite-section-heading">
             <div>
@@ -433,32 +401,23 @@ export default function Home() {
               disabled={loading}
               aria-label="Refresh roster"
             >
-              <RefreshCw
-                size={17}
-                className={loading ? "is-spinning" : ""}
-              />
+              <RefreshCw size={17} />
             </button>
           </div>
 
           {loading ? (
-            <div className="elite-loading">
-              LOADING THE SQUAD...
-            </div>
+            <div className="elite-loading">LOADING THE SQUAD...</div>
           ) : error ? (
             <div className="elite-error">
               <p>{error}</p>
-              <button onClick={loadRoster}>
-                TRY AGAIN
-              </button>
+              <button onClick={loadRoster}>TRY AGAIN</button>
             </div>
           ) : (
             <>
               <div className="elite-roster-group">
                 <div className="elite-roster-label">
-                  MAIN SQUAD
-                  <span>04 SLOTS</span>
+                  MAIN SQUAD <span>04 SLOTS</span>
                 </div>
-
                 <div className="elite-roster-list">
                   {mainSlots.map((slot) => (
                     <PlayerCard
@@ -472,10 +431,8 @@ export default function Home() {
 
               <div className="elite-roster-group">
                 <div className="elite-roster-label">
-                  SUBSTITUTES
-                  <span>03 SLOTS</span>
+                  SUBSTITUTES <span>03 SLOTS</span>
                 </div>
-
                 <div className="elite-roster-list">
                   {subSlots.map((slot) => (
                     <PlayerCard
@@ -498,25 +455,15 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        scene="news"
-        number="06"
-        label="THE LEGACY"
-        firstLine="BUILT TO"
-        secondLine="BE REMEMBERED."
-      />
+      <Slogan {...slogans[3]} />
 
-      {/* NEWS */}
       <section
         id="news"
+        data-nav-section
         className="elite-content-section"
-        data-scene="news"
       >
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            06 / LATEST UPDATES
-          </div>
-
+          <div className="section-eyebrow">05 / LATEST UPDATES</div>
           <EmptySection
             eyebrow="K7 BROADCAST"
             title="THE NEWS."
@@ -525,25 +472,15 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        scene="stats"
-        number="07"
-        label="THE PERFORMANCE"
-        firstLine="PROVE IT."
-        secondLine="EVERY MATCH."
-      />
+      <Slogan {...slogans[4]} />
 
-      {/* STATS */}
       <section
         id="stats"
+        data-nav-section
         className="elite-content-section"
-        data-scene="stats"
       >
         <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            07 / PERFORMANCE
-          </div>
-
+          <div className="section-eyebrow">06 / PERFORMANCE</div>
           <EmptySection
             eyebrow="NUMBERS DON'T LIE"
             title="THE STATS."
@@ -552,22 +489,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="elite-footer">
         <div className="elite-footer-logo">
           <img src="/k7-logo.jpeg" alt="K7 CREW" />
         </div>
-
         <div className="elite-footer-slogan">
           SILENT MOVES. DEADLY RESULTS.
         </div>
-
         <div className="elite-footer-copy">
           K7 CREW © 2026
         </div>
       </footer>
 
-      {/* BOTTOM NAVIGATION ONLY */}
       <nav className="elite-bottom-nav">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -576,17 +509,12 @@ export default function Home() {
           return (
             <button
               key={tab.id}
-              className={`elite-nav-item ${
-                isActive ? "active" : ""
-              }`}
+              className={`elite-nav-item ${isActive ? "active" : ""}`}
               onClick={() => navigateTo(tab.id)}
               aria-label={tab.label}
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon
-                size={21}
-                strokeWidth={isActive ? 2.3 : 1.7}
-              />
+              <Icon size={21} strokeWidth={isActive ? 2.3 : 1.7} />
               <span>{tab.label}</span>
               <i />
             </button>
