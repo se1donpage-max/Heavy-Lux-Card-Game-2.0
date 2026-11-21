@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 
-type AuthStatus = "loading" | "success" | "error";
+type AuthStatus = "loading" | "success" | "error" | "web";
 
 export default function TelegramInit() {
   const [status, setStatus] = useState<AuthStatus>("loading");
@@ -12,19 +13,21 @@ export default function TelegramInit() {
     let cancelled = false;
 
     async function authenticate() {
-      try {
-        const telegram = (
-          window as Window & {
-            Telegram?: {
-              WebApp?: any;
-            };
-          }
-        ).Telegram?.WebApp;
-
-        if (!telegram) {
-          throw new Error("Откройте приложение через Telegram");
+      const telegram = (
+        window as Window & {
+          Telegram?: {
+            WebApp?: any;
+          };
         }
+      ).Telegram?.WebApp;
 
+      // Обычный браузер: разрешаем просмотр сайта
+      if (!telegram) {
+        setStatus("web");
+        return;
+      }
+
+      try {
         telegram.ready();
         telegram.expand();
 
@@ -82,7 +85,10 @@ export default function TelegramInit() {
     };
   }, []);
 
-  if (status === "success") {
+  if (
+    status === "success" ||
+    status === "web"
+  ) {
     return null;
   }
 
@@ -102,13 +108,7 @@ export default function TelegramInit() {
         textAlign: "center"
       }}
     >
-      <div
-        style={{
-          fontSize: 34,
-          fontWeight: 900,
-          letterSpacing: 3
-        }}
-      >
+      <div style={{ fontSize: 34, fontWeight: 900 }}>
         K7 <span style={{ color: "#e32636" }}>CREW</span>
       </div>
 
@@ -121,11 +121,9 @@ export default function TelegramInit() {
           <p style={{ color: "#e32636", marginTop: 20 }}>
             Ошибка входа
           </p>
-
           <p style={{ color: "#aaa" }}>
             {errorMessage}
           </p>
-
           <button
             onClick={() => window.location.reload()}
             style={{
