@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyTelegramInitData } from "@/lib/telegram";
 import { createSession } from "@/lib/session";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -52,12 +53,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const telegramUser = verified.user;
+
+    const supabase = getSupabaseAdmin();
+
+    const profile = {
+      telegram_id: telegramUser.id,
+      first_name: telegramUser.first_name,
+      last_name: telegramUser.last_name ?? null,
+      username: telegramUser.username ?? null,
+      photo_url: telegramUser.photo_url ?? null
+    };
+
+    const { error: insertError } = await supabase
+      .from("profiles")
+      .upsert(profile, {
+        onConflict: "telegram_id",
+        ignoreDuplicates: true
+      });
+
+    if (insertError) {
+      console.error("Profile creation failed:", insertError.message);
+
+      return NextResponse.json(
+        { error: "Could not create user profile" },
+        { status: 503 }
+      );
+    }
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        username: profile.username,
+        photo_url: profile.photo_url
+      })
+      .eq("telegram_id", telegramUser.id);
+
+    if (updateError) {
+      console.error("Profile update failed:", updateError.message);
+
+      return NextResponse.json(
+        { error: "Could not update user profile" },
+        { status: 503 }
+      );
+    }
+
+    const ownerId = process.env.TELEGRAM_OWNER_ID;
+
+    if (
+      ownerId &&
+      /^\d+$/.test(ownerId) &&
+      Number(ownerId) === telegramUser.id
+    ) {
+      const { error: ownerError } = await supabase
+        .from("profiles")
+        .update({ access_role: "OWNER" })
+        .eq("telegram_id", telegramUser.id);
+
+      if (ownerError) {
+        console.error("Owner assignment failed:", ownerError.message);
+
+        return NextResponse.json(
+          { error: "Could not configure owner access" },
+          { status: 503 }
+        );
+      }
+    }
+
     const user = {
-      telegramId: verified.user.id,
-      firstName: verified.user.first_name,
-      lastName: verified.user.last_name,
-      username: verified.user.username,
-      photoUrl: verified.user.photo_url
+      telegramId: telegramUser.id,
+      firstName: telegramUser.first_name,
+      lastName: telegramUser.last_name,
+      username: telegramUser.username,
+      photoUrl: telegramUser.photo_url
     };
 
     const session = createSession(user);
@@ -78,7 +148,9 @@ export async function POST(request: NextRequest) {
     response.headers.set("Cache-Control", "no-store");
 
     return response;
-  } catch {
+  } catch (error) {
+    console.error("Telegram authentication error:", error);
+
     return NextResponse.json(
       { error: "Authentication failed" },
       { status: 400 }
