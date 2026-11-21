@@ -48,35 +48,30 @@ const slogans = [
     label: "THE CONNECTION",
     first: "ONE CREW.",
     second: "ONE PURPOSE.",
-    background: "ONE CREW — ONE PURPOSE",
   },
   {
     number: "02",
     label: "THE COMPETITION",
     first: "NO EXCUSES.",
     second: "ONLY RESULTS.",
-    background: "NO EXCUSES — ONLY RESULTS",
   },
   {
     number: "03",
     label: "THE SQUAD",
     first: "STRONGER",
     second: "AS ONE.",
-    background: "STRONGER AS ONE",
   },
   {
     number: "04",
     label: "THE LEGACY",
     first: "BUILT TO",
     second: "BE REMEMBERED.",
-    background: "BUILT TO BE REMEMBERED",
   },
   {
     number: "05",
     label: "THE PERFORMANCE",
     first: "PROVE IT.",
     second: "EVERY MATCH.",
-    background: "PROVE IT — EVERY MATCH",
   },
 ];
 
@@ -114,6 +109,7 @@ function PlayerCard({
         <div className="roster-player-name">
           {player ? getPlayerName(player) : "OPEN POSITION"}
         </div>
+
         <div className="roster-player-role">
           {player ? player.game_role || "TEAM MEMBER" : "AVAILABLE"}
         </div>
@@ -133,29 +129,25 @@ function Slogan({
   label,
   first,
   second,
-  background,
 }: {
   number: string;
   label: string;
   first: string;
   second: string;
-  background: string;
 }) {
   return (
-    <section
-      className="elite-slogan-break"
-      data-motion-scene
-      data-motion-word={background}
-    >
+    <section className="elite-slogan-break">
       <div className="elite-slogan-content">
         <div className="elite-slogan-label">
           {number} / {label}
         </div>
+
         <h2>
           {first}
           <br />
           <span>{second}</span>
         </h2>
+
         <div className="elite-slogan-line" />
       </div>
     </section>
@@ -217,7 +209,7 @@ export default function Home() {
     loadRoster();
   }, []);
 
-  // Navigation and reveal observers.
+  // Navigation and content reveal.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -265,141 +257,48 @@ export default function Home() {
     };
   }, []);
 
-  // Local scroll-driven typography.
-  // Only scenes currently intersecting the viewport are updated.
+  // One continuous background reacts to the whole page scroll.
   useEffect(() => {
-    const scenes = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-motion-scene]")
+    const background = document.querySelector<HTMLElement>(
+      ".elite-background-type"
     );
 
-    if (!scenes.length) return;
+    if (!background) return;
 
-    const motionTypes = [
-      "slide",
-      "cross",
-      "split",
-      "parallax",
-      "flash",
-      "drift",
-    ];
-
-    const activeScenes = new Set<HTMLElement>();
     let frame = 0;
 
-    scenes.forEach((scene, index) => {
-      scene.dataset.motionType =
-        motionTypes[index % motionTypes.length];
-    });
-
-    const updateMotion = () => {
+    const updateBackground = () => {
       frame = 0;
 
-      const viewportHeight = window.innerHeight;
+      const scroll = window.scrollY;
 
-      activeScenes.forEach((scene) => {
-        const rect = scene.getBoundingClientRect();
+      background.style.setProperty(
+        "--lane-one-y",
+        `${Math.sin(scroll * 0.0011) * 15}px`
+      );
 
-        // Extra guard: never animate a scene outside the visible screen.
-        if (rect.bottom <= 0 || rect.top >= viewportHeight) {
-          return;
-        }
+      background.style.setProperty(
+        "--lane-two-y",
+        `${Math.cos(scroll * 0.0008) * 20}px`
+      );
 
-        const progress = Math.max(
-          0,
-          Math.min(
-            1,
-            (viewportHeight - rect.top) /
-              (viewportHeight + rect.height)
-          )
-        );
+      background.style.setProperty(
+        "--lane-three-y",
+        `${Math.sin(scroll * 0.0006 + 1) * 12}px`
+      );
 
-        const centerDistance = Math.abs(progress - 0.5);
-        const intensity = Math.max(
-          0,
-          1 - centerDistance * 2
-        );
-
-        const horizontalPosition = -38 + progress * 76;
-        const reversePosition = 34 - progress * 68;
-        const verticalPosition = -18 + progress * 36;
-        const scale = 0.94 + intensity * 0.12;
-
-        const opacity = 0.07 + intensity * 0.22;
-
-        scene.style.setProperty(
-          "--motion-x",
-          `${horizontalPosition}vw`
-        );
-
-        scene.style.setProperty(
-          "--motion-x2",
-          `${reversePosition}vw`
-        );
-
-        scene.style.setProperty(
-          "--motion-y",
-          `${verticalPosition}px`
-        );
-
-        scene.style.setProperty(
-          "--motion-scale",
-          `${scale}`
-        );
-
-        scene.style.setProperty(
-          "--motion-opacity",
-          `${opacity}`
-        );
-
-        scene.style.setProperty(
-          "--motion-progress",
-          `${progress}`
-        );
-
-        scene.style.setProperty(
-          "--motion-intensity",
-          `${intensity}`
-        );
-      });
+      background.style.setProperty(
+        "--scroll-opacity",
+        `${0.78 + Math.min(scroll / 5000, 0.18)}`
+      );
     };
 
     const requestUpdate = () => {
       if (frame) return;
-      frame = window.requestAnimationFrame(updateMotion);
+      frame = window.requestAnimationFrame(updateBackground);
     };
 
-    const motionObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const scene = entry.target as HTMLElement;
-
-          if (entry.isIntersecting) {
-            activeScenes.add(scene);
-            scene.dataset.motionActive = "true";
-          } else {
-            activeScenes.delete(scene);
-            delete scene.dataset.motionActive;
-
-            scene.style.removeProperty("--motion-x");
-            scene.style.removeProperty("--motion-x2");
-            scene.style.removeProperty("--motion-y");
-            scene.style.removeProperty("--motion-scale");
-            scene.style.removeProperty("--motion-opacity");
-            scene.style.removeProperty("--motion-progress");
-            scene.style.removeProperty("--motion-intensity");
-          }
-        });
-
-        requestUpdate();
-      },
-      {
-        root: null,
-        rootMargin: "0px",
-        threshold: 0,
-      }
-    );
-
-    scenes.forEach((scene) => motionObserver.observe(scene));
+    updateBackground();
 
     window.addEventListener("scroll", requestUpdate, {
       passive: true,
@@ -408,9 +307,6 @@ export default function Home() {
     window.addEventListener("resize", requestUpdate);
 
     return () => {
-      motionObserver.disconnect();
-      activeScenes.clear();
-
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
 
@@ -437,6 +333,41 @@ export default function Home() {
         <div className="elite-background-image" />
         <div className="elite-background-overlay" />
         <div className="elite-background-lines" />
+
+        <div className="elite-background-type">
+          <div className="elite-type-lane elite-type-lane-one">
+            <div className="elite-type-track">
+              <span> SILENT MOVES — DEADLY RESULTS </span>
+              <span> DISCIPLINE OVER EVERYTHING </span>
+              <span> BUILT DIFFERENT — UNITED AS ONE </span>
+              <span> SILENT MOVES — DEADLY RESULTS </span>
+              <span> DISCIPLINE OVER EVERYTHING </span>
+              <span> BUILT DIFFERENT — UNITED AS ONE </span>
+            </div>
+          </div>
+
+          <div className="elite-type-lane elite-type-lane-two">
+            <div className="elite-type-track">
+              <span> NO EXCUSES — ONLY RESULTS </span>
+              <span> THE GAME NEVER STOPS </span>
+              <span> ONE CREW — ONE PURPOSE </span>
+              <span> NO EXCUSES — ONLY RESULTS </span>
+              <span> THE GAME NEVER STOPS </span>
+              <span> ONE CREW — ONE PURPOSE </span>
+            </div>
+          </div>
+
+          <div className="elite-type-lane elite-type-lane-three">
+            <div className="elite-type-track">
+              <span> FOCUS. CONTROL. EXECUTION. </span>
+              <span> EARN YOUR PLACE </span>
+              <span> MADE FOR THE COMPETITION </span>
+              <span> FOCUS. CONTROL. EXECUTION. </span>
+              <span> EARN YOUR PLACE </span>
+              <span> MADE FOR THE COMPETITION </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <header className="elite-header">
@@ -444,6 +375,7 @@ export default function Home() {
           <div className="elite-brand-mark">
             <img src="/k7-logo.jpeg" alt="K7 CREW" />
           </div>
+
           <div>
             <div className="elite-brand-name">K7 CREW</div>
             <div className="elite-brand-caption">
@@ -492,12 +424,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        id="manifesto"
-        className="elite-manifesto-section"
-        data-motion-scene
-        data-motion-word="LESS NOISE — MORE IMPACT"
-      >
+      <section id="manifesto" className="elite-manifesto-section">
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">01 / OUR MINDSET</div>
 
@@ -526,8 +453,6 @@ export default function Home() {
       <section
         id="chat"
         data-nav-section
-        data-motion-scene
-        data-motion-word="CONNECT — COMMUNICATE"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
@@ -546,8 +471,6 @@ export default function Home() {
       <section
         id="events"
         data-nav-section
-        data-motion-scene
-        data-motion-word="EVERY MATCH MATTERS"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
@@ -566,8 +489,6 @@ export default function Home() {
       <section
         id="roster"
         data-nav-section
-        data-motion-scene
-        data-motion-word="UNITED AS ONE"
         className="elite-content-section elite-roster-section"
       >
         <div className="elite-section-inner reveal-content">
@@ -646,8 +567,6 @@ export default function Home() {
       <section
         id="news"
         data-nav-section
-        data-motion-scene
-        data-motion-word="STAY INFORMED"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
@@ -666,8 +585,6 @@ export default function Home() {
       <section
         id="stats"
         data-nav-section
-        data-motion-scene
-        data-motion-word="NUMBERS NEVER LIE"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
