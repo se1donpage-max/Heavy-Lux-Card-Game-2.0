@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -257,11 +258,10 @@ export default function Home() {
     };
   }, []);
 
-  // Scroll-controlled logo and background typography.
-  // Nothing moves automatically when the page is not scrolling.
+  // Scroll-controlled cinematic logo and background typography.
   useEffect(() => {
     const background = document.querySelector<HTMLElement>(
-      ".elite-background-type"
+      ".elite-background"
     );
 
     const logo = document.querySelector<HTMLElement>(
@@ -284,6 +284,10 @@ export default function Home() {
       return;
     }
 
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
     let frame = 0;
 
     const clamp = (value: number, min: number, max: number) =>
@@ -305,69 +309,104 @@ export default function Home() {
       const progress =
         maxScroll > 0 ? clamp(scroll / maxScroll, 0, 1) : 0;
 
-      // HERO LOGO: fades out while scrolling down
-      // and returns when scrolling back to the top.
+      if (reduceMotion) {
+        logo.style.opacity = "1";
+        logo.style.transform = "none";
+        logo.style.filter = "none";
+
+        laneOne.style.transform = "none";
+        laneTwo.style.transform = "none";
+        laneThree.style.transform = "none";
+
+        return;
+      }
+
+      // LOGO: dramatic fade into darkness while scrolling away from hero.
+      // The effect reverses naturally when the user scrolls back up.
       const logoProgress = clamp(
-        scroll / (viewportHeight * 0.72),
+        scroll / (viewportHeight * 0.76),
         0,
         1
       );
 
       const logoFade = smoothStep(logoProgress);
+      const logoVisible = 1 - logoFade;
 
-      logo.style.opacity = String(1 - logoFade);
+      logo.style.opacity = String(logoVisible);
+
       logo.style.transform = `
-        translate3d(0, ${-35 * logoFade}px, 0)
-        scale(${1 - logoFade * 0.09})
+        translate3d(0, ${-92 * logoFade}px, 0)
+        scale(${1 - logoFade * 0.19})
+        rotateX(${logoFade * 7}deg)
       `;
-      logo.style.filter = `blur(${logoFade * 11}px)`;
-      logo.style.pointerEvents = logoFade > 0.95 ? "none" : "auto";
 
-      // Different movement paths for each typography lane.
-      const waveOne = Math.sin(progress * Math.PI * 2);
-      const waveTwo = Math.cos(progress * Math.PI * 2 + 0.9);
-      const waveThree = Math.sin(progress * Math.PI * 3 + 1.4);
+      logo.style.filter = `
+        blur(${logoFade * 19}px)
+        brightness(${1 + logoFade * 0.5})
+      `;
 
-      // Lane one: moves left.
+      logo.style.setProperty(
+        "--logo-visible",
+        String(logoVisible)
+      );
+
+      logo.style.pointerEvents =
+        logoFade > 0.98 ? "none" : "auto";
+
+      // Background scene intensity changes with scroll.
+      background.style.setProperty(
+        "--scene-progress",
+        String(progress)
+      );
+
+      // Three independent movement paths create crossing layers.
+      const waveOne = Math.sin(progress * Math.PI * 2.4);
+      const waveTwo = Math.cos(progress * Math.PI * 2.1 + 0.9);
+      const waveThree = Math.sin(progress * Math.PI * 3.2 + 1.4);
+
+      // First layer: leftward movement.
       laneOne.style.transform = `
         translate3d(
-          ${-progress * viewportWidth * 0.16 + waveOne * 12}px,
-          ${waveOne * 22}px,
+          ${-progress * viewportWidth * 0.28 + waveOne * 24}px,
+          ${waveOne * 34}px,
           0
         )
-        scale(${1 + waveOne * 0.025})
+        rotate(-3deg)
+        scale(${1 + waveOne * 0.035})
       `;
 
       laneOne.style.opacity = String(
-        0.055 + (waveOne + 1) * 0.018
+        0.075 + (waveOne + 1) * 0.025
       );
 
-      // Lane two: moves right, with a different vertical path.
+      // Second layer: crosses in the opposite direction.
       laneTwo.style.transform = `
         translate3d(
-          ${progress * viewportWidth * 0.12 + waveTwo * 15}px,
-          ${waveTwo * 30}px,
+          ${progress * viewportWidth * 0.23 + waveTwo * 30}px,
+          ${waveTwo * 43}px,
           0
         )
-        scale(${1.02 + waveTwo * 0.035})
+        rotate(2deg)
+        scale(${1.02 + waveTwo * 0.045})
       `;
 
       laneTwo.style.opacity = String(
-        0.04 + (waveTwo + 1) * 0.018
+        0.065 + (waveTwo + 1) * 0.025
       );
 
-      // Lane three: slower movement in the opposite direction.
+      // Third layer: slower movement, adding depth.
       laneThree.style.transform = `
         translate3d(
-          ${-progress * viewportWidth * 0.07 + waveThree * 10}px,
-          ${waveThree * 17}px,
+          ${-progress * viewportWidth * 0.13 + waveThree * 18}px,
+          ${waveThree * 25}px,
           0
         )
-        scale(${0.98 + waveThree * 0.025})
+        rotate(-1.5deg)
+        scale(${0.98 + waveThree * 0.035})
       `;
 
       laneThree.style.opacity = String(
-        0.025 + (waveThree + 1) * 0.015
+        0.045 + (waveThree + 1) * 0.022
       );
     };
 
@@ -475,6 +514,7 @@ export default function Home() {
           </div>
 
           <div className="elite-hero-logo">
+            <div className="elite-logo-aura" />
             <img src="/k7-logo.jpeg" alt="K7 CREW Logo" />
           </div>
 
