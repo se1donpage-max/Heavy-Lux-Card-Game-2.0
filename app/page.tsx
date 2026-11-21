@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -218,7 +217,7 @@ export default function Home() {
     loadRoster();
   }, []);
 
-  // Active navigation section and slogan reveal.
+  // Navigation and reveal observers.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -266,7 +265,8 @@ export default function Home() {
     };
   }, []);
 
-  // Scroll-driven horizontal typography.
+  // Local scroll-driven typography.
+  // Only scenes currently intersecting the viewport are updated.
   useEffect(() => {
     const scenes = Array.from(
       document.querySelectorAll<HTMLElement>("[data-motion-scene]")
@@ -274,15 +274,35 @@ export default function Home() {
 
     if (!scenes.length) return;
 
+    const motionTypes = [
+      "slide",
+      "cross",
+      "split",
+      "parallax",
+      "flash",
+      "drift",
+    ];
+
+    const activeScenes = new Set<HTMLElement>();
     let frame = 0;
+
+    scenes.forEach((scene, index) => {
+      scene.dataset.motionType =
+        motionTypes[index % motionTypes.length];
+    });
 
     const updateMotion = () => {
       frame = 0;
 
       const viewportHeight = window.innerHeight;
 
-      scenes.forEach((scene) => {
+      activeScenes.forEach((scene) => {
         const rect = scene.getBoundingClientRect();
+
+        // Extra guard: never animate a scene outside the visible screen.
+        if (rect.bottom <= 0 || rect.top >= viewportHeight) {
+          return;
+        }
 
         const progress = Math.max(
           0,
@@ -293,12 +313,18 @@ export default function Home() {
           )
         );
 
-        // Text travels from left to right as the page scrolls.
-        const horizontalPosition = -24 + progress * 48;
+        const centerDistance = Math.abs(progress - 0.5);
+        const intensity = Math.max(
+          0,
+          1 - centerDistance * 2
+        );
 
-        // The text becomes strongest near the middle of its scene.
-        const distanceFromCenter = Math.abs(progress - 0.5);
-        const opacity = 0.13 + (1 - distanceFromCenter * 2) * 0.2;
+        const horizontalPosition = -38 + progress * 76;
+        const reversePosition = 34 - progress * 68;
+        const verticalPosition = -18 + progress * 36;
+        const scale = 0.94 + intensity * 0.12;
+
+        const opacity = 0.07 + intensity * 0.22;
 
         scene.style.setProperty(
           "--motion-x",
@@ -306,13 +332,33 @@ export default function Home() {
         );
 
         scene.style.setProperty(
+          "--motion-x2",
+          `${reversePosition}vw`
+        );
+
+        scene.style.setProperty(
+          "--motion-y",
+          `${verticalPosition}px`
+        );
+
+        scene.style.setProperty(
+          "--motion-scale",
+          `${scale}`
+        );
+
+        scene.style.setProperty(
           "--motion-opacity",
-          `${Math.max(0.08, Math.min(0.34, opacity))}`
+          `${opacity}`
         );
 
         scene.style.setProperty(
           "--motion-progress",
           `${progress}`
+        );
+
+        scene.style.setProperty(
+          "--motion-intensity",
+          `${intensity}`
         );
       });
     };
@@ -322,7 +368,38 @@ export default function Home() {
       frame = window.requestAnimationFrame(updateMotion);
     };
 
-    updateMotion();
+    const motionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const scene = entry.target as HTMLElement;
+
+          if (entry.isIntersecting) {
+            activeScenes.add(scene);
+            scene.dataset.motionActive = "true";
+          } else {
+            activeScenes.delete(scene);
+            delete scene.dataset.motionActive;
+
+            scene.style.removeProperty("--motion-x");
+            scene.style.removeProperty("--motion-x2");
+            scene.style.removeProperty("--motion-y");
+            scene.style.removeProperty("--motion-scale");
+            scene.style.removeProperty("--motion-opacity");
+            scene.style.removeProperty("--motion-progress");
+            scene.style.removeProperty("--motion-intensity");
+          }
+        });
+
+        requestUpdate();
+      },
+      {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0,
+      }
+    );
+
+    scenes.forEach((scene) => motionObserver.observe(scene));
 
     window.addEventListener("scroll", requestUpdate, {
       passive: true,
@@ -331,6 +408,9 @@ export default function Home() {
     window.addEventListener("resize", requestUpdate);
 
     return () => {
+      motionObserver.disconnect();
+      activeScenes.clear();
+
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
 
