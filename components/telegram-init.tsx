@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +13,13 @@ export default function TelegramInit() {
 
     async function authenticate() {
       try {
-        const telegram = window.Telegram?.WebApp;
+        const telegram = (
+          window as Window & {
+            Telegram?: {
+              WebApp?: any;
+            };
+          }
+        ).Telegram?.WebApp;
 
         if (!telegram) {
           throw new Error("Откройте приложение через Telegram");
@@ -42,9 +47,7 @@ export default function TelegramInit() {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-          throw new Error(
-            result.error || "Ошибка авторизации"
-          );
+          throw new Error(result.error || "Ошибка авторизации");
         }
 
         const profileResponse = await fetch("/api/auth/me", {
@@ -118,9 +121,11 @@ export default function TelegramInit() {
           <p style={{ color: "#e32636", marginTop: 20 }}>
             Ошибка входа
           </p>
+
           <p style={{ color: "#aaa" }}>
             {errorMessage}
           </p>
+
           <button
             onClick={() => window.location.reload()}
             style={{
