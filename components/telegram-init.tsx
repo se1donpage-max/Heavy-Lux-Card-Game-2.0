@@ -1,14 +1,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-
-type AuthStatus = "loading" | "success" | "error" | "web";
+import { useEffect } from "react";
 
 export default function TelegramInit() {
-  const [status, setStatus] = useState<AuthStatus>("loading");
-  const [errorMessage, setErrorMessage] = useState("");
-
   useEffect(() => {
     let cancelled = false;
 
@@ -21,22 +16,22 @@ export default function TelegramInit() {
         }
       ).Telegram?.WebApp;
 
-      // Обычный браузер: разрешаем просмотр сайта
-      if (!telegram) {
-        setStatus("web");
+      // Обычный браузер — никаких проверок Telegram
+      if (!telegram) return;
+
+      telegram.ready();
+      telegram.expand();
+
+      const initData = telegram.initData;
+
+      // Если сайт открыт вне полноценного Mini App,
+      // не блокируем просмотр публичных страниц.
+      if (!initData) {
+        console.warn("Telegram initData отсутствует");
         return;
       }
 
       try {
-        telegram.ready();
-        telegram.expand();
-
-        const initData = telegram.initData;
-
-        if (!initData) {
-          throw new Error("Не удалось получить данные Telegram");
-        }
-
         const response = await fetch("/api/auth/telegram", {
           method: "POST",
           headers: {
@@ -50,7 +45,8 @@ export default function TelegramInit() {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-          throw new Error(result.error || "Ошибка авторизации");
+          console.error("Telegram auth error:", result.error);
+          return;
         }
 
         const profileResponse = await fetch("/api/auth/me", {
@@ -60,20 +56,11 @@ export default function TelegramInit() {
         });
 
         if (!profileResponse.ok) {
-          throw new Error("Не удалось загрузить профиль");
-        }
-
-        if (!cancelled) {
-          setStatus("success");
+          console.error("Не удалось загрузить профиль");
         }
       } catch (error) {
         if (!cancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Неизвестная ошибка авторизации"
-          );
-          setStatus("error");
+          console.error("Ошибка авторизации:", error);
         }
       }
     }
@@ -85,61 +72,5 @@ export default function TelegramInit() {
     };
   }, []);
 
-  if (
-    status === "success" ||
-    status === "web"
-  ) {
-    return null;
-  }
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "#080808",
-        color: "#f5f5f5",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        textAlign: "center"
-      }}
-    >
-      <div style={{ fontSize: 34, fontWeight: 900 }}>
-        K7 <span style={{ color: "#e32636" }}>CREW</span>
-      </div>
-
-      {status === "loading" ? (
-        <p style={{ color: "#888", marginTop: 20 }}>
-          Проверка авторизации...
-        </p>
-      ) : (
-        <>
-          <p style={{ color: "#e32636", marginTop: 20 }}>
-            Ошибка входа
-          </p>
-          <p style={{ color: "#aaa" }}>
-            {errorMessage}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              marginTop: 16,
-              padding: "12px 24px",
-              border: 0,
-              borderRadius: 8,
-              background: "#e32636",
-              color: "#fff",
-              fontWeight: 700
-            }}
-          >
-            Повторить
-          </button>
-        </>
-      )}
-    </div>
-  );
+  return null;
 }
