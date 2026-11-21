@@ -1,0 +1,87 @@
+
+import { NextRequest, NextResponse } from "next/server";
+import { verifyTelegramInitData } from "@/lib/telegram";
+import { createSession } from "@/lib/session";
+
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  try {
+    const bodyText = await request.text();
+
+    if (bodyText.length > 20000) {
+      return NextResponse.json(
+        { error: "Request too large" },
+        { status: 413 }
+      );
+    }
+
+    const body: unknown = JSON.parse(bodyText);
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("initData" in body) ||
+      typeof body.initData !== "string" ||
+      body.initData.length === 0
+    ) {
+      return NextResponse.json(
+        { error: "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!botToken) {
+      return NextResponse.json(
+        { error: "Authentication service unavailable" },
+        { status: 503 }
+      );
+    }
+
+    const verified = verifyTelegramInitData(
+      body.initData,
+      botToken
+    );
+
+    if (!verified) {
+      return NextResponse.json(
+        { error: "Telegram authentication failed" },
+        { status: 401 }
+      );
+    }
+
+    const user = {
+      telegramId: verified.user.id,
+      firstName: verified.user.first_name,
+      lastName: verified.user.last_name,
+      username: verified.user.username,
+      photoUrl: verified.user.photo_url
+    };
+
+    const session = createSession(user);
+
+    const response = NextResponse.json({
+      success: true,
+      user
+    });
+
+    response.cookies.set("k7_session", session, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60
+    });
+
+    response.headers.set("Cache-Control", "no-store");
+
+    return response;
+  } catch {
+    return NextResponse.json(
+      { error: "Authentication failed" },
+      { status: 400 }
+    );
+  }
+}
