@@ -11,17 +11,9 @@ import { canManageRoster } from "@/lib/permissions";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Публичный просмотр состава
 export async function GET() {
   try {
-    const user = await getAuthenticatedUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
@@ -53,9 +45,14 @@ export async function GET() {
     }
 
     return NextResponse.json(
-      { success: true, roster: data ?? [] },
       {
-        headers: { "Cache-Control": "no-store" }
+        success: true,
+        roster: data ?? []
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store"
+        }
       }
     );
   } catch (error) {
@@ -68,6 +65,7 @@ export async function GET() {
   }
 }
 
+// Добавление игрока — только администратор
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
@@ -129,7 +127,9 @@ export async function POST(request: NextRequest) {
 
     if (profileError || !profile) {
       return NextResponse.json(
-        { error: "User profile not found. The user must open the app first." },
+        {
+          error: "User profile not found. The user must open the app first."
+        },
         { status: 404 }
       );
     }
@@ -170,14 +170,24 @@ export async function POST(request: NextRequest) {
       console.error("Roster insert failed:", error.message);
 
       return NextResponse.json(
-        { error: "Could not add player. The slot may already be occupied." },
+        {
+          error: "Could not add player. The slot may already be occupied."
+        },
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { success: true, player: created },
-      { status: 201, headers: { "Cache-Control": "no-store" } }
+      {
+        success: true,
+        player: created
+      },
+      {
+        status: 201,
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      }
     );
   } catch (error) {
     console.error("Roster POST error:", error);
@@ -189,6 +199,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Удаление игрока — только администратор
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
@@ -241,7 +252,11 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(
       { success: true },
-      { headers: { "Cache-Control": "no-store" } }
+      {
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      }
     );
   } catch (error) {
     console.error("Roster DELETE error:", error);
