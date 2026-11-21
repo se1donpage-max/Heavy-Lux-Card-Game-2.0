@@ -49,30 +49,35 @@ const slogans = [
     label: "THE CONNECTION",
     first: "ONE CREW.",
     second: "ONE PURPOSE.",
+    background: "ONE CREW — ONE PURPOSE",
   },
   {
     number: "02",
     label: "THE COMPETITION",
     first: "NO EXCUSES.",
     second: "ONLY RESULTS.",
+    background: "NO EXCUSES — ONLY RESULTS",
   },
   {
     number: "03",
     label: "THE SQUAD",
     first: "STRONGER",
     second: "AS ONE.",
+    background: "STRONGER AS ONE",
   },
   {
     number: "04",
     label: "THE LEGACY",
     first: "BUILT TO",
     second: "BE REMEMBERED.",
+    background: "BUILT TO BE REMEMBERED",
   },
   {
     number: "05",
     label: "THE PERFORMANCE",
     first: "PROVE IT.",
     second: "EVERY MATCH.",
+    background: "PROVE IT — EVERY MATCH",
   },
 ];
 
@@ -129,14 +134,20 @@ function Slogan({
   label,
   first,
   second,
+  background,
 }: {
   number: string;
   label: string;
   first: string;
   second: string;
+  background: string;
 }) {
   return (
-    <section className="elite-slogan-break">
+    <section
+      className="elite-slogan-break"
+      data-motion-scene
+      data-motion-word={background}
+    >
       <div className="elite-slogan-content">
         <div className="elite-slogan-label">
           {number} / {label}
@@ -207,6 +218,7 @@ export default function Home() {
     loadRoster();
   }, []);
 
+  // Active navigation section and slogan reveal.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -217,6 +229,7 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const id = entry.target.id;
+
             if (tabs.some((tab) => tab.id === id)) {
               setActiveTab(id as TabId);
             }
@@ -253,6 +266,80 @@ export default function Home() {
     };
   }, []);
 
+  // Scroll-driven horizontal typography.
+  useEffect(() => {
+    const scenes = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-motion-scene]")
+    );
+
+    if (!scenes.length) return;
+
+    let frame = 0;
+
+    const updateMotion = () => {
+      frame = 0;
+
+      const viewportHeight = window.innerHeight;
+
+      scenes.forEach((scene) => {
+        const rect = scene.getBoundingClientRect();
+
+        const progress = Math.max(
+          0,
+          Math.min(
+            1,
+            (viewportHeight - rect.top) /
+              (viewportHeight + rect.height)
+          )
+        );
+
+        // Text travels from left to right as the page scrolls.
+        const horizontalPosition = -24 + progress * 48;
+
+        // The text becomes strongest near the middle of its scene.
+        const distanceFromCenter = Math.abs(progress - 0.5);
+        const opacity = 0.13 + (1 - distanceFromCenter * 2) * 0.2;
+
+        scene.style.setProperty(
+          "--motion-x",
+          `${horizontalPosition}vw`
+        );
+
+        scene.style.setProperty(
+          "--motion-opacity",
+          `${Math.max(0.08, Math.min(0.34, opacity))}`
+        );
+
+        scene.style.setProperty(
+          "--motion-progress",
+          `${progress}`
+        );
+      });
+    };
+
+    const requestUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateMotion);
+    };
+
+    updateMotion();
+
+    window.addEventListener("scroll", requestUpdate, {
+      passive: true,
+    });
+
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, []);
+
   function navigateTo(id: string) {
     document.getElementById(id)?.scrollIntoView({
       behavior: "smooth",
@@ -284,6 +371,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+
         <div className="elite-header-status">
           <span />
           COMMUNITY
@@ -324,14 +412,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="manifesto" className="elite-manifesto-section">
+      <section
+        id="manifesto"
+        className="elite-manifesto-section"
+        data-motion-scene
+        data-motion-word="LESS NOISE — MORE IMPACT"
+      >
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">01 / OUR MINDSET</div>
+
           <div className="elite-manifesto-title">
             LESS NOISE.
             <br />
             <span>MORE IMPACT.</span>
           </div>
+
           <p className="elite-manifesto-text">
             No unnecessary words.
             <br />
@@ -339,6 +434,7 @@ export default function Home() {
             <br />
             Only focus, teamwork and results.
           </p>
+
           <div className="elite-manifesto-mark">
             K7 CREW — EST. 2026
           </div>
@@ -350,10 +446,13 @@ export default function Home() {
       <section
         id="chat"
         data-nav-section
+        data-motion-scene
+        data-motion-word="CONNECT — COMMUNICATE"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">02 / COMMUNICATION</div>
+
           <EmptySection
             eyebrow="K7 COMMUNITY"
             title="THE CHAT."
@@ -367,10 +466,13 @@ export default function Home() {
       <section
         id="events"
         data-nav-section
+        data-motion-scene
+        data-motion-word="EVERY MATCH MATTERS"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">03 / COMPETITION</div>
+
           <EmptySection
             eyebrow="TOURNAMENTS & MATCHES"
             title="THE EVENTS."
@@ -384,6 +486,8 @@ export default function Home() {
       <section
         id="roster"
         data-nav-section
+        data-motion-scene
+        data-motion-word="UNITED AS ONE"
         className="elite-content-section elite-roster-section"
       >
         <div className="elite-section-inner reveal-content">
@@ -418,6 +522,7 @@ export default function Home() {
                 <div className="elite-roster-label">
                   MAIN SQUAD <span>04 SLOTS</span>
                 </div>
+
                 <div className="elite-roster-list">
                   {mainSlots.map((slot) => (
                     <PlayerCard
@@ -433,6 +538,7 @@ export default function Home() {
                 <div className="elite-roster-label">
                   SUBSTITUTES <span>03 SLOTS</span>
                 </div>
+
                 <div className="elite-roster-list">
                   {subSlots.map((slot) => (
                     <PlayerCard
@@ -460,10 +566,13 @@ export default function Home() {
       <section
         id="news"
         data-nav-section
+        data-motion-scene
+        data-motion-word="STAY INFORMED"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">05 / LATEST UPDATES</div>
+
           <EmptySection
             eyebrow="K7 BROADCAST"
             title="THE NEWS."
@@ -477,10 +586,13 @@ export default function Home() {
       <section
         id="stats"
         data-nav-section
+        data-motion-scene
+        data-motion-word="NUMBERS NEVER LIE"
         className="elite-content-section"
       >
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">06 / PERFORMANCE</div>
+
           <EmptySection
             eyebrow="NUMBERS DON'T LIE"
             title="THE STATS."
@@ -493,9 +605,11 @@ export default function Home() {
         <div className="elite-footer-logo">
           <img src="/k7-logo.jpeg" alt="K7 CREW" />
         </div>
+
         <div className="elite-footer-slogan">
           SILENT MOVES. DEADLY RESULTS.
         </div>
+
         <div className="elite-footer-copy">
           K7 CREW © 2026
         </div>
