@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
@@ -61,6 +62,7 @@ a {
   pointer-events: none;
   overflow: hidden;
   background: #070707;
+  --scene-progress: 0;
 }
 
 .elite-background-image {
@@ -74,8 +76,8 @@ a {
   background:
     linear-gradient(
       180deg,
-      rgba(7,7,7,.22),
-      rgba(7,7,7,.68) 48%,
+      rgba(7,7,7,.18),
+      rgba(7,7,7,.62) 48%,
       #070707 100%
     ),
     radial-gradient(
@@ -83,6 +85,7 @@ a {
       transparent 0%,
       rgba(0,0,0,.58) 78%
     );
+  opacity: calc(.88 + var(--scene-progress) * .12);
 }
 
 .elite-background-lines {
@@ -102,10 +105,11 @@ a {
 .elite-background-type {
   position: absolute;
   z-index: 3;
-  inset: -10% -15%;
+  inset: -15% -20%;
   overflow: hidden;
   pointer-events: none;
-  opacity: .85;
+  opacity: 1;
+  perspective: 900px;
 
   mask-image: linear-gradient(
     180deg,
@@ -131,21 +135,23 @@ a {
   max-width: none;
   white-space: nowrap;
   will-change: transform, opacity;
+  transform-origin: center center;
+  mix-blend-mode: screen;
 }
 
 .elite-type-lane-one {
-  top: 18%;
-  opacity: .06;
+  top: 15%;
+  opacity: .09;
 }
 
 .elite-type-lane-two {
-  top: 47%;
-  opacity: .05;
+  top: 45%;
+  opacity: .08;
 }
 
 .elite-type-lane-three {
-  top: 76%;
-  opacity: .04;
+  top: 75%;
+  opacity: .07;
 }
 
 .elite-type-track {
@@ -158,13 +164,14 @@ a {
   flex: 0 0 auto;
   display: block;
   padding-right: .55em;
-  color: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.12);
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(75px, 14vw, 190px);
   font-weight: 900;
   line-height: .8;
   letter-spacing: -.055em;
   text-transform: uppercase;
+  text-shadow: 0 0 35px rgba(255,255,255,.055);
 }
 
 .elite-type-lane-one span:nth-child(odd) {
@@ -174,23 +181,23 @@ a {
 
 .elite-type-lane-one span:nth-child(even) {
   font-size: clamp(65px, 11vw, 145px);
-  color: rgba(255,255,255,.065);
+  color: rgba(255,255,255,.09);
 }
 
 .elite-type-lane-two span {
   font-size: clamp(65px, 11vw, 150px);
   letter-spacing: -.035em;
-  color: rgba(255,255,255,.09);
+  color: rgba(255,255,255,.11);
 }
 
 .elite-type-lane-two span:nth-child(2n) {
-  color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.15);
 }
 
 .elite-type-lane-three span {
   font-size: clamp(55px, 9vw, 120px);
   letter-spacing: .015em;
-  color: rgba(255,255,255,.075);
+  color: rgba(255,255,255,.09);
 }
 
 .elite-type-lane-three span:nth-child(2n) {
@@ -294,9 +301,10 @@ a {
   animation: fade-up .8s ease both;
 }
 
-/* HERO LOGO */
+/* CINEMATIC HERO LOGO */
 
 .elite-hero-logo {
+  --logo-visible: 1;
   position: relative;
   width: min(62vw, 270px);
   height: min(62vw, 270px);
@@ -311,10 +319,75 @@ a {
   transform: translate3d(0, 0, 0);
   filter: blur(0);
 
+  isolation: isolate;
   will-change: opacity, transform, filter;
+  transform-origin: center center;
+}
+
+/* Soft light behind the emblem */
+
+.elite-hero-logo::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -24%;
+  border-radius: 50%;
+  pointer-events: none;
+
+  background: radial-gradient(
+    circle,
+    rgba(255,255,255,.19) 0%,
+    rgba(255,255,255,.09) 24%,
+    rgba(255,255,255,.025) 48%,
+    transparent 72%
+  );
+
+  opacity: calc(var(--logo-visible) * .85);
+  transform: scale(calc(1 + (1 - var(--logo-visible)) * .35));
+  filter: blur(16px);
+  transition: opacity .08s linear;
+}
+
+/* Fine circular light ring */
+
+.elite-hero-logo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 82%;
+  height: 82%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  pointer-events: none;
+
+  opacity: calc(var(--logo-visible) * .55);
+  transform: scale(calc(.82 + var(--logo-visible) * .18));
+  box-shadow:
+    0 0 25px rgba(255,255,255,.055),
+    inset 0 0 25px rgba(255,255,255,.025);
+}
+
+.elite-logo-aura {
+  position: absolute;
+  z-index: -1;
+  inset: -10%;
+  border-radius: 50%;
+  pointer-events: none;
+
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255,255,255,.12),
+    transparent 68%
+  );
+
+  filter: blur(22px);
+  opacity: .7;
+  animation: logo-aura-entry 1.8s cubic-bezier(.16,1,.3,1) both;
 }
 
 .elite-hero-logo img {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
@@ -324,11 +397,12 @@ a {
 
   filter:
     grayscale(1)
-    contrast(1.25)
-    brightness(1.12)
-    drop-shadow(0 0 18px rgba(255,255,255,.12));
+    contrast(1.3)
+    brightness(1.16)
+    drop-shadow(0 0 12px rgba(255,255,255,.13))
+    drop-shadow(0 0 35px rgba(255,255,255,.08));
 
-  animation: logo-entry 1.35s cubic-bezier(.16,1,.3,1) both;
+  animation: logo-entry 1.65s cubic-bezier(.16,1,.3,1) both;
 }
 
 .elite-hero-divider {
@@ -336,6 +410,7 @@ a {
   height: 1px;
   margin: 35px auto 22px;
   background: rgba(255,255,255,.65);
+  animation: divider-entry 1.2s .35s ease both;
 }
 
 .elite-hero h1 {
@@ -345,6 +420,7 @@ a {
   font-weight: 900;
   line-height: .88;
   letter-spacing: -.025em;
+  animation: fade-up 1s .25s ease both;
 }
 
 .elite-hero h1 span {
@@ -359,7 +435,7 @@ a {
   line-height: 1.9;
   letter-spacing: .2em;
   text-transform: uppercase;
-  animation: fade-up .9s .2s ease both;
+  animation: fade-up .9s .4s ease both;
 }
 
 .elite-scroll-hint {
@@ -867,22 +943,34 @@ a {
   width: 22px;
 }
 
-/* ANIMATIONS */
+/* CINEMATIC ANIMATIONS */
 
 @keyframes logo-entry {
   0% {
     opacity: 0;
-    transform: translateY(25px) scale(.82);
+    transform: translateY(38px) scale(.72);
     filter:
       grayscale(1)
-      contrast(1.25)
-      brightness(1.12)
-      blur(12px);
+      contrast(1.3)
+      brightness(2.2)
+      blur(22px)
+      drop-shadow(0 0 45px rgba(255,255,255,.5));
   }
 
-  65% {
+  38% {
+    opacity: .65;
+    transform: translateY(-7px) scale(1.06);
+    filter:
+      grayscale(1)
+      contrast(1.3)
+      brightness(1.8)
+      blur(7px)
+      drop-shadow(0 0 35px rgba(255,255,255,.35));
+  }
+
+  72% {
     opacity: 1;
-    transform: translateY(-3px) scale(1.03);
+    transform: translateY(2px) scale(.99);
   }
 
   100% {
@@ -890,9 +978,42 @@ a {
     transform: translateY(0) scale(1);
     filter:
       grayscale(1)
-      contrast(1.25)
-      brightness(1.12)
-      drop-shadow(0 0 18px rgba(255,255,255,.12));
+      contrast(1.3)
+      brightness(1.16)
+      drop-shadow(0 0 12px rgba(255,255,255,.13))
+      drop-shadow(0 0 35px rgba(255,255,255,.08));
+  }
+}
+
+@keyframes logo-aura-entry {
+  0% {
+    opacity: 0;
+    transform: scale(.55);
+    filter: blur(35px);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.12);
+    filter: blur(18px);
+  }
+
+  100% {
+    opacity: .7;
+    transform: scale(1);
+    filter: blur(22px);
+  }
+}
+
+@keyframes divider-entry {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
   }
 }
 
@@ -978,5 +1099,9 @@ a {
     scroll-behavior: auto !important;
     animation-duration: .01ms !important;
     transition-duration: .01ms !important;
+  }
+
+  .elite-hero-logo {
+    filter: none !important;
   }
 }
