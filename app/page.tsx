@@ -257,48 +257,126 @@ export default function Home() {
     };
   }, []);
 
-  // One continuous background reacts to the whole page scroll.
+  // Scroll-controlled logo and background typography.
+  // Nothing moves automatically when the page is not scrolling.
   useEffect(() => {
     const background = document.querySelector<HTMLElement>(
       ".elite-background-type"
     );
 
-    if (!background) return;
+    const logo = document.querySelector<HTMLElement>(
+      ".elite-hero-logo"
+    );
+
+    const laneOne = document.querySelector<HTMLElement>(
+      ".elite-type-lane-one"
+    );
+
+    const laneTwo = document.querySelector<HTMLElement>(
+      ".elite-type-lane-two"
+    );
+
+    const laneThree = document.querySelector<HTMLElement>(
+      ".elite-type-lane-three"
+    );
+
+    if (!background || !logo || !laneOne || !laneTwo || !laneThree) {
+      return;
+    }
 
     let frame = 0;
 
-    const updateBackground = () => {
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(max, Math.max(min, value));
+
+    const smoothStep = (value: number) =>
+      value * value * (3 - 2 * value);
+
+    const updateVisuals = () => {
       frame = 0;
 
       const scroll = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
 
-      background.style.setProperty(
-        "--lane-one-y",
-        `${Math.sin(scroll * 0.0011) * 15}px`
+      const maxScroll =
+        document.documentElement.scrollHeight - viewportHeight;
+
+      const progress =
+        maxScroll > 0 ? clamp(scroll / maxScroll, 0, 1) : 0;
+
+      // HERO LOGO: fades out while scrolling down
+      // and returns when scrolling back to the top.
+      const logoProgress = clamp(
+        scroll / (viewportHeight * 0.72),
+        0,
+        1
       );
 
-      background.style.setProperty(
-        "--lane-two-y",
-        `${Math.cos(scroll * 0.0008) * 20}px`
+      const logoFade = smoothStep(logoProgress);
+
+      logo.style.opacity = String(1 - logoFade);
+      logo.style.transform = `
+        translate3d(0, ${-35 * logoFade}px, 0)
+        scale(${1 - logoFade * 0.09})
+      `;
+      logo.style.filter = `blur(${logoFade * 11}px)`;
+      logo.style.pointerEvents = logoFade > 0.95 ? "none" : "auto";
+
+      // Different movement paths for each typography lane.
+      const waveOne = Math.sin(progress * Math.PI * 2);
+      const waveTwo = Math.cos(progress * Math.PI * 2 + 0.9);
+      const waveThree = Math.sin(progress * Math.PI * 3 + 1.4);
+
+      // Lane one: moves left.
+      laneOne.style.transform = `
+        translate3d(
+          ${-progress * viewportWidth * 0.16 + waveOne * 12}px,
+          ${waveOne * 22}px,
+          0
+        )
+        scale(${1 + waveOne * 0.025})
+      `;
+
+      laneOne.style.opacity = String(
+        0.055 + (waveOne + 1) * 0.018
       );
 
-      background.style.setProperty(
-        "--lane-three-y",
-        `${Math.sin(scroll * 0.0006 + 1) * 12}px`
+      // Lane two: moves right, with a different vertical path.
+      laneTwo.style.transform = `
+        translate3d(
+          ${progress * viewportWidth * 0.12 + waveTwo * 15}px,
+          ${waveTwo * 30}px,
+          0
+        )
+        scale(${1.02 + waveTwo * 0.035})
+      `;
+
+      laneTwo.style.opacity = String(
+        0.04 + (waveTwo + 1) * 0.018
       );
 
-      background.style.setProperty(
-        "--scroll-opacity",
-        `${0.78 + Math.min(scroll / 5000, 0.18)}`
+      // Lane three: slower movement in the opposite direction.
+      laneThree.style.transform = `
+        translate3d(
+          ${-progress * viewportWidth * 0.07 + waveThree * 10}px,
+          ${waveThree * 17}px,
+          0
+        )
+        scale(${0.98 + waveThree * 0.025})
+      `;
+
+      laneThree.style.opacity = String(
+        0.025 + (waveThree + 1) * 0.015
       );
     };
 
     const requestUpdate = () => {
       if (frame) return;
-      frame = window.requestAnimationFrame(updateBackground);
+      frame = window.requestAnimationFrame(updateVisuals);
     };
 
-    updateBackground();
+    updateVisuals();
 
     window.addEventListener("scroll", requestUpdate, {
       passive: true,
@@ -337,34 +415,34 @@ export default function Home() {
         <div className="elite-background-type">
           <div className="elite-type-lane elite-type-lane-one">
             <div className="elite-type-track">
-              <span> SILENT MOVES — DEADLY RESULTS </span>
-              <span> DISCIPLINE OVER EVERYTHING </span>
-              <span> BUILT DIFFERENT — UNITED AS ONE </span>
-              <span> SILENT MOVES — DEADLY RESULTS </span>
-              <span> DISCIPLINE OVER EVERYTHING </span>
-              <span> BUILT DIFFERENT — UNITED AS ONE </span>
+              <span>SILENT MOVES</span>
+              <span>DISCIPLINE OVER EVERYTHING</span>
+              <span>EARN YOUR PLACE</span>
+              <span>EXECUTE WITH PRECISION</span>
+              <span>NO ROOM FOR ERROR</span>
+              <span>BUILT DIFFERENT</span>
             </div>
           </div>
 
           <div className="elite-type-lane elite-type-lane-two">
             <div className="elite-type-track">
-              <span> NO EXCUSES — ONLY RESULTS </span>
-              <span> THE GAME NEVER STOPS </span>
-              <span> ONE CREW — ONE PURPOSE </span>
-              <span> NO EXCUSES — ONLY RESULTS </span>
-              <span> THE GAME NEVER STOPS </span>
-              <span> ONE CREW — ONE PURPOSE </span>
+              <span>ONE CREW</span>
+              <span>CONTROL THE GAME</span>
+              <span>STRONGER AS ONE</span>
+              <span>THE GAME NEVER STOPS</span>
+              <span>ONLY RESULTS</span>
+              <span>MADE FOR PRESSURE</span>
             </div>
           </div>
 
           <div className="elite-type-lane elite-type-lane-three">
             <div className="elite-type-track">
-              <span> FOCUS. CONTROL. EXECUTION. </span>
-              <span> EARN YOUR PLACE </span>
-              <span> MADE FOR THE COMPETITION </span>
-              <span> FOCUS. CONTROL. EXECUTION. </span>
-              <span> EARN YOUR PLACE </span>
-              <span> MADE FOR THE COMPETITION </span>
+              <span>FOCUS</span>
+              <span>ADAPT</span>
+              <span>DOMINATE</span>
+              <span>BEYOND THE LIMIT</span>
+              <span>STAY SHARP</span>
+              <span>PROVE IT</span>
             </div>
           </div>
         </div>
