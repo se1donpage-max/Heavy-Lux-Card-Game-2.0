@@ -8,27 +8,13 @@ import {
   Users,
   Newspaper,
   Trophy,
-  Crown,
+  ArrowDown,
   RefreshCw,
-  ArrowUpRight,
-  Menu,
-  X,
+  Crown,
   Shield,
-  Crosshair,
-  Target,
-  ChevronRight,
-  Swords
 } from "lucide-react";
 
-const tabs = [
-  { id: "chat", label: "CHAT", icon: MessageCircle },
-  { id: "events", label: "EVENTS", icon: CalendarDays },
-  { id: "roster", label: "ROSTER", icon: Users },
-  { id: "news", label: "NEWS", icon: Newspaper },
-  { id: "stats", label: "STATS", icon: Trophy }
-] as const;
-
-type TabId = (typeof tabs)[number]["id"];
+type TabId = "chat" | "events" | "roster" | "news" | "stats";
 
 interface RosterPlayer {
   id: string;
@@ -46,151 +32,130 @@ interface RosterPlayer {
   } | null;
 }
 
+const tabs: {
+  id: TabId;
+  label: string;
+  icon: typeof MessageCircle;
+}[] = [
+  { id: "chat", label: "Chat", icon: MessageCircle },
+  { id: "events", label: "Events", icon: CalendarDays },
+  { id: "roster", label: "Roster", icon: Users },
+  { id: "news", label: "News", icon: Newspaper },
+  { id: "stats", label: "Stats", icon: Trophy },
+];
+
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
 
-const roleNames: Record<string, string> = {
-  FLEX: "FLEX",
-  IGL: "IN-GAME LEADER",
-  SUPPORT: "SUPPORT",
-  FRAGGER: "FRAGGER",
-  SNIPER: "SNIPER"
-};
+function getPlayerName(player: RosterPlayer) {
+  if (player.profiles?.username) {
+    return `@${player.profiles.username}`;
+  }
 
-const tabTitles: Record<TabId, string> = {
-  chat: "COMMUNITY",
-  events: "COMPETITION",
-  roster: "THE ROSTER",
-  news: "LATEST INTEL",
-  stats: "PERFORMANCE"
-};
+  if (player.profiles?.first_name) {
+    return [
+      player.profiles.first_name,
+      player.profiles.last_name,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return `PLAYER_${player.telegram_id}`;
+}
 
 function PlayerCard({
   player,
-  index
+  slot,
 }: {
   player?: RosterPlayer;
-  index: number;
+  slot: string;
 }) {
-  const slot = player?.slot ?? `OPEN_${index}`;
-  const profile = player?.profiles;
-
-  if (!player) {
-    return (
-      <div className="elite-player elite-player-open">
-        <div className="elite-player-number">
-          {String(index + 1).padStart(2, "0")}
-        </div>
-        <div className="elite-player-info">
-          <span className="elite-player-name">OPEN POSITION</span>
-          <span className="elite-player-role">AWAITING RECRUITMENT</span>
-        </div>
-        <span className="elite-open-label">OPEN</span>
-      </div>
-    );
-  }
-
-  const name = profile
-    ? [profile.first_name, profile.last_name].filter(Boolean).join(" ")
-    : "K7 CREW MEMBER";
-
   return (
-    <article className="elite-player">
-      <div className="elite-player-number">
-        {String(index + 1).padStart(2, "0")}
-      </div>
-
-      <div className="elite-player-avatar">
-        {profile?.photo_url ? (
-          <img src={profile.photo_url} alt="" />
-        ) : (
-          <span>K7</span>
-        )}
-      </div>
-
-      <div className="elite-player-info">
-        <div className="elite-player-name-row">
-          <h4 className="elite-player-name">{name}</h4>
-          {player.is_captain && (
-            <Crown size={14} className="elite-captain-icon" />
-          )}
-        </div>
-
-        <div className="elite-player-meta">
-          {profile?.username
-            ? `@${profile.username}`
-            : "K7 CREW"}
-          {player.in_game_id
-            ? ` / PUBG ID: ${player.in_game_id}`
-            : ""}
-        </div>
-
-        <div className="elite-player-role">
-          {roleNames[player.game_role] ?? player.game_role}
-          {player.is_captain ? " / CAPTAIN" : ""}
-        </div>
-      </div>
-
-      <div className="elite-player-slot">
+    <div className={`roster-player ${player ? "is-filled" : "is-open"}`}>
+      <div className="roster-player-number">
         {slot.replace("_", " ")}
       </div>
-    </article>
+
+      <div className="roster-player-info">
+        <div className="roster-player-name">
+          {player ? getPlayerName(player) : "OPEN POSITION"}
+        </div>
+
+        <div className="roster-player-role">
+          {player
+            ? player.game_role || "TEAM MEMBER"
+            : "AVAILABLE"}
+        </div>
+      </div>
+
+      <div className="roster-player-status">
+        {player ? (
+          player.is_captain ? (
+            <Crown size={16} />
+          ) : (
+            <Shield size={16} />
+          )
+        ) : (
+          "+"
+        )}
+      </div>
+    </div>
   );
 }
 
 function EmptySection({
-  icon: Icon,
+  eyebrow,
   title,
-  description
+  description,
 }: {
-  icon: typeof MessageCircle;
+  eyebrow: string;
   title: string;
   description: string;
 }) {
   return (
-    <div className="elite-empty">
-      <div className="elite-empty-icon">
-        <Icon size={28} strokeWidth={1.3} />
-      </div>
-      <span className="elite-kicker">K7 CREW / IN DEVELOPMENT</span>
+    <div className="empty-section">
+      <div className="section-eyebrow">{eyebrow}</div>
       <h3>{title}</h3>
       <p>{description}</p>
+      <div className="section-coming">COMING SOON</div>
     </div>
   );
 }
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("roster");
+  const [scene, setScene] = useState("home");
+
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
-  const [loadingRoster, setLoadingRoster] = useState(true);
-  const [rosterError, setRosterError] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   async function loadRoster() {
     try {
-      setLoadingRoster(true);
-      setRosterError("");
+      setLoading(true);
+      setError("");
 
       const response = await fetch("/api/roster", {
         credentials: "include",
-        cache: "no-store"
+        cache: "no-store",
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Unable to load roster");
+        throw new Error(result.error || "Could not load roster");
       }
 
       setRoster(result.roster ?? []);
-    } catch (error) {
-      setRosterError(
-        error instanceof Error
-          ? error.message
-          : "Roster loading error"
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong"
       );
     } finally {
-      setLoadingRoster(false);
+      setLoading(false);
     }
   }
 
@@ -198,299 +163,350 @@ export default function Home() {
     loadRoster();
   }, []);
 
-  const mainPlayers = roster.filter((p) =>
-    mainSlots.includes(p.slot)
-  );
+  useEffect(() => {
+    const sections = document.querySelectorAll<HTMLElement>(
+      "[data-scene]"
+    );
 
-  const substitutePlayers = roster.filter((p) =>
-    subSlots.includes(p.slot)
-  );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
 
-  const activeTitle = tabTitles[activeTab];
+          const currentScene =
+            entry.target.getAttribute("data-scene");
 
-  function changeTab(tab: TabId) {
-    setActiveTab(tab);
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+          if (currentScene) {
+            setScene(currentScene);
+          }
+
+          const sectionId = entry.target.id;
+
+          if (
+            tabs.some((tab) => tab.id === sectionId)
+          ) {
+            setActiveTab(sectionId as TabId);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: "-35% 0px -45% 0px",
+        threshold: 0,
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
+
+  function navigateTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
+  function getPlayerForSlot(slot: string) {
+    return roster.find((player) => player.slot === slot);
   }
 
   return (
-    <main className="elite-shell">
+    <main className="elite-shell" data-scene={scene}>
+      {/* CINEMATIC BACKGROUND */}
+      <div className="elite-background" aria-hidden="true">
+        <div className="elite-background-glow" />
+        <div className="elite-background-mark">K7</div>
+        <div className="elite-background-lines" />
+      </div>
+
+      {/* HEADER */}
       <header className="elite-header">
-        <div className="elite-header-inner">
-          <button
-            className="elite-brand"
-            onClick={() => changeTab("roster")}
-            aria-label="K7 CREW home"
-          >
-            <span className="elite-brand-mark">K7</span>
-            <span className="elite-brand-copy">
-              <strong>K7 CREW</strong>
-              <small> PUBG MOBILE ESPORTS</small>
-            </span>
-          </button>
+        <div className="elite-brand">
+          <div className="elite-brand-mark">K7</div>
+          <div>
+            <div className="elite-brand-name">K7 CREW</div>
+            <div className="elite-brand-caption">
+              PUBG MOBILE ESPORTS
+            </div>
+          </div>
+        </div>
 
-          <nav className="elite-desktop-nav">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => changeTab(tab.id)}
-                  className={
-                    activeTab === tab.id
-                      ? "elite-nav-link active"
-                      : "elite-nav-link"
-                  }
-                >
-                  <Icon size={15} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
+        <div className="elite-header-status">
+          <span />
+          COMMUNITY
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section
+        id="home"
+        className="elite-hero"
+        data-scene="home"
+      >
+        <div className="elite-hero-content">
+          <div className="elite-kicker">
+            INDEPENDENT ESPORTS ORGANIZATION
+          </div>
+
+          <div className="elite-hero-logo">
+            K7
+          </div>
+
+          <div className="elite-hero-divider" />
+
+          <h1>
+            SILENT MOVES.
+            <br />
+            <span>DEADLY RESULTS.</span>
+          </h1>
+
+          <p className="elite-hero-description">
+            BUILT ON DISCIPLINE.
+            <br />
+            UNITED BY THE GAME.
+          </p>
 
           <button
-            className="elite-menu-button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle navigation"
+            className="elite-scroll-hint"
+            onClick={() => navigateTo("manifesto")}
           >
-            {menuOpen ? <X size={21} /> : <Menu size={21} />}
+            <span>SCROLL TO EXPLORE</span>
+            <ArrowDown size={15} />
           </button>
         </div>
 
-        {menuOpen && (
-          <div className="elite-mobile-menu">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => changeTab(tab.id)}
-                  className={
-                    activeTab === tab.id
-                      ? "elite-mobile-menu-link active"
-                      : "elite-mobile-menu-link"
-                  }
-                >
-                  <Icon size={17} />
-                  {tab.label}
-                  <ChevronRight size={15} />
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </header>
+        <div className="elite-hero-index">
+          <span>01</span>
+          <span className="elite-index-line" />
+          <span>07</span>
+        </div>
+      </section>
 
-      <div className="elite-content">
-        <section className="elite-hero">
-          <div className="elite-hero-top">
-            <span className="elite-kicker">
-              INDEPENDENT ESPORTS ORGANIZATION
-            </span>
-            <span className="elite-hero-index">EST. K7</span>
+      {/* MANIFESTO */}
+      <section
+        id="manifesto"
+        className="elite-manifesto-section"
+        data-scene="manifesto"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            02 / OUR MINDSET
           </div>
 
-          <div className="elite-hero-main">
-            <div className="elite-hero-title">
-              <span>BUILT</span>
-              <span className="elite-hero-outline">TO</span>
-              <span>DOMINATE<span className="elite-period">.</span></span>
-            </div>
-
-            <div className="elite-hero-side">
-              <div className="elite-hero-emblem">
-                <img src="/k7-logo.jpeg" alt="K7 CREW" />
-              </div>
-              <span className="elite-vertical-text">
-                PUBG MOBILE / ESPORTS
-              </span>
-            </div>
+          <div className="elite-manifesto-title">
+            LESS NOISE.
+            <br />
+            <span>MORE IMPACT.</span>
           </div>
 
-          <div className="elite-hero-bottom">
-            <p>
-              SILENT MOVES.
-              <br />
-              DEADLY RESULTS.
-            </p>
-            <button
-              className="elite-explore"
-              onClick={() => changeTab("roster")}
-            >
-              EXPLORE THE ROSTER
-              <ArrowUpRight size={16} />
-            </button>
+          <p className="elite-manifesto-text">
+            No unnecessary words.
+            <br />
+            No wasted movement.
+            <br />
+            Only focus, teamwork and results.
+          </p>
+
+          <div className="elite-manifesto-mark">
+            K7 CREW — EST. 2026
           </div>
-        </section>
+        </div>
+      </section>
 
-        <div className="elite-divider" />
+      {/* CHAT */}
+      <section
+        id="chat"
+        className="elite-content-section"
+        data-scene="chat"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            03 / COMMUNICATION
+          </div>
 
-        <section className="elite-section">
+          <EmptySection
+            eyebrow="K7 COMMUNITY"
+            title="THE CHAT."
+            description="A place for the crew. Communication and community updates."
+          />
+        </div>
+      </section>
+
+      {/* EVENTS */}
+      <section
+        id="events"
+        className="elite-content-section"
+        data-scene="events"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            04 / COMPETITION
+          </div>
+
+          <EmptySection
+            eyebrow="TOURNAMENTS & MATCHES"
+            title="THE EVENTS."
+            description="Upcoming competitions, matches and team activities."
+          />
+        </div>
+      </section>
+
+      {/* ROSTER */}
+      <section
+        id="roster"
+        className="elite-content-section elite-roster-section"
+        data-scene="roster"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            05 / THE SQUAD
+          </div>
+
           <div className="elite-section-heading">
             <div>
-              <span className="elite-kicker">
-                K7 CREW / {activeTab.toUpperCase()}
-              </span>
-              <h2>{activeTitle}<span>.</span></h2>
+              <h2>ROSTER<span>.</span></h2>
+              <p>THE PEOPLE BEHIND K7 CREW.</p>
             </div>
-            <span className="elite-section-count">01 — 05</span>
+
+            <button
+              className="elite-refresh"
+              onClick={loadRoster}
+              disabled={loading}
+              aria-label="Refresh roster"
+            >
+              <RefreshCw
+                size={17}
+                className={loading ? "is-spinning" : ""}
+              />
+            </button>
           </div>
 
-          {activeTab === "roster" && (
-            <div className="elite-roster">
-              <div className="elite-roster-overview">
-                <div>
-                  <span className="elite-kicker">OFFICIAL LINEUP</span>
-                  <div className="elite-roster-count">
-                    <strong>{roster.length.toString().padStart(2, "0")}</strong>
-                    <span>/ 07 MEMBERS</span>
-                  </div>
+          {loading ? (
+            <div className="elite-loading">
+              LOADING THE SQUAD...
+            </div>
+          ) : error ? (
+            <div className="elite-error">
+              <p>{error}</p>
+              <button onClick={loadRoster}>
+                TRY AGAIN
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="elite-roster-group">
+                <div className="elite-roster-label">
+                  MAIN SQUAD
+                  <span>04 SLOTS</span>
                 </div>
 
-                <button
-                  className="elite-refresh"
-                  onClick={loadRoster}
-                  disabled={loadingRoster}
-                >
-                  <RefreshCw
-                    size={14}
-                    className={loadingRoster ? "elite-spinning" : ""}
-                  />
-                  REFRESH
-                </button>
+                <div className="elite-roster-list">
+                  {mainSlots.map((slot) => (
+                    <PlayerCard
+                      key={slot}
+                      slot={slot}
+                      player={getPlayerForSlot(slot)}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {rosterError && (
-                <div className="elite-error">
-                  <strong>ROSTER UNAVAILABLE</strong>
-                  <p>{rosterError}</p>
-                  <button onClick={loadRoster}>TRY AGAIN</button>
+              <div className="elite-roster-group">
+                <div className="elite-roster-label">
+                  SUBSTITUTES
+                  <span>03 SLOTS</span>
                 </div>
-              )}
 
-              {loadingRoster ? (
-                <div className="elite-loading">
-                  <RefreshCw size={20} className="elite-spinning" />
-                  <span>LOADING TEAM DATA</span>
+                <div className="elite-roster-list">
+                  {subSlots.map((slot) => (
+                    <PlayerCard
+                      key={slot}
+                      slot={slot}
+                      player={getPlayerForSlot(slot)}
+                    />
+                  ))}
                 </div>
-              ) : !rosterError ? (
-                <>
-                  <div className="elite-roster-group">
-                    <div className="elite-group-heading">
-                      <div>
-                        <span className="elite-kicker">01 / ACTIVE LINEUP</span>
-                        <h3>MAIN ROSTER</h3>
-                      </div>
-                      <span className="elite-group-total">
-                        {mainPlayers.length.toString().padStart(2, "0")} / 04
-                      </span>
-                    </div>
+              </div>
 
-                    <div className="elite-player-list">
-                      {mainSlots.map((slot, index) => (
-                        <PlayerCard
-                          key={slot}
-                          index={index}
-                          player={roster.find((p) => p.slot === slot)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="elite-roster-group">
-                    <div className="elite-group-heading">
-                      <div>
-                        <span className="elite-kicker">02 / RESERVE UNIT</span>
-                        <h3>SUBSTITUTES</h3>
-                      </div>
-                      <span className="elite-group-total">
-                        {substitutePlayers.length.toString().padStart(2, "0")} / 03
-                      </span>
-                    </div>
-
-                    <div className="elite-player-list">
-                      {subSlots.map((slot, index) => (
-                        <PlayerCard
-                          key={slot}
-                          index={index + 4}
-                          player={roster.find((p) => p.slot === slot)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : null}
-            </div>
+              <div className="elite-roster-total">
+                <span>REGISTERED PLAYERS</span>
+                <strong>{roster.length.toString().padStart(2, "0")}</strong>
+              </div>
+            </>
           )}
+        </div>
+      </section>
 
-          {activeTab === "chat" && (
-            <EmptySection
-              icon={MessageCircle}
-              title="COMMUNITY CHAT"
-              description="The community communication hub. Messages will appear here when the chat service is connected."
-            />
-          )}
-
-          {activeTab === "events" && (
-            <EmptySection
-              icon={CalendarDays}
-              title="UPCOMING OPERATIONS"
-              description="Tournaments, team practices and competitive events will be displayed here when event data is connected."
-            />
-          )}
-
-          {activeTab === "news" && (
-            <EmptySection
-              icon={Newspaper}
-              title="LATEST INTEL"
-              description="Official K7 CREW announcements and publications will appear here when news data is available."
-            />
-          )}
-
-          {activeTab === "stats" && (
-            <EmptySection
-              icon={Trophy}
-              title="TEAM PERFORMANCE"
-              description="Competitive results and player analytics will be displayed here when real match statistics are available."
-            />
-          )}
-        </section>
-
-        <section className="elite-manifesto">
-          <div className="elite-manifesto-icon">
-            <Swords size={22} />
+      {/* NEWS */}
+      <section
+        id="news"
+        className="elite-content-section"
+        data-scene="news"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            06 / LATEST UPDATES
           </div>
-          <div>
-            <span className="elite-kicker">THE K7 STANDARD</span>
-            <h3>LESS NOISE.<br />MORE IMPACT.</h3>
+
+          <EmptySection
+            eyebrow="K7 BROADCAST"
+            title="THE NEWS."
+            description="Announcements, organization updates and important information."
+          />
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section
+        id="stats"
+        className="elite-content-section"
+        data-scene="stats"
+      >
+        <div className="elite-section-inner">
+          <div className="section-eyebrow">
+            07 / PERFORMANCE
           </div>
-          <span className="elite-manifesto-mark">K7</span>
-        </section>
 
-        <footer className="elite-footer">
-          <div className="elite-footer-brand">K7 CREW</div>
-          <span>PUBG MOBILE ESPORTS COMMUNITY</span>
-          <span>© K7 CREW</span>
-        </footer>
-      </div>
+          <EmptySection
+            eyebrow="NUMBERS DON'T LIE"
+            title="THE STATS."
+            description="Team performance, results and competitive statistics."
+          />
+        </div>
+      </section>
 
+      {/* FOOTER */}
+      <footer className="elite-footer">
+        <div className="elite-footer-logo">K7</div>
+        <div className="elite-footer-slogan">
+          SILENT MOVES. DEADLY RESULTS.
+        </div>
+        <div className="elite-footer-copy">
+          K7 CREW © 2026
+        </div>
+      </footer>
+
+      {/* BOTTOM NAVIGATION */}
       <nav className="elite-bottom-nav">
         {tabs.map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+
           return (
             <button
               key={tab.id}
-              onClick={() => changeTab(tab.id)}
-              className={
-                activeTab === tab.id
-                  ? "elite-bottom-link active"
-                  : "elite-bottom-link"
-              }
+              className={`elite-nav-item ${
+                isActive ? "active" : ""
+              }`}
+              onClick={() => navigateTo(tab.id)}
+              aria-label={tab.label}
+              aria-current={isActive ? "page" : undefined}
             >
-              <Icon size={19} strokeWidth={1.8} />
+              <Icon size={21} strokeWidth={isActive ? 2.3 : 1.7} />
               <span>{tab.label}</span>
+              <i />
             </button>
           );
         })}
