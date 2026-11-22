@@ -1,11 +1,10 @@
-
 "use client";
+
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { EventsPanel, NewsPanel, StatsPanel, RosterAdminPanel } from "@/components/k7-panels";
-import CinemaWorld from "@/components/cinema-world";
-import CinemaWeather from "@/components/cinema-weather";
+import K7CinemaBackdrop from "@/components/k7-cinema-backdrop";
 import { CommunityCounter, ReportButton, ReportsInbox } from "@/components/community-tools";
 import {
   MessageCircle,
@@ -74,15 +73,6 @@ const adminTab = { id: "messages" as const, label: "Ð¡Ð¾Ð¾Ð±ÑÐµÐ½
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
 const chatReactionOptions = ["\u{1F525}", "\u{2764}\u{FE0F}", "\u{1F44D}", "\u{1F44E}"];
-
-const sceneCopy: Record<TabId, { first: string; second: string; third: string }> = {
-  chat: { first: "ONE CREW", second: "ONE SIGNAL", third: "01 / SIGNAL â CONNECTED" },
-  events: { first: "ENTER", second: "THE ARENA", third: "02 / ARENA â COMPETE" },
-  roster: { first: "BUILT", second: "AS ONE", third: "03 / FORMATION â UNITED" },
-  news: { first: "MAKE", second: "AN IMPACT", third: "04 / TRANSMISSION â LIVE" },
-  stats: { first: "NUMBERS", second: "NEVER LIE", third: "05 / PRECISION â PROVE IT" },
-  messages: { first: "DIRECT", second: "MESSAGES", third: "ADMIN / INBOX" },
-};
 
 function getPlayerName(player: RosterPlayer) {
   if (player.profiles?.username) {
@@ -215,23 +205,13 @@ const sceneIdentity: Record<TabId, { number: string; label: string }> = {
 };
 
 function SceneBackdrop({ scene }: { scene: TabId }) {
-  const words = sceneCopy[scene];
   const identity = sceneIdentity[scene];
   return (
     <div className={`k7-stage k7-stage-${scene}`} aria-hidden="true">
-      <div className="k7-stage-vignette" />
-      <div className="k7-stage-axis" />
-      <div className="k7-stage-symbolic" />
-      <div className="k7-stage-topline"><span>CREW / EST. 2026</span><span>{identity.number} â {identity.label}</span></div>
-      <div className="k7-stage-typography">
-        <span className="k7-stage-title">{words.first}</span>
-        <span className="k7-stage-echo">{words.second}</span>
+      <div className="k7-stage-topline">
+        <span>K7 CREW / CINEMA</span>
+        <span>{identity.number} â {identity.label}</span>
       </div>
-      <div className="k7-stage-footer">{words.third}</div>
-      {scene === "roster" && <div className="k7-stage-structural-mark">K7</div>}
-      {scene === "news" && <div className="k7-stage-press-seal">K7<span>EST / 26</span></div>}
-      {scene === "events" && <img className="k7-stage-logo-fragment" src="/k7-logo-transparent.png" alt="" draggable={false} />}
-      {scene === "stats" && <div className="k7-stage-coordinate">00.00 <span>METRIC / ACTIVE</span></div>}
     </div>
   );
 }
@@ -857,8 +837,7 @@ export default function Home() {
         </div>
       )}
 
-      <CinemaWorld />
-      <CinemaWeather scene={activeTab} />
+      <K7CinemaBackdrop />
 
 
       <header className="k7-app-header">
