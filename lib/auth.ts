@@ -56,30 +56,25 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       return null;
     }
 
-    // Капитан получает права IGL, пока остаётся капитаном.
-    // Проверяем актуальный состав, а не роль из старой сессии.
-    let effectiveRole = data.access_role as AccessRole;
+    // Only the actual roster captain receives IGL privileges.
+    // A stale profile value "IGL" must not retain owner/captain tools
+    // after captaincy is revoked. OWNER retains owner permissions.
+    const recordedRole = data.access_role as AccessRole;
+    let effectiveRole: AccessRole = recordedRole === "OWNER" ? "OWNER" :
+      recordedRole === "ADMIN" ? "ADMIN" : "MEMBER";
 
-    if (effectiveRole === "MEMBER") {
-      const { data: rosterRecord, error: rosterError } =
-        await supabase
-          .from("roster")
-          .select("is_captain")
-          .eq("telegram_id", session.user.telegramId)
-          .maybeSingle();
+    if (recordedRole !== "OWNER") {
+      const { data: rosterRecord, error: rosterError } = await supabase
+        .from("roster")
+        .select("is_captain")
+        .eq("telegram_id", session.user.telegramId)
+        .maybeSingle();
 
       if (rosterError) {
-        console.error(
-          "Captain permission lookup failed:",
-          rosterError
-        );
-
+        console.error("Captain permission lookup failed:", rosterError);
         return null;
       }
-
-      if (rosterRecord?.is_captain) {
-        effectiveRole = "IGL";
-      }
+      if (rosterRecord?.is_captain) effectiveRole = "IGL";
     }
 
     return {
