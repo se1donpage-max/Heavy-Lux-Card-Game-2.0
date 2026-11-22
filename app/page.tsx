@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -454,7 +453,7 @@ export default function Home() {
           );
         }
 
-        const response = await fetch("/api/auth", {
+        const response = await fetch("/api/auth/telegram", {
           method: "POST",
           credentials: "include",
           cache: "no-store",
@@ -689,6 +688,12 @@ export default function Home() {
   }, []);
 
   function navigateTo(id: string) {
+    const nextTab = tabs.find((tab) => tab.id === id);
+
+    if (nextTab) {
+      setActiveTab(nextTab.id);
+    }
+
     document.getElementById(id)?.scrollIntoView({
       behavior: "smooth",
       block: "start",
