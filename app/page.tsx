@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -215,7 +214,6 @@ export default function Home() {
     }
   }
 
-  // Initial logo presentation.
   useEffect(() => {
     loadRoster();
 
@@ -226,7 +224,6 @@ export default function Home() {
     return () => window.clearTimeout(introTimer);
   }, []);
 
-  // Navigation and reveal observers.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -274,9 +271,7 @@ export default function Home() {
     };
   }, []);
 
-  // Scroll-controlled cinematic background.
-  // Every layer follows the actual scroll position.
-  // Different curves create different directions and depth.
+  // Scroll-controlled 3D scene.
   useEffect(() => {
     const layers = Array.from(
       document.querySelectorAll<HTMLElement>(
@@ -296,32 +291,51 @@ export default function Home() {
       frame = 0;
 
       const scroll = window.scrollY;
-      const phase = scroll / 520;
+      const phase = scroll / 430;
+
+      const maxScroll = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+
+      const progress = Math.min(1, Math.max(0, scroll / maxScroll));
 
       const motions = [
         {
-          x: Math.sin(phase * 0.72) * 150,
-          y: Math.cos(phase * 0.43) * 78,
-          r: Math.sin(phase * 0.58) * 13,
-          s: 1,
+          x: Math.sin(phase * 0.68) * 190,
+          y: Math.cos(phase * 0.42) * 105,
+          z: Math.sin(phase * 0.34) * 95,
+          rx: Math.cos(phase * 0.45) * 9,
+          ry: Math.sin(phase * 0.52) * -15,
+          rz: Math.sin(phase * 0.31) * 8,
+          scale: 1.12 + Math.sin(phase * 0.24) * 0.12,
         },
         {
-          x: Math.cos(phase * 0.91) * -175,
-          y: Math.sin(phase * 0.67) * 105,
-          r: Math.cos(phase * 0.74) * -11,
-          s: 1,
+          x: -Math.cos(phase * 0.88) * 215,
+          y: Math.sin(phase * 0.61) * 145,
+          z: Math.cos(phase * 0.37) * -125,
+          rx: Math.sin(phase * 0.41) * -12,
+          ry: Math.cos(phase * 0.57) * 17,
+          rz: Math.cos(phase * 0.29) * -10,
+          scale: 1.2 + Math.cos(phase * 0.22) * 0.1,
         },
         {
-          x: Math.sin(phase * 1.13) * 115,
-          y: -Math.cos(phase * 0.49) * 135,
-          r: Math.sin(phase * 0.82) * 8,
-          s: 1 + Math.sin(phase * 0.62) * 0.13,
+          x: Math.sin(phase * 1.05) * 145,
+          y: -Math.cos(phase * 0.54) * 165,
+          z: Math.sin(phase * 0.31) * 155,
+          rx: Math.cos(phase * 0.38) * 14,
+          ry: Math.sin(phase * 0.66) * -12,
+          rz: Math.sin(phase * 0.48) * 6,
+          scale: 1.05 + Math.sin(phase * 0.35) * 0.16,
         },
         {
-          x: -Math.cos(phase * 0.98) * 105,
-          y: Math.sin(phase * 0.84) * 145,
-          r: Math.sin(phase * 0.93) * 17,
-          s: 1,
+          x: -Math.cos(phase * 0.96) * 135,
+          y: Math.sin(phase * 0.79) * 180,
+          z: Math.cos(phase * 0.28) * -180,
+          rx: Math.sin(phase * 0.51) * -15,
+          ry: Math.cos(phase * 0.43) * 13,
+          rz: Math.sin(phase * 0.39) * 12,
+          scale: 1.25 + Math.cos(phase * 0.2) * 0.12,
         },
       ];
 
@@ -333,21 +347,23 @@ export default function Home() {
           translate3d(
             ${motion.x * factor}px,
             ${motion.y * factor}px,
-            0
+            ${motion.z * factor}px
           )
-          rotate(${motion.r * factor}deg)
-          scale(${reduceMotion ? 1 : motion.s})
+          rotateX(${motion.rx * factor}deg)
+          rotateY(${motion.ry * factor}deg)
+          rotateZ(${motion.rz * factor}deg)
+          scale(${reduceMotion ? 1 : motion.scale})
         `;
       });
 
-      const maxScroll = Math.max(
-        1,
-        document.documentElement.scrollHeight - window.innerHeight
+      document.documentElement.style.setProperty(
+        "--scroll-progress",
+        String(progress)
       );
 
       document.documentElement.style.setProperty(
-        "--scroll-progress",
-        String(scroll / maxScroll)
+        "--scroll-depth",
+        `${progress * 100}%`
       );
     };
 
@@ -389,26 +405,40 @@ export default function Home() {
   const copy = sceneCopy[activeTab];
 
   return (
-    <main className="elite-shell">
+    <main className="elite-shell" data-scene={activeTab}>
       {introVisible && (
         <div className="intro-screen" aria-label="K7 CREW">
           <div className="intro-grain" />
+          <div className="intro-light" />
 
           <img
             src="/k7-logo-transparent.png"
             alt="K7 CREW"
             className="intro-logo"
           />
-
-          <div className="intro-caption">
-            PUBG MOBILE ESPORTS
-          </div>
         </div>
       )}
 
       <div className="elite-background" aria-hidden="true">
         <div className="elite-background-vignette" />
         <div className="elite-background-grid" />
+
+        <div className="elite-background-depth">
+          <div className="depth-orb depth-orb-one" />
+          <div className="depth-orb depth-orb-two" />
+          <div className="depth-orb depth-orb-three" />
+
+          <div className="depth-ring depth-ring-one" />
+          <div className="depth-ring depth-ring-two" />
+
+          <div className="depth-beam depth-beam-one" />
+          <div className="depth-beam depth-beam-two" />
+
+          <div className="depth-crosshair">
+            <span />
+            <i />
+          </div>
+        </div>
 
         <div className="elite-background-type">
           <div
@@ -445,9 +475,13 @@ export default function Home() {
         </div>
 
         <div className="elite-background-noise" />
+        <div className="elite-background-scan" />
       </div>
 
       <section id="home" className="elite-hero">
+        <div className="hero-depth-line hero-depth-line-one" />
+        <div className="hero-depth-line hero-depth-line-two" />
+
         <div className="elite-hero-content">
           <div className="elite-hero-index">
             INDEPENDENT ESPORTS ORGANIZATION
@@ -476,6 +510,7 @@ export default function Home() {
         </div>
 
         <div className="hero-side-index">K7 / 001</div>
+        <div className="hero-depth-orbit" />
       </section>
 
       <section
