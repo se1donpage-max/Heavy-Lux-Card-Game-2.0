@@ -6,66 +6,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const user = await getAuthenticatedUser();
+const ALLOWED_REACTIONS = ["🔥", "❤️", "👍", "👎"] as const;
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const supabase = getSupabaseAdmin();
-
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .select(`
-        id,
-        telegram_id,
-        content,
-        reply_to,
-        created_at,
-        expires_at,
-        profiles (
-          first_name,
-          last_name,
-          username,
-          photo_url
-        )
-      `)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(100);
-
-    if (error) {
-      console.error("Chat loading failed:", error.message);
-
-      return NextResponse.json(
-        { error: "Could not load messages" },
-        { status: 503 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        messages: data ?? []
-      },
-      {
-        headers: { "Cache-Control": "no-store" }
-      }
-    );
-  } catch (error) {
-    console.error("Chat GET error:", error);
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
+type Reaction = (typeof ALLOWED_REACTIONS)[number];
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const bodyText = await request.text();
 
-    if (bodyText.length > 10000) {
+    if (bodyText.length > 2000) {
       return NextResponse.json(
         { error: "Request too large" },
         { status: 413 }
@@ -92,99 +35,106 @@ export async function POST(request: NextRequest) {
     if (
       typeof body !== "object" ||
       body === null ||
-      !("content" in body) ||
-      typeof body.content !== "string"
+      !("messageId" in body) ||
+      typeof body.messageId !== "string" ||
+      !("reaction" in body) ||
+      typeof body.reaction !== "string"
     ) {
       return NextResponse.json(
-        { error: "Invalid message" },
+        { error: "Invalid reaction data" },
         { status: 400 }
       );
     }
 
-    const content = body.content.trim();
+    const messageId = body.messageId;
+    const reaction = body.reaction as Reaction;
 
-    if (content.length < 1 || content.length > 1000) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        messageId
+      ) ||
+      !ALLOWED_REACTIONS.includes(reaction)
+    ) {
       return NextResponse.json(
-        { error: "Message must contain 1–1000 characters" },
+        { error: "Invalid message or reaction" },
         { status: 400 }
       );
-    }
-
-    let replyTo: string | null = null;
-
-    if ("replyTo" in body && body.replyTo !== null) {
-      if (
-        typeof body.replyTo !== "string" ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          body.replyTo
-        )
-      ) {
-        return NextResponse.json(
-          { error: "Invalid reply reference" },
-          { status: 400 }
-        );
-      }
-
-      replyTo = body.replyTo;
     }
 
     const supabase = getSupabaseAdmin();
 
-    if (replyTo) {
-      const { data: originalMessage, error: replyError } =
-        await supabase
-          .from("chat_messages")
-          .select("id")
-          .eq("id", replyTo)
-          .gt("expires_at", new Date().toISOString())
-          .maybeSingle();
+    const { data: message, error: messageError } = await supabase
+      .from("chat_messages")
+      .select("id")
+      .eq("id", messageId)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
 
-      if (replyError || !originalMessage) {
-        return NextResponse.json(
-          { error: "Original message not found or expired" },
-          { status: 404 }
-        );
-      }
+    if (messageError || !message) {
+      return NextResponse.json(
+        { error: "Message not found or expired" },
+        { status: 404 }
+      );
     }
 
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .insert({
-        telegram_id: user.telegramId,
-        content,
-        reply_to: replyTo
-      })
-      .select(`
-        id,
-        telegram_id,
-        content,
-        reply_to,
-        created_at,
-        expires_at
-      `)
-      .single();
+    const { data: existing, error: existingError } = await supabase
+      .from("chat_reactions")
+      .select("id")
+      .eq("message_id", messageId)
+      .eq("telegram_id", user.telegramId)
+      .eq("reaction", reaction)
+      .maybeSingle();
 
-    if (error || !data) {
-      console.error("Message creation failed:", error?.message);
-
+    if (existingError) {
       return NextResponse.json(
-        { error: "Could not send message" },
+        { error: "Could not check reaction" },
         { status: 503 }
       );
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: data
-      },
-      {
-        status: 201,
-        headers: { "Cache-Control": "no-store" }
+    if (existing) {
+      const { error } = await supabase
+        .from("chat_reactions")
+        .delete()
+        .eq("id", existing.id)
+        .eq("telegram_id", user.telegramId);
+
+      if (error) {
+        return NextResponse.json(
+          { error: "Could not remove reaction" },
+          { status: 503 }
+        );
       }
-    );
+
+      return NextResponse.json({
+        success: true,
+        action: "removed"
+      });
+    }
+
+    const { error } = await supabase
+      .from("chat_reactions")
+      .insert({
+        message_id: messageId,
+        telegram_id: user.telegramId,
+        reaction
+      });
+
+    if (error) {
+      console.error("Reaction creation failed:", error.message);
+
+      return NextResponse.json(
+        { error: "Could not add reaction" },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      action: "added"
+    });
   } catch (error) {
-    console.error("Chat POST error:", error);
+    console.error("Reaction API error:", error);
 
     return NextResponse.json(
       { error: "Invalid request or internal server error" },
