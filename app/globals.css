@@ -2357,3 +2357,109 @@ textarea:focus-visible {
     transform: none !important;
   }
 }
+
+/*
+ * K7 CREW — CHAT LAYOUT FIX
+ * Добавить этот блок в самый конец app/globals.css.
+ * Остальные существующие стили globals.css сохраняются.
+ */
+
+/* Composer теперь находится в потоке страницы внутри .k7-chat */
+.k7-chat .k7-chat-composer {
+  position: relative !important;
+  z-index: 3;
+  inset: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: none;
+  margin: 18px 0 0;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Лента прокручивается независимо от всей страницы */
+.k7-chat-feed {
+  height: 60vh;
+  max-height: 60vh;
+  min-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  overflow-anchor: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+}
+
+/* Дополнительная глубина и локальные световые акценты */
+.k7-chat {
+  position: relative;
+  isolation: isolate;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(255,255,255,.075), transparent 38%),
+    radial-gradient(ellipse at 100% 100%, rgba(255,255,255,.035), transparent 42%),
+    linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008) 52%, rgba(0,0,0,.24));
+  box-shadow:
+    0 24px 80px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.055);
+}
+
+.k7-chat::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -1px;
+  left: 12%;
+  width: 45%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  pointer-events: none;
+}
+
+.k7-chat-feed {
+  scrollbar-gutter: stable;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 12px), transparent 100%);
+}
+
+.k7-chat-composer-inner {
+  border-color: rgba(255,255,255,.2);
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(255,255,255,.065), transparent 55%),
+    rgba(10,10,10,.92);
+  box-shadow:
+    0 14px 38px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+@media (max-width: 600px) {
+  .k7-chat {
+    padding: 16px 12px;
+    border-radius: 14px;
+  }
+
+  .k7-chat .k7-chat-composer {
+    width: 100% !important;
+    margin-top: 14px;
+  }
+}
+
+/* Не даём старым правилам fixed-компоновки влиять на composer */
+.k7-chat-composer,
+.k7-chat-composer.is-visible {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: 100%;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
