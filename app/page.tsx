@@ -1,6 +1,8 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import {
   MessageCircle,
   CalendarDays,
@@ -31,6 +33,30 @@ interface RosterPlayer {
   } | null;
 }
 
+interface ChatProfile {
+  first_name: string;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+}
+
+interface ChatReaction {
+  id: string;
+  telegram_id: number;
+  reaction: string;
+}
+
+interface ChatMessage {
+  id: string;
+  telegram_id: number;
+  content: string;
+  reply_to: string | null;
+  created_at: string;
+  expires_at: string;
+  profiles: ChatProfile | ChatProfile[] | null;
+  chat_reactions: ChatReaction[];
+}
+
 const tabs = [
   { id: "chat", label: "Chat", icon: MessageCircle },
   { id: "events", label: "Events", icon: CalendarDays },
@@ -41,6 +67,7 @@ const tabs = [
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
+const chatReactionOptions = ["🔥", "❤️", "👍", "👎"];
 
 const sceneCopy: Record<
   TabId,
@@ -88,6 +115,43 @@ function getPlayerName(player: RosterPlayer) {
   }
 
   return `PLAYER_${player.telegram_id}`;
+}
+
+function getChatProfile(message: ChatMessage): ChatProfile | null {
+  if (Array.isArray(message.profiles)) {
+    return message.profiles[0] ?? null;
+  }
+
+  return message.profiles;
+}
+
+function getChatName(message: ChatMessage) {
+  const profile = getChatProfile(message);
+
+  if (profile?.username) return `@${profile.username}`;
+
+  if (profile?.first_name) {
+    return [profile.first_name, profile.last_name]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return `PLAYER_${message.telegram_id}`;
+}
+
+function getChatInitial(message: ChatMessage) {
+  const profile = getChatProfile(message);
+
+  return (
+    profile?.first_name?.charAt(0)?.toUpperCase() || "K"
+  );
+}
+
+function getChatTime(date: string) {
+  return new Date(date).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function PlayerCard({
@@ -186,6 +250,21 @@ export default function Home() {
   const [error, setError] = useState("");
   const [introVisible, setIntroVisible] = useState(true);
 
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatText, setChatText] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatSending, setChatSending] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+
+  const lastTapRef = useRef<{
+    id: string;
+    time: number;
+  } | null>(null);
+
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
   async function loadRoster() {
     try {
       setLoading(true);
@@ -205,17 +284,145 @@ export default function Home() {
       setRoster(result.roster ?? []);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong"
+        err instanceof Error ? err.message : "Something went wrong"
       );
     } finally {
       setLoading(false);
     }
   }
 
+  async function loadChat(silent = false) {
+    try {
+      if (!silent) setChatLoading(true);
+
+      const response = await fetch("/api/chat", {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Could not load chat");
+      }
+
+      setChatMessages(result.messages ?? []);
+
+      if (result.currentUserId != null) {
+        setCurrentUserId(Number(result.currentUserId));
+      }
+
+      setChatError("");
+    } catch (err) {
+      setChatError(
+        err instanceof Error ? err.message : "Chat unavailable"
+      );
+    } finally {
+      if (!silent) setChatLoading(false);
+    }
+  }
+
+  async function sendChatMessage() {
+    const content = chatText.trim();
+
+    if (!content || content.length > 1000 || chatSending) return;
+
+    try {
+      setChatSending(true);
+      setChatError("");
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          replyTo: replyTo?.id ?? null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Message could not be sent");
+      }
+
+      setChatText("");
+      setReplyTo(null);
+
+      await loadChat(true);
+    } catch (err) {
+      setChatError(
+        err instanceof Error ? err.message : "Sending failed"
+      );
+    } finally {
+      setChatSending(false);
+    }
+  }
+
+  async function toggleChatReaction(
+    messageId: string,
+    reaction: string
+  ) {
+    try {
+      const response = await fetch("/api/chat/reactions", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messageId,
+          reaction,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Reaction failed");
+      }
+
+      await loadChat(true);
+    } catch (err) {
+      setChatError(
+        err instanceof Error ? err.message : "Reaction failed"
+      );
+    }
+  }
+
+  function handleChatKeyDown(
+    event: KeyboardEvent<HTMLTextAreaElement>
+  ) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void sendChatMessage();
+    }
+  }
+
+  function handleMessageTap(messageId: string) {
+    const now = Date.now();
+    const previous = lastTapRef.current;
+
+    if (
+      previous?.id === messageId &&
+      now - previous.time < 350
+    ) {
+      lastTapRef.current = null;
+      void toggleChatReaction(messageId, "🔥");
+      return;
+    }
+
+    lastTapRef.current = {
+      id: messageId,
+      time: now,
+    };
+  }
+
   useEffect(() => {
-    loadRoster();
+    void loadRoster();
 
     const introTimer = window.setTimeout(() => {
       setIntroVisible(false);
@@ -223,6 +430,29 @@ export default function Home() {
 
     return () => window.clearTimeout(introTimer);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "chat") return;
+
+    void loadChat();
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadChat(true);
+      }
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "chat" && chatMessages.length > 0) {
+      chatEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
+  }, [chatMessages, activeTab]);
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
@@ -274,9 +504,7 @@ export default function Home() {
   // Scroll-controlled 3D scene.
   useEffect(() => {
     const layers = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        "[data-motion-layer]"
-      )
+      document.querySelectorAll<HTMLElement>("[data-motion-layer]")
     );
 
     if (!layers.length) return;
@@ -559,11 +787,170 @@ export default function Home() {
             03 / COMMUNICATION
           </div>
 
-          <EmptySection
-            eyebrow="K7 COMMUNITY"
-            title="THE CHAT."
-            description="A place for the crew. Communication and community updates."
-          />
+          <div className="k7-chat">
+            <div className="k7-chat-heading">
+              <div>
+                <div className="k7-chat-eyebrow">
+                  K7 COMMUNITY
+                </div>
+
+                <h2>
+                  THE CHAT<span>.</span>
+                </h2>
+
+                <p>ONE CREW. ONE CONNECTION.</p>
+              </div>
+
+              <div className="k7-chat-live">
+                <i />
+                LIVE
+              </div>
+            </div>
+
+            <div className="k7-chat-feed">
+              {chatLoading && chatMessages.length === 0 ? (
+                <div className="k7-chat-status">
+                  CONNECTING TO THE CREW...
+                </div>
+              ) : chatError && chatMessages.length === 0 ? (
+                <div className="k7-chat-status k7-chat-error">
+                  {chatError}
+                  <button onClick={() => void loadChat()}>
+                    RETRY
+                  </button>
+                </div>
+              ) : chatMessages.length === 0 ? (
+                <div className="k7-chat-empty">
+                  <MessageCircle size={30} />
+                  <span>THE CONVERSATION STARTS HERE.</span>
+                  <small>BE THE FIRST TO SEND A MESSAGE.</small>
+                </div>
+              ) : (
+                chatMessages.map((message) => {
+                  const profile = getChatProfile(message);
+                  const isOwn =
+                    currentUserId !== null &&
+                    Number(message.telegram_id) === currentUserId;
+
+                  const repliedMessage = message.reply_to
+                    ? chatMessages.find(
+                        (item) => item.id === message.reply_to
+                      )
+                    : null;
+
+                  return (
+                    <article
+                      key={message.id}
+                      className={`k7-chat-message ${
+                        isOwn ? "is-own" : ""
+                      }`}
+                    >
+                      <div className="k7-chat-avatar">
+                        {profile?.photo_url ? (
+                          <img
+                            src={profile.photo_url}
+                            alt=""
+                          />
+                        ) : (
+                          <span>{getChatInitial(message)}</span>
+                        )}
+                      </div>
+
+                      <div className="k7-chat-message-body">
+                        <div className="k7-chat-message-meta">
+                          <span className="k7-chat-author">
+                            {getChatName(message)}
+                          </span>
+
+                          {isOwn && (
+                            <span className="k7-chat-you">
+                              YOU
+                            </span>
+                          )}
+
+                          <time>
+                            {getChatTime(message.created_at)}
+                          </time>
+                        </div>
+
+                        {repliedMessage && (
+                          <div className="k7-chat-reply-preview">
+                            <span>
+                              REPLY TO {getChatName(repliedMessage)}
+                            </span>
+                            <p>{repliedMessage.content}</p>
+                          </div>
+                        )}
+
+                        <div
+                          className="k7-chat-message-text"
+                          onClick={() => handleMessageTap(message.id)}
+                        >
+                          {message.content}
+                        </div>
+
+                        <div className="k7-chat-message-actions">
+                          <button
+                            onClick={() => setReplyTo(message)}
+                            aria-label="Reply"
+                          >
+                            REPLY
+                          </button>
+
+                          <div className="k7-chat-reactions">
+                            {chatReactionOptions.map((reaction) => {
+                              const matches =
+                                message.chat_reactions?.filter(
+                                  (item) => item.reaction === reaction
+                                ) ?? [];
+
+                              const selected = matches.some(
+                                (item) =>
+                                  Number(item.telegram_id) === currentUserId
+                              );
+
+                              return (
+                                <button
+                                  key={reaction}
+                                  className={
+                                    matches.length > 0
+                                      ? `k7-chat-reaction ${
+                                          selected ? "selected" : ""
+                                        }`
+                                      : "k7-chat-reaction-empty"
+                                  }
+                                  onClick={() =>
+                                    void toggleChatReaction(
+                                      message.id,
+                                      reaction
+                                    )
+                                  }
+                                  aria-label={`React ${reaction}`}
+                                >
+                                  {reaction}
+                                  {matches.length > 0 && (
+                                    <span>{matches.length}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {chatError && chatMessages.length > 0 && (
+              <div className="k7-chat-inline-error">
+                {chatError}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -740,6 +1127,63 @@ export default function Home() {
           K7 CREW © 2026
         </div>
       </footer>
+
+      <div
+        className={`k7-chat-composer ${
+          activeTab === "chat" ? "is-visible" : ""
+        }`}
+        aria-hidden={activeTab !== "chat"}
+        inert={activeTab !== "chat"}
+      >
+        <div className="k7-chat-composer-inner">
+          {replyTo && (
+            <div className="k7-chat-replying">
+              <div>
+                <span>REPLYING TO</span>
+                <strong>{getChatName(replyTo)}</strong>
+              </div>
+
+              <button
+                onClick={() => setReplyTo(null)}
+                aria-label="Cancel reply"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          <div className="k7-chat-input-row">
+            <textarea
+              value={chatText}
+              onChange={(event) =>
+                setChatText(event.target.value.slice(0, 1000))
+              }
+              onKeyDown={handleChatKeyDown}
+              placeholder="Write a message..."
+              maxLength={1000}
+              rows={1}
+              disabled={activeTab !== "chat" || chatSending}
+            />
+
+            <span className="k7-chat-counter">
+              {chatText.length}/1000
+            </span>
+
+            <button
+              className="k7-chat-send"
+              onClick={() => void sendChatMessage()}
+              disabled={
+                activeTab !== "chat" ||
+                !chatText.trim() ||
+                chatSending
+              }
+              aria-label="Send message"
+            >
+              <MessageCircle size={19} />
+            </button>
+          </div>
+        </div>
+      </div>
 
       <nav
         className="elite-bottom-nav"
