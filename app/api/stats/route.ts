@@ -80,13 +80,6 @@ export async function GET() {
       matchList.map((match) => [match.id, match])
     );
 
-    const rosterMap = new Map(
-      rosterList.map((player) => [
-        Number(player.telegram_id),
-        player
-      ])
-    );
-
     const statsMap = new Map<number, PlayerStats>();
 
     for (const player of rosterList) {
