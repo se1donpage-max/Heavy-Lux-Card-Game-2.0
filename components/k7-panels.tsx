@@ -93,6 +93,11 @@ function formatDate(value: string) {
       });
 }
 
+function toLocalDateTime(value: string) {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 function getName(player: K7RosterPlayer) {
   const profile = player.profiles;
 
@@ -190,6 +195,7 @@ export function EventsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -230,11 +236,12 @@ export function EventsPanel({
 
     try {
       await requestJson("/api/events", {
-        method: "POST",
+        method: editingId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          ...(editingId ? { id: editingId } : {}),
           title: title.trim(),
           eventDate: new Date(date).toISOString(),
           description,
@@ -251,6 +258,7 @@ export function EventsPanel({
       setEventFormat("");
       setPosterUrl("");
       setShowForm(false);
+      setEditingId(null);
       setFilter("UPCOMING");
 
       await reload();
@@ -313,7 +321,7 @@ export function EventsPanel({
           <button
             type="button"
             className="k7-panel-button"
-            onClick={() => setShowForm((value) => !value)}
+            onClick={() => { setEditingId(null); setTitle(""); setDate(""); setDescription(""); setEventFormat(""); setPosterUrl(""); setShowForm((value) => !value); }}
           >
             {showForm ? "ЗАКРЫТЬ" : "+ СОБЫТИЕ"}
           </button>
@@ -390,7 +398,7 @@ export function EventsPanel({
           >
             {saving
               ? "СОХРАНЕНИЕ..."
-              : "ОПУБЛИКОВАТЬ"}
+              : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"}
           </button>
         </form>
       )}
@@ -461,6 +469,22 @@ export function EventsPanel({
                     </p>
                   )}
 
+                  {canManage && (
+                    <div className="k7-panel-card-actions">
+                      <button type="button" className="k7-panel-button" onClick={() => {
+                        setEditingId(item.id); setTitle(item.title); setDate(toLocalDateTime(item.event_date));
+                        setDescription(item.description ?? ""); setEventFormat(item.event_format ?? "");
+                        setPosterUrl(item.poster_url ?? ""); setShowForm(true);
+                      }}>РЕДАКТИРОВАТЬ</button>
+                      <button type="button" className="k7-panel-button" onClick={() => {
+                        if (!window.confirm(`Удалить событие «${item.title}»?`)) return;
+                        void (async () => { try {
+                          await requestJson("/api/events", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
+                          await reload();
+                        } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить событие"); } })();
+                      }}>УДАЛИТЬ</button>
+                    </div>
+                  )}
                   {canManage &&
                     filter === "UPCOMING" && (
                       <div className="k7-panel-card-actions">
@@ -518,6 +542,7 @@ export function NewsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -558,11 +583,12 @@ export function NewsPanel({
 
     try {
       await requestJson("/api/news", {
-        method: "POST",
+        method: editingId ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          ...(editingId ? { id: editingId } : {}),
           title: title.trim(),
           content: content.trim(),
           ...(coverUrl.trim()
@@ -575,6 +601,7 @@ export function NewsPanel({
       setContent("");
       setCoverUrl("");
       setShowForm(false);
+      setEditingId(null);
 
       await reload();
     } catch (err) {
@@ -602,9 +629,10 @@ export function NewsPanel({
           <button
             className="k7-panel-button"
             type="button"
-            onClick={() =>
-              setShowForm((value) => !value)
-            }
+            onClick={() => {
+              setEditingId(null); setTitle(""); setContent(""); setCoverUrl("");
+              setShowForm((value) => !value);
+            }}
           >
             {showForm ? "ЗАКРЫТЬ" : "+ НОВОСТЬ"}
           </button>
@@ -659,7 +687,7 @@ export function NewsPanel({
           >
             {saving
               ? "СОХРАНЕНИЕ..."
-              : "ОПУБЛИКОВАТЬ"}
+              : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"}
           </button>
         </form>
       )}
@@ -711,6 +739,19 @@ export function NewsPanel({
                   <p className="k7-panel-preserve">
                     {item.content}
                   </p>
+                  {canManage && <div className="k7-panel-card-actions">
+                    <button type="button" className="k7-panel-button" onClick={() => {
+                      setEditingId(item.id); setTitle(item.title); setContent(item.content);
+                      setCoverUrl(item.cover_url ?? ""); setShowForm(true);
+                    }}>РЕДАКТИРОВАТЬ</button>
+                    <button type="button" className="k7-panel-button" onClick={() => {
+                      if (!window.confirm(`Удалить новость «${item.title}»?`)) return;
+                      void (async () => { try {
+                        await requestJson("/api/news", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
+                        await reload();
+                      } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить новость"); } })();
+                    }}>УДАЛИТЬ</button>
+                  </div>}
                 </article>
               ))}
             </div>
@@ -737,6 +778,7 @@ export function StatsPanel({
     "main" | "sub"
   >("main");
   const [showForm, setShowForm] = useState(false);
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [playedAt, setPlayedAt] = useState("");
@@ -1119,12 +1161,41 @@ export function StatsPanel({
                             match.played_at
                           )}
                         </small>
+                        {canSubmit && <div className="k7-panel-card-actions">
+                          <button type="button" className="k7-panel-button" onClick={() => {
+                            setEditingMatchId(match.id);
+                            setTitle(match.title); setPlayedAt(toLocalDateTime(match.played_at));
+                            setPlacement(String(match.placement));
+                          }}>ИЗМЕНИТЬ</button>
+                          <button type="button" className="k7-panel-button" onClick={() => {
+                            if (!window.confirm(`Удалить матч «${match.title}» и его статистику?`)) return;
+                            void (async () => { try {
+                              await requestJson("/api/matches", {method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:match.id})});
+                              await reload();
+                            } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить матч"); } })();
+                          }}>УДАЛИТЬ</button>
+                        </div>}
                       </div>
                     )
                   )}
                 </div>
               ) : (
                 <SectionState message="Матчи пока не добавлены" />
+              )}
+              {canSubmit && editingMatchId && (
+                <form className="k7-panel-form" onSubmit={(event) => { event.preventDefault();
+                  void (async () => {try {
+                    await requestJson("/api/matches", {method:"PATCH", headers:{"Content-Type":"application/json"},
+                      body:JSON.stringify({id:editingMatchId,title:title.trim(),playedAt:new Date(playedAt).toISOString(),placement:Number(placement)})});
+                    setEditingMatchId(null); await reload();
+                  } catch(err) {setError(err instanceof Error ? err.message : "Не удалось обновить матч");}})();
+                }}>
+                  <label>Название матча<input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
+                  <label>Дата и время<input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
+                  <label>Место<input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
+                  <button className="k7-panel-button k7-panel-primary" type="submit">СОХРАНИТЬ</button>
+                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}>ОТМЕНА</button>
+                </form>
               )}
             </>
           )}
@@ -1145,6 +1216,10 @@ export function RosterAdminPanel({
     Member[]
   >([]);
   const [memberId, setMemberId] = useState("");
+  const [editPlayerId, setEditPlayerId] = useState<number | null>(null);
+  const [editSlot, setEditSlot] = useState("MAIN_1");
+  const [editRole, setEditRole] = useState("FLEX");
+  const [editGameId, setEditGameId] = useState("");
   const [slot, setSlot] = useState(
     "MAIN_1"
   );
