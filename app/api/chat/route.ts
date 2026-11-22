@@ -6,139 +6,177 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_REACTIONS = ["🔥", "❤️", "👍", "👎"] as const;
+const MESSAGE_LIMIT = 1000;
+const MESSAGE_LIFETIME_MINUTES = 10;
 
-type Reaction = (typeof ALLOWED_REACTIONS)[number];
+function jsonError(error: string, status: number) {
+  return NextResponse.json({ success: false, error }, { status });
+}
+
+export async function GET() {
+  try {
+    const user = await getAuthenticatedUser();
+
+    if (!user) {
+      return jsonError("Unauthorized", 401);
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select(`
+        id,
+        telegram_id,
+        content,
+        reply_to,
+        created_at,
+        expires_at,
+        profiles (
+          first_name,
+          last_name,
+          username,
+          photo_url
+        ),
+        chat_reactions (
+          id,
+          telegram_id,
+          reaction
+        )
+      `)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (error) {
+      console.error("Chat GET failed:", error);
+      return jsonError("Could not load messages", 503);
+    }
+
+    return NextResponse.json({
+      success: true,
+      messages: data ?? [],
+      currentUserId: user.telegramId,
+    });
+  } catch (error) {
+    console.error("Chat GET error:", error);
+    return jsonError("Internal server error", 500);
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return jsonError("Unauthorized", 401);
     }
 
     const bodyText = await request.text();
 
-    if (bodyText.length > 2000) {
-      return NextResponse.json(
-        { error: "Request too large" },
-        { status: 413 }
-      );
+    if (bodyText.length > 5000) {
+      return jsonError("Request too large", 413);
     }
 
-    const body: unknown = JSON.parse(bodyText);
+    let body: unknown;
 
-    if (
-      typeof body !== "object" ||
-      body === null ||
-      !("messageId" in body) ||
-      typeof body.messageId !== "string" ||
-      !("reaction" in body) ||
-      typeof body.reaction !== "string"
-    ) {
-      return NextResponse.json(
-        { error: "Invalid reaction data" },
-        { status: 400 }
-      );
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      return jsonError("Invalid JSON", 400);
     }
 
-    const messageId = body.messageId;
-    const reaction = body.reaction as Reaction;
+    if (typeof body !== "object" || body === null) {
+      return jsonError("Invalid message data", 400);
+    }
 
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        messageId
-      ) ||
-      !ALLOWED_REACTIONS.includes(reaction)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid message or reaction" },
-        { status: 400 }
-      );
+    const content =
+      "content" in body && typeof body.content === "string"
+        ? body.content.trim()
+        : "";
+
+    const replyTo =
+      "replyTo" in body &&
+      typeof body.replyTo === "string" &&
+      body.replyTo.length > 0
+        ? body.replyTo
+        : null;
+
+    if (!content || content.length > MESSAGE_LIMIT) {
+      return jsonError("Message must contain 1–1000 characters", 400);
+    }
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (replyTo && !uuidPattern.test(replyTo)) {
+      return jsonError("Invalid reply reference", 400);
     }
 
     const supabase = getSupabaseAdmin();
 
-    const { data: message, error: messageError } = await supabase
-      .from("chat_messages")
-      .select("id")
-      .eq("id", messageId)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+    if (replyTo) {
+      const { data: parentMessage, error: parentError } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .eq("id", replyTo)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
 
-    if (messageError || !message) {
-      return NextResponse.json(
-        { error: "Message not found or expired" },
-        { status: 404 }
-      );
-    }
-
-    const { data: existing, error: existingError } = await supabase
-      .from("chat_reactions")
-      .select("id")
-      .eq("message_id", messageId)
-      .eq("telegram_id", user.telegramId)
-      .eq("reaction", reaction)
-      .maybeSingle();
-
-    if (existingError) {
-      return NextResponse.json(
-        { error: "Could not check reaction" },
-        { status: 503 }
-      );
-    }
-
-    if (existing) {
-      const { error } = await supabase
-        .from("chat_reactions")
-        .delete()
-        .eq("id", existing.id)
-        .eq("telegram_id", user.telegramId);
-
-      if (error) {
-        return NextResponse.json(
-          { error: "Could not remove reaction" },
-          { status: 503 }
-        );
+      if (parentError) {
+        console.error("Reply lookup failed:", parentError);
+        return jsonError("Could not verify reply", 503);
       }
 
-      return NextResponse.json({
-        success: true,
-        action: "removed"
-      });
+      if (!parentMessage) {
+        return jsonError("Original message not found or expired", 404);
+      }
     }
 
-    const { error } = await supabase
-      .from("chat_reactions")
+    const createdAt = new Date();
+    const expiresAt = new Date(
+      createdAt.getTime() + MESSAGE_LIFETIME_MINUTES * 60 * 1000
+    );
+
+    const { data: message, error } = await supabase
+      .from("chat_messages")
       .insert({
-        message_id: messageId,
         telegram_id: user.telegramId,
-        reaction
-      });
+        content,
+        reply_to: replyTo,
+        created_at: createdAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+      })
+      .select(`
+        id,
+        telegram_id,
+        content,
+        reply_to,
+        created_at,
+        expires_at,
+        profiles (
+          first_name,
+          last_name,
+          username,
+          photo_url
+        )
+      `)
+      .single();
 
     if (error) {
-      console.error("Reaction creation failed:", error.message);
-
-      return NextResponse.json(
-        { error: "Could not add reaction" },
-        { status: 503 }
-      );
+      console.error("Chat message creation failed:", error);
+      return jsonError("Could not send message", 503);
     }
 
     return NextResponse.json({
       success: true,
-      action: "added"
+      message: {
+        ...message,
+        chat_reactions: [],
+      },
     });
   } catch (error) {
-    console.error("Reaction API error:", error);
-
-    return NextResponse.json(
-      { error: "Invalid request or internal server error" },
-      { status: 400 }
-    );
+    console.error("Chat POST error:", error);
+    return jsonError("Internal server error", 500);
   }
 }
