@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
+import { EventsPanel, NewsPanel, StatsPanel, RosterAdminPanel } from "@/components/k7-panels";
 import {
   MessageCircle,
   CalendarDays,
@@ -246,25 +248,6 @@ function Slogan({
   );
 }
 
-function EmptySection({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="empty-section">
-      <div className="empty-section-eyebrow">{eyebrow}</div>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <div className="section-coming">COMING SOON</div>
-    </div>
-  );
-}
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("roster");
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
@@ -274,6 +257,13 @@ export default function Home() {
 
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [accessRole, setAccessRole] = useState<"OWNER" | "ADMIN" | "IGL" | "MEMBER">("MEMBER");
+  const [viewer, setViewer] = useState<{
+    telegramId: number;
+    username: string | null;
+    firstName: string;
+    photoUrl: string | null;
+  } | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatText, setChatText] = useState("");
@@ -590,7 +580,25 @@ export default function Home() {
         setAuthError("");
         setAuthReady(true);
 
-        await loadRoster();
+        // Capabilities are loaded from the server; never trust a client-side role.
+        // A temporary /me failure must not undo an already valid Telegram login.
+        try {
+          const meResponse = await fetch("/api/auth/me", {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (meResponse.ok) {
+            const me = await meResponse.json();
+            if (!cancelled && me.success && ["OWNER", "ADMIN", "IGL", "MEMBER"].includes(me.user?.accessRole)) {
+              setAccessRole(me.user.accessRole);
+              setViewer(me.user);
+            }
+          }
+        } catch (profileError) {
+          console.error("Current user display unavailable:", profileError);
+        }
+
+        if (!cancelled) await loadRoster();
       } catch (err) {
         if (cancelled) return;
 
@@ -1015,6 +1023,16 @@ export default function Home() {
                 </h2>
 
                 <p>ONE CREW. ONE CONNECTION.</p>
+                <p className="k7-chat-timer">ТАЙМЕР УДАЛЕНИЯ СООБЩЕНИЙ — 10 МИН.</p>
+                {viewer && (
+                  <div className="k7-chat-viewer">
+                    {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
+                    <span>
+                      <strong>{viewer.username ? `@${viewer.username}` : viewer.firstName}</strong>
+                      <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "Участник сообщества" : accessRole)}</small>
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="k7-chat-live">
@@ -1180,6 +1198,46 @@ export default function Home() {
                 {chatError}
               </div>
             )}
+            <div className="k7-chat-composer">
+              <div className="k7-chat-composer-inner">
+                {replyTo && (
+                  <div className="k7-chat-replying">
+                    <div>
+                      <span>REPLYING TO</span>
+                      <strong>{getChatName(replyTo)}</strong>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} aria-label="Cancel reply">
+                      ×
+                    </button>
+                  </div>
+                )}
+                <div className="k7-chat-input-row">
+                  <textarea
+                    value={chatText}
+                    onChange={(event) => setChatText(event.target.value.slice(0, 1000))}
+                    onKeyDown={handleChatKeyDown}
+                    onPointerDown={() => { chatInputFocusedRef.current = true; }}
+                    onFocus={() => { chatInputFocusedRef.current = true; }}
+                    onBlur={() => { chatInputFocusedRef.current = false; }}
+                    placeholder="Write a message..."
+                    aria-label="Сообщение чата"
+                    maxLength={1000}
+                    rows={1}
+                    disabled={!authReady || chatSending}
+                  />
+                  <span className="k7-chat-counter">{chatText.length}/1000</span>
+                  <button
+                    type="button"
+                    className="k7-chat-send"
+                    onClick={() => void sendChatMessage()}
+                    disabled={!authReady || !chatText.trim() || chatSending}
+                    aria-label="Send message"
+                  >
+                    <MessageCircle size={19} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1201,10 +1259,9 @@ export default function Home() {
             05 / COMPETITION
           </div>
 
-          <EmptySection
-            eyebrow="TOURNAMENTS & MATCHES"
-            title="THE EVENTS."
-            description="Upcoming competitions, matches and team activities."
+          <EventsPanel
+            authReady={authReady}
+            canManage={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
           />
         </div>
       </section>
@@ -1299,6 +1356,10 @@ export default function Home() {
                   {roster.length.toString().padStart(2, "0")}
                 </strong>
               </div>
+
+              {(accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL") && (
+                <RosterAdminPanel roster={roster} onUpdated={loadRoster} />
+              )}
             </>
           )}
         </div>
@@ -1321,10 +1382,9 @@ export default function Home() {
             09 / LATEST UPDATES
           </div>
 
-          <EmptySection
-            eyebrow="K7 BROADCAST"
-            title="THE NEWS."
-            description="Announcements, organization updates and important information."
+          <NewsPanel
+            authReady={authReady}
+            canManage={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
           />
         </div>
       </section>
@@ -1346,10 +1406,10 @@ export default function Home() {
             11 / PERFORMANCE
           </div>
 
-          <EmptySection
-            eyebrow="NUMBERS DON'T LIE"
-            title="THE STATS."
-            description="Team performance, results and competitive statistics."
+          <StatsPanel
+            authReady={authReady}
+            canSubmit={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
+            roster={roster}
           />
         </div>
       </section>
@@ -1363,76 +1423,6 @@ export default function Home() {
           K7 CREW © 2026
         </div>
       </footer>
-
-      <div
-        className={`k7-chat-composer ${
-          activeTab === "chat" ? "is-visible" : ""
-        }`}
-        aria-hidden={activeTab !== "chat"}
-      >
-        <div className="k7-chat-composer-inner">
-          {replyTo && (
-            <div className="k7-chat-replying">
-              <div>
-                <span>REPLYING TO</span>
-                <strong>{getChatName(replyTo)}</strong>
-              </div>
-
-              <button
-                onClick={() => setReplyTo(null)}
-                aria-label="Cancel reply"
-              >
-                ×
-              </button>
-            </div>
-          )}
-
-          <div className="k7-chat-input-row">
-            <textarea
-              value={chatText}
-              onChange={(event) =>
-                setChatText(event.target.value.slice(0, 1000))
-              }
-              onKeyDown={handleChatKeyDown}
-              onPointerDown={() => {
-                chatInputFocusedRef.current = true;
-              }}
-              onFocus={() => {
-                chatInputFocusedRef.current = true;
-              }}
-              onBlur={() => {
-                chatInputFocusedRef.current = false;
-              }}
-              placeholder="Write a message..."
-              maxLength={1000}
-              rows={1}
-              disabled={
-                activeTab !== "chat" ||
-                !authReady ||
-                chatSending
-              }
-            />
-
-            <span className="k7-chat-counter">
-              {chatText.length}/1000
-            </span>
-
-            <button
-              className="k7-chat-send"
-              onClick={() => void sendChatMessage()}
-              disabled={
-                activeTab !== "chat" ||
-                !authReady ||
-                !chatText.trim() ||
-                chatSending
-              }
-              aria-label="Send message"
-            >
-              <MessageCircle size={19} />
-            </button>
-          </div>
-        </div>
-      </div>
 
       <nav
         className="elite-bottom-nav"
