@@ -223,3 +223,49 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
+
+
+// Edit published event details (owner/captain only; verified on the server).
+const adminIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({error:"Unauthorized"}, {status:401});
+    if (!canManageContent(user.accessRole)) return NextResponse.json({error:"Forbidden"}, {status:403});
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") return NextResponse.json({error:"Invalid payload"}, {status:400});
+    const input = body as Record<string,unknown>;
+    if (typeof input.id !== "string" || !adminIdPattern.test(input.id) ||
+        typeof input.title !== "string" || !input.title.trim() || input.title.length > 120 ||
+        typeof input.eventDate !== "string" || !Number.isFinite(Date.parse(input.eventDate)) ||
+        typeof input.description !== "string" || input.description.length > 5000 ||
+        typeof input.eventFormat !== "string" || input.eventFormat.length > 100 ||
+        typeof input.posterUrl !== "string" || input.posterUrl.length > 2000 ||
+        (input.posterUrl.length > 0 && !/^https:\/\/\S+$/i.test(input.posterUrl))) {
+      return NextResponse.json({error:"Invalid event data"}, {status:400});
+    }
+    const {data,error}=await getSupabaseAdmin().from("events").update({
+      title:input.title.trim(), event_date:new Date(input.eventDate).toISOString(),
+      description:input.description.trim() || null, event_format:input.eventFormat.trim() || null,
+      poster_url:input.posterUrl || null, updated_at:new Date().toISOString()
+    }).eq("id",input.id).select("id").maybeSingle();
+    if(error) return NextResponse.json({error:"Could not edit event"}, {status:503});
+    if(!data) return NextResponse.json({error:"Event not found"}, {status:404});
+    return NextResponse.json({success:true,event:data});
+  } catch {return NextResponse.json({error:"Invalid request"}, {status:400});}
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if(!user) return NextResponse.json({error:"Unauthorized"}, {status:401});
+    if(!canManageContent(user.accessRole)) return NextResponse.json({error:"Forbidden"}, {status:403});
+    const body:unknown = await request.json();
+    if(!body || typeof body!=="object" || !("id" in body) || typeof body.id!=="string" || !adminIdPattern.test(body.id))
+      return NextResponse.json({error:"Invalid event ID"}, {status:400});
+    const {data,error}=await getSupabaseAdmin().from("events").delete().eq("id",body.id).select("id").maybeSingle();
+    if(error) return NextResponse.json({error:"Could not delete event"}, {status:503});
+    if(!data) return NextResponse.json({error:"Event not found"}, {status:404});
+    return NextResponse.json({success:true});
+  } catch {return NextResponse.json({error:"Invalid request"}, {status:400});}
+}
