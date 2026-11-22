@@ -3538,3 +3538,206 @@ body { background:#060709; }
 @media(max-width:600px) {
   #stats .k7-stage-symbolic::after { font-size:26vw; }
 }
+
+/* ===================================================================
+   K7 CREW CINEMA 3.1 — ATMOSPHERE / EDGELESS UI / VIEWPORT STABILITY
+   The original five chapters remain one uninterrupted scroll.
+   All controls stay on the foreground plane; only atmosphere is blurred.
+   =================================================================== */
+:root { --k7-visual-height:100dvh; }
+html,body { overscroll-behavior-x:none; }
+.elite-shell { overflow-x:clip; }
+.k7-world-canvas { opacity:.57; filter:blur(1.1px); mix-blend-mode:screen; }
+.k7-weather-canvas {
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  width:100%;height:100%; opacity:.94;
+}
+.k7-cinema-section .k7-stage-vignette {
+  background:linear-gradient(180deg,rgba(6,7,9,.13) 0%,rgba(6,7,9,.015) 31%,
+  rgba(6,7,9,.38) 69%,rgba(6,7,9,.83) 100%);
+}
+.k7-stage-symbolic,.k7-stage-axis { filter:blur(2.6px); opacity:.48; }
+.k7-stage-title,.k7-stage-echo { filter:drop-shadow(0 10px 21px rgba(0,0,0,.35)); }
+.k7-stage-structural-mark { filter:blur(2px); }
+.k7-cinema-section::before,.k7-cinema-section::after { display:none!important; }
+
+/* Continuous editorial planes, not individual boxed website pages. */
+.k7-cinema-section .k7-data-panel,
+.k7-cinema-section .k7-chat,
+.k7-cinema-section .roster-player,
+.k7-cinema-section .k7-panel-card,
+.k7-cinema-section .k7-recent-row,
+.k7-cinema-section .k7-rank-row,
+.k7-cinema-section .k7-stat-metrics > div,
+.k7-cinema-section .k7-admin-panel,
+.k7-panel-form,
+.k7-panel-empty,
+.k7-chat-composer-inner {
+  border:0!important; outline:0;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.k7-cinema-section .k7-data-panel,
+.k7-cinema-section .k7-chat {
+  background:linear-gradient(180deg,rgba(7,9,13,.65),rgba(7,9,13,.79) 50%,rgba(7,9,13,.86));
+  border-radius:0!important;
+  box-shadow:none!important;
+  max-width:830px;
+}
+.k7-cinema-section .roster-player,
+.k7-cinema-section .k7-panel-card,
+.k7-cinema-section .k7-rank-row,
+.k7-cinema-section .k7-recent-row {
+  border-radius:0!important;
+  background:linear-gradient(120deg,rgba(255,255,255,.075),rgba(255,255,255,.013) 58%,transparent);
+  border-bottom:1px solid rgba(255,255,255,.08)!important;
+}
+.k7-cinema-section .k7-stat-metrics > div { border-radius:0;background:linear-gradient(135deg,rgba(255,255,255,.065),transparent); }
+.k7-chat-heading { border-bottom:0!important; }
+.k7-chat-composer-inner { background:#16191e!important; border-radius:12px!important; }
+.k7-panel-button,.k7-panel-icon,.k7-editor-toolbar button,.k7-report-trigger { touch-action:manipulation; }
+.k7-panel-button:focus-visible,.k7-panel-icon:focus-visible,.elite-nav-item:focus-visible {
+  outline:2px solid #fff; outline-offset:3px;
+}
+.k7-app-header { border-bottom:0!important; background:rgba(5,7,10,.94)!important; }
+.k7-header-scene { margin-left:auto; }
+.k7-community-count { margin-left:auto;display:flex;align-items:center;gap:5px;white-space:nowrap;color:#c5cad4;font:650 9px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; }
+.k7-community-count strong { font:900 17px/1 var(--font-display);color:#fff;letter-spacing:-.03em; }
+.k7-community-count span { font-size:8px;line-height:1.1;letter-spacing:.04em;max-width:68px; }
+.k7-header-access { margin-left:5px;border:0!important; background:rgba(255,255,255,.1)!important; }
+.elite-bottom-nav { border-top:0!important;background:rgba(7,9,12,.98)!important; }
+.elite-nav-item { padding-inline:0; }
+
+/* Editorial feed — themed layouts without importing external markup. */
+.k7-news-feed { display:flex;flex-direction:column;gap:clamp(22px,5vw,50px);margin-top:25px; }
+.k7-news-story { position:relative;min-width:0;overflow:hidden; background:linear-gradient(160deg,rgba(255,255,255,.058),rgba(0,0,0,.06) 61%,rgba(255,255,255,.02));padding:clamp(16px,4vw,32px); }
+.k7-story-kicker {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:13px;color:#ced4de;font:800 10px/1.3 var(--font-body);letter-spacing:.14em;}
+.k7-story-kicker > span:last-child {display:inline-flex;align-items:center;gap:4px;color:#adb2be;font-size:9px;letter-spacing:.04em;}
+.k7-story-cover {width:100%;aspect-ratio:16/9;overflow:hidden;background:#171a20;}
+.k7-story-cover img {display:block;width:100%;height:100%;object-fit:cover;filter:grayscale(.55) contrast(1.14);}
+.k7-story-copy h3 {font:900 clamp(29px,7vw,63px)/.95 var(--font-display);letter-spacing:-.048em;margin:20px 0 12px;overflow-wrap:anywhere;text-transform:uppercase;text-wrap:balance;}
+.k7-story-subtitle {font:550 clamp(14px,2.3vw,20px)/1.35 var(--font-body);color:#d4d8df;margin:0 0 18px;max-width:57ch;}
+.k7-editorial-body {font:400 clamp(13px,2vw,15px)/1.72 var(--font-body);color:#bac1cb;overflow-wrap:anywhere;}
+.k7-editorial-body p {margin:9px 0;}
+.k7-editorial-body h4 {font:850 clamp(19px,4vw,26px)/1.12 var(--font-display);letter-spacing:-.03em;color:#f4f4f6;margin:22px 0 8px;}
+.k7-editorial-body blockquote {padding:12px 16px;margin:14px 0;background:rgba(255,255,255,.055);color:#f5f5f6;font-weight:600;}
+.k7-editorial-bullet::before {content:"— ";color:white;}
+.k7-editorial-spacer {height:8px;}
+.k7-editorial-body a,.k7-story-cta {color:#fff;text-decoration:underline;text-decoration-color:rgba(255,255,255,.55);}
+.k7-story-cta {margin-top:15px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12px;}
+.k7-news-statement .k7-story-copy h3 {font-size:clamp(39px,9vw,83px);max-width:12ch;}
+.k7-news-statement .k7-story-cover {aspect-ratio:2/1;}
+.k7-news-spotlight .k7-story-cover {aspect-ratio:4/5;max-height:580px;}
+.k7-news-spotlight .k7-story-copy h3 {font-size:clamp(34px,8vw,72px);}
+.k7-story-controls {margin-top:24px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);}
+.k7-story-controls button {display:inline-flex;align-items:center;gap:6px;}
+.k7-editor-studio {margin:18px 0 32px;padding:clamp(14px,3vw,25px);background:linear-gradient(160deg,#151820,#0c0e13);}
+.k7-editor-head {display:flex;align-items:center;justify-content:space-between;color:white;font:750 11px/1 var(--font-body);letter-spacing:.12em;}
+.k7-editor-head button,.k7-modal-title button {border:0;background:transparent;color:white;padding:7px;cursor:pointer;}
+.k7-editor-form {background:transparent;margin:14px 0;padding:0!important;}
+.k7-editor-form label {font-size:12px;}
+.k7-editor-pin {display:flex;flex-direction:row!important;align-items:center;gap:10px;}
+.k7-editor-pin input {width:18px;height:18px;min-height:0;accent-color:white;}
+.k7-editor-toolbar {display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px;}
+.k7-editor-toolbar button {width:37px;height:37px;background:rgba(255,255,255,.09);border:0;color:white;border-radius:4px;display:grid;place-items:center;cursor:pointer;}
+.k7-editor-toolbar button:hover {background:rgba(255,255,255,.18);}
+.k7-editor-composer small {align-self:flex-end;color:#989ca6;font-size:10px;}
+.k7-editor-actions {display:flex;flex-wrap:wrap;gap:8px;}
+.k7-editor-actions button,.k7-news-studio .k7-panel-toolbar button {display:inline-flex;align-items:center;gap:8px;}
+.k7-editor-preview {margin-top:20px;}
+.k7-editor-preview > span {display:block;font-size:10px;letter-spacing:.15em;margin-bottom:10px;color:#adb2ba;}
+.k7-inline-confirm {display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:12px;background:#25242a;color:#fff;font-size:12px;}
+.k7-inline-confirm button {min-height:36px;border:0;background:#e2e3e6;color:#080a0d;font-weight:800;font-size:10px;padding:7px 12px;cursor:pointer;}
+.k7-inline-confirm button:last-child {background:#363b45;color:white;}
+
+/* Community support floating entry and accessible mobile bottom sheet. */
+.k7-report-trigger {position:fixed;z-index:2200;right:14px;bottom:calc(var(--nav-height) + 12px + env(safe-area-inset-bottom));display:inline-flex;align-items:center;gap:7px;max-width:calc(100vw - 28px);padding:10px 13px;border:0;border-radius:4px;background:#dbe0e6;color:#090b0e;font:800 11px/1 var(--font-body);box-shadow:0 8px 18px rgba(0,0,0,.3);}
+.k7-report-trigger:disabled {opacity:.4;}
+.k7-modal-root {position:fixed;z-index:20000;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:12px;background:rgba(0,0,0,.75);}
+.k7-modal-panel {width:min(100%,520px);max-height:min(calc(var(--k7-visual-height,100dvh) - 20px),88dvh);overflow:auto;overscroll-behavior:contain;background:linear-gradient(155deg,#20232c,#0b0d12 85%);padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.4);}
+.k7-modal-title {display:flex;align-items:center;justify-content:space-between;}
+.k7-modal-panel h2 {font:900 clamp(27px,7vw,43px)/.94 var(--font-display);margin:9px 0 21px;letter-spacing:-.04em;}
+.k7-report-form {display:grid;gap:13px;}
+.k7-report-form label,.k7-report-reply {display:flex;flex-direction:column;gap:7px;font:650 12px/1.3 var(--font-body);color:#e5e5e7;}
+.k7-report-form input,.k7-report-form textarea,.k7-report-reply textarea {box-sizing:border-box;width:100%;min-height:43px;padding:11px 12px;border:0;outline:0;background:#2b2e36;color:#fff;font:400 14px/1.4 var(--font-body);border-radius:3px;}
+.k7-report-form input:focus,.k7-report-form textarea:focus,.k7-report-reply textarea:focus {outline:1px solid #cfd6df;}
+.k7-report-form small {text-align:right;color:#afb4c0;}
+.k7-report-form button {display:inline-flex;justify-content:center;align-items:center;gap:7px;}
+.k7-report-success {display:grid;gap:18px;font-size:14px;line-height:1.6;color:white;}
+.k7-report-explainer {display:flex;align-items:center;gap:9px;font-size:12px;color:#b4bac5;margin:16px 0;}
+.k7-report-list {display:flex;flex-direction:column;gap:14px;}
+.k7-report-item {background:rgba(255,255,255,.05);padding:17px;overflow-wrap:anywhere;}
+.k7-report-item-top {display:flex;align-items:center;justify-content:space-between;gap:12px;color:#b9bfca;font-size:10px;}
+.k7-report-state {font-weight:800;letter-spacing:.12em;color:white;}
+.k7-report-item h3 {font:800 clamp(20px,5vw,27px)/1.1 var(--font-display);margin:12px 0 7px;}
+.k7-report-item p {font-size:14px;line-height:1.55;color:#f3f3f3;}
+.k7-report-item small {font-size:10px;color:#b7bec9;}
+.k7-report-reply {margin-top:15px;}
+.k7-report-item .k7-panel-card-actions {gap:7px;}
+.k7-report-item button {font-size:9px;}
+.k7-admin-chapter {padding-top:150px!important;}
+#messages .k7-stage-title {position:absolute;top:11%;left:-4%;font-size:clamp(90px,24vw,240px);color:rgba(255,255,255,.085);}
+#messages .k7-stage-echo {position:absolute;top:34%;right:-7%;font-size:clamp(70px,17vw,180px);color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.2);}
+
+@media (max-width:600px) {
+  .k7-world-canvas {filter:blur(.7px);}
+  .k7-stage-symbolic,.k7-stage-axis {filter:blur(2px);}
+  .k7-header-scene {display:none;}
+  .k7-community-count {margin-left:auto;}
+  .k7-community-count span {font-size:7px;max-width:58px;}
+  .k7-header-access {font-size:0;gap:0;padding:5px;}
+  .k7-header-access svg {width:14px;height:14px;}
+  .elite-nav-item {min-width:0;}
+  .elite-nav-item span {font-size:8px!important;}
+  .elite-nav-item svg {width:19px;height:19px;}
+  .k7-cinema-section .k7-data-panel {padding:10px 0;}
+  .k7-cinema-section .k7-chat {padding:12px 10px;}
+  #chat.k7-cinema-section {padding:58px 11px calc(70px + env(safe-area-inset-bottom));}
+  #chat .k7-chat {display:flex;flex-direction:column;max-width:none;
+    height:calc(var(--k7-visual-height,100dvh) - 48px - 58px - var(--nav-height) - env(safe-area-inset-bottom) - 19px);
+    min-height:320px;max-height:720px;overflow:hidden;}
+  #chat .k7-chat-heading {flex-shrink:0;margin-bottom:7px;padding-bottom:4px;}
+  #chat .k7-chat-heading h2 {font-size:clamp(36px,9vw,48px);}
+  #chat .k7-chat-heading p {margin-top:5px;}
+  #chat .k7-chat-viewer {margin-top:8px;}
+  #chat .k7-chat-management {flex-shrink:0;padding:3px 0;}
+  #chat .k7-chat-feed {flex:1 1 auto;height:auto;min-height:88px;max-height:none;padding-bottom:12px;scrollbar-gutter:auto;}
+  #chat .k7-chat .k7-chat-composer {flex-shrink:0;margin-top:5px;}
+  #chat .k7-chat-composer-inner {padding:5px;}
+  .k7-report-trigger {font-size:10px;padding:9px 10px;bottom:calc(var(--nav-height) + 7px + env(safe-area-inset-bottom));}
+  .k7-news-story {padding:14px 12px;}
+  .k7-story-copy h3 {font-size:clamp(28px,8vw,47px);}
+  .k7-news-statement .k7-story-copy h3 {font-size:clamp(36px,10vw,60px);}
+  .k7-modal-root {padding:0;}
+  .k7-modal-panel {max-height:calc(var(--k7-visual-height,100dvh) - 10px);padding:19px 15px calc(20px + env(safe-area-inset-bottom));}
+  .k7-editor-form {grid-template-columns:minmax(0,1fr);}
+  .k7-admin-chapter {padding-top:110px!important;}
+}
+/* Only collapse the navigation while the chat keyboard is visible. */
+html.k7-keyboard-open .elite-bottom-nav,html.k7-keyboard-open .k7-report-trigger {display:none!important;}
+html.k7-keyboard-open #chat.k7-cinema-section {padding-top:18px;padding-bottom:15px;}
+html.k7-keyboard-open #chat .k7-chat {height:calc(var(--k7-visual-height,100dvh) - 48px - 30px);min-height:240px;}
+html.k7-keyboard-open #chat .k7-chat-heading {max-height:36px;overflow:hidden;}
+html.k7-keyboard-open #chat .k7-chat-heading h2 {font-size:28px;}
+html.k7-keyboard-open #chat .k7-chat-viewer,html.k7-keyboard-open #chat .k7-chat-timer {display:none;}
+@media (prefers-reduced-motion:reduce) {
+  .k7-weather-canvas {display:none!important;}
+  .k7-world-canvas {filter:none;opacity:.36;}
+  .k7-stage-title,.k7-stage-echo {filter:none;}
+}
+
+/* Final optical calibration: scene type stays visible, never crosses live text. */
+.k7-cinema-section .k7-data-panel {background:radial-gradient(ellipse 110% 95% at 46% 55%,rgba(5,7,11,.79) 0%,rgba(5,7,11,.48) 61%,transparent 100%);}
+.k7-cinema-section .k7-chat {background:linear-gradient(180deg,rgba(7,9,13,.96),rgba(7,9,13,.91) 67%,rgba(7,9,13,.96));}
+#chat .k7-stage-typography { -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 52%,transparent 92%);mask-image:linear-gradient(to bottom,#000 0%,#000 52%,transparent 92%); }
+@media (max-width:600px) {
+  #chat.k7-cinema-section {padding-top:clamp(127px,19vh,174px);}
+  #chat .k7-chat {height:calc(var(--k7-visual-height,100dvh) - 48px - clamp(127px,19vh,174px) - var(--nav-height) - env(safe-area-inset-bottom) - 17px);}
+  html.k7-keyboard-open #chat.k7-cinema-section {padding-top:18px;}
+  html.k7-keyboard-open #chat .k7-chat {height:calc(var(--k7-visual-height,100dvh) - 78px);}
+}
+/* Mobile GPU budget: depth comes from geometry, not a full-screen blur pass. */
+@media (max-width:600px) {
+  .k7-world-canvas {filter:none;opacity:.5;}
+}
