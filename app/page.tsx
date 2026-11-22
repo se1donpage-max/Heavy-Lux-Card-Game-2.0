@@ -10,7 +10,6 @@ import {
   Users,
   Newspaper,
   Trophy,
-  ArrowDown,
   RefreshCw,
   Crown,
   Shield,
@@ -59,11 +58,11 @@ interface ChatMessage {
 }
 
 const tabs = [
-  { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "events", label: "Events", icon: CalendarDays },
-  { id: "roster", label: "Roster", icon: Users },
-  { id: "news", label: "News", icon: Newspaper },
-  { id: "stats", label: "Stats", icon: Trophy },
+  { id: "chat", label: "Чат", icon: MessageCircle },
+  { id: "events", label: "События", icon: CalendarDays },
+  { id: "roster", label: "Состав", icon: Users },
+  { id: "news", label: "Новости", icon: Newspaper },
+  { id: "stats", label: "Статистика", icon: Trophy },
 ] as const;
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
@@ -218,38 +217,28 @@ function PlayerCard({
   );
 }
 
-function Slogan({
-  number,
-  label,
-  first,
-  second,
-}: {
-  number: string;
-  label: string;
-  first: string;
-  second: string;
-}) {
+/** Scene typography is part of each tab, not a separate scroll section. */
+function SceneBackdrop({ scene }: { scene: TabId }) {
+  const words = sceneCopy[scene];
   return (
-    <section className="elite-slogan-break">
-      <div className="elite-slogan-content reveal-content">
-        <div className="elite-slogan-label">
-          {number} / {label}
-        </div>
-
-        <h2>
-          {first}
-          <br />
-          <span>{second}</span>
-        </h2>
-
-        <div className="elite-slogan-line" />
-      </div>
-    </section>
+    <div className="k7-scene-backdrop" aria-hidden="true" data-k7-scene>
+      <div className="k7-scene-light k7-scene-light-primary" />
+      <div className="k7-scene-light k7-scene-light-secondary" />
+      <div className="k7-scene-grid" />
+      <div className="k7-scene-orbit k7-scene-orbit-a" />
+      <div className="k7-scene-orbit k7-scene-orbit-b" />
+      <div className="k7-scene-word k7-scene-word-a">{words.first}</div>
+      <div className="k7-scene-word k7-scene-word-b">{words.second}</div>
+      <div className="k7-scene-word k7-scene-word-c">{words.third}</div>
+      <div className="k7-scene-monogram">K7</div>
+      <img className="k7-scene-logo" src="/k7-logo-transparent.png" alt="" draggable={false} />
+      <div className="k7-scene-scrim" />
+    </div>
   );
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>("roster");
+  const [activeTab, setActiveTab] = useState<TabId>("chat");
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -266,6 +255,7 @@ export default function Home() {
   } | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatManageOpen, setChatManageOpen] = useState(false);
   const [chatText, setChatText] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHasMore, setChatHasMore] = useState(false);
@@ -351,6 +341,24 @@ export default function Home() {
     } finally {
       if (!silent) setChatLoading(false);
     }
+  }
+
+  async function moderateChat(id?: string) {
+    const isManager = accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN";
+    if (!isManager) return;
+    if (!window.confirm(id ? "Удалить это сообщение?" : "Очистить весь чат для всех участников?")) return;
+    try {
+      const response = await fetch("/api/chat", {
+        method: "DELETE", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(id ? { id } : { all: true })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Ошибка модерации");
+      setChatMessages((current) => id ? current.filter((message) => message.id !== id) : []);
+      setChatHasMore(false);
+      setChatError("");
+    } catch (err) { setChatError(err instanceof Error ? err.message : "Ошибка модерации"); }
   }
 
   async function loadOlderChat() {
@@ -669,192 +677,61 @@ export default function Home() {
     }
   }, [chatMessages]);
 
-  // Keep the active tab stable while the keyboard is open.
+  // Reveal content on the currently visible mobile tab.
   useEffect(() => {
-    const sections = document.querySelectorAll<HTMLElement>(
-      "[data-nav-section]"
-    );
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (chatInputFocusedRef.current) return;
-
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.id;
-
-            if (tabs.some((tab) => tab.id === id)) {
-              setActiveTab(id as TabId);
-            }
-          }
-        });
-      },
-      {
-        rootMargin: "-35% 0px -45% 0px",
-      }
-    );
-
-    sections.forEach((section) => observer.observe(section));
-
     const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-          }
-        });
-      },
-      {
-        threshold: 0.12,
-      }
+      (entries) => entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
+      }),
+      { threshold: 0.04 }
     );
-
-    document
-      .querySelectorAll(".elite-slogan-content, .reveal-content")
-      .forEach((element) => revealObserver.observe(element));
-
-    return () => {
-      observer.disconnect();
-      revealObserver.disconnect();
-    };
+    document.querySelectorAll(".reveal-content").forEach((el) => revealObserver.observe(el));
+    return () => revealObserver.disconnect();
   }, []);
 
-  // Scroll-controlled 3D scene.
+  // Per-tab scroll parallax: subtle on mobile, off for reduced motion.
   useEffect(() => {
-    const layers = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-motion-layer]")
-    );
-
-    if (!layers.length) return;
-
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    let frame = 0;
-
+    const pane = document.getElementById(activeTab);
+    if (!pane) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
     const update = () => {
-      frame = 0;
-
-      const scroll = window.scrollY;
-      const phase = scroll / 430;
-
-      const maxScroll = Math.max(
-        1,
-        document.documentElement.scrollHeight - window.innerHeight
-      );
-
-      const progress = Math.min(1, Math.max(0, scroll / maxScroll));
-
-      const motions = [
-        {
-          x: Math.sin(phase * 0.68) * 190,
-          y: Math.cos(phase * 0.42) * 105,
-          z: Math.sin(phase * 0.34) * 95,
-          rx: Math.cos(phase * 0.45) * 9,
-          ry: Math.sin(phase * 0.52) * -15,
-          rz: Math.sin(phase * 0.31) * 8,
-          scale: 1.12 + Math.sin(phase * 0.24) * 0.12,
-        },
-        {
-          x: -Math.cos(phase * 0.88) * 215,
-          y: Math.sin(phase * 0.61) * 145,
-          z: Math.cos(phase * 0.37) * -125,
-          rx: Math.sin(phase * 0.41) * -12,
-          ry: Math.cos(phase * 0.57) * 17,
-          rz: Math.cos(phase * 0.29) * -10,
-          scale: 1.2 + Math.cos(phase * 0.22) * 0.1,
-        },
-        {
-          x: Math.sin(phase * 1.05) * 145,
-          y: -Math.cos(phase * 0.54) * 165,
-          z: Math.sin(phase * 0.31) * 155,
-          rx: Math.cos(phase * 0.38) * 14,
-          ry: Math.sin(phase * 0.66) * -12,
-          rz: Math.sin(phase * 0.48) * 6,
-          scale: 1.05 + Math.sin(phase * 0.35) * 0.16,
-        },
-        {
-          x: -Math.cos(phase * 0.96) * 135,
-          y: Math.sin(phase * 0.79) * 180,
-          z: Math.cos(phase * 0.28) * -180,
-          rx: Math.sin(phase * 0.51) * -15,
-          ry: Math.cos(phase * 0.43) * 13,
-          rz: Math.sin(phase * 0.39) * 12,
-          scale: 1.25 + Math.cos(phase * 0.2) * 0.12,
-        },
-      ];
-
-      layers.forEach((layer, index) => {
-        const motion = motions[index % motions.length];
-        const factor = reduceMotion ? 0 : 1;
-
-        layer.style.transform = `
-          translate3d(
-            ${motion.x * factor}px,
-            ${motion.y * factor}px,
-            ${motion.z * factor}px
-          )
-          rotateX(${motion.rx * factor}deg)
-          rotateY(${motion.ry * factor}deg)
-          rotateZ(${motion.rz * factor}deg)
-          scale(${reduceMotion ? 1 : motion.scale})
-        `;
-      });
-
-      document.documentElement.style.setProperty(
-        "--scroll-progress",
-        String(progress)
-      );
-
-      document.documentElement.style.setProperty(
-        "--scroll-depth",
-        `${progress * 100}%`
-      );
+      raf = 0;
+      if (reduced) return;
+      const bounds = pane.getBoundingClientRect();
+      const distance = Math.max(1, bounds.height - window.innerHeight);
+      const progress = Math.max(0, Math.min(1, -bounds.top / distance));
+      pane.style.setProperty("--k7-travel", `${Math.round(progress * 75)}px`);
+      pane.style.setProperty("--k7-travel-neg", `${Math.round(progress * -75)}px`);
+      pane.style.setProperty("--k7-travel-half", `${Math.round(progress * 38)}px`);
+      pane.style.setProperty("--k7-travel-half-neg", `${Math.round(progress * -38)}px`);
+      pane.style.setProperty("--k7-angle", `${(progress * 7 - 3.5).toFixed(2)}deg`);
+      pane.style.setProperty("--k7-glow", `${(0.67 + Math.sin(progress * Math.PI) * 0.33).toFixed(3)}`);
+      pane.style.setProperty("--k7-scale", `${(1.01 + progress * .15).toFixed(3)}`);
+      pane.style.setProperty("--k7-blur", `${(1.8 - Math.sin(progress * Math.PI) * 1.4).toFixed(2)}px`);
+      pane.style.setProperty("--k7-bright", `${(.76 + Math.sin(progress * Math.PI) * .54).toFixed(2)}`);
     };
-
-    const requestUpdate = () => {
-      if (!frame) {
-        frame = window.requestAnimationFrame(update);
-      }
-    };
-
+    const requestUpdate = () => { if (!raf) raf = window.requestAnimationFrame(update); };
     update();
-
-    window.addEventListener("scroll", requestUpdate, {
-      passive: true,
-    });
-
+    window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", requestUpdate);
-
     return () => {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
-
-      if (frame) {
-        window.cancelAnimationFrame(frame);
-      }
+      if (raf) window.cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [activeTab]);
 
   function navigateTo(id: string) {
-    const nextTab = tabs.find((tab) => tab.id === id);
-
-    if (nextTab) {
-      setActiveTab(nextTab.id);
-    }
-
-    document.getElementById(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    if (!tabs.some((tab) => tab.id === id)) return;
+    chatInputFocusedRef.current = false;
+    setActiveTab(id as TabId);
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   function getPlayerForSlot(slot: string) {
     return roster.find((player) => player.slot === slot);
   }
-
-  const copy = sceneCopy[activeTab];
 
   return (
     <main className="elite-shell" data-scene={activeTab}>
@@ -871,141 +748,20 @@ export default function Home() {
         </div>
       )}
 
-      <div className="elite-background" aria-hidden="true">
-        <div className="elite-background-vignette" />
-        <div className="elite-background-grid" />
-
-        <div className="elite-background-depth">
-          <div className="depth-orb depth-orb-one" />
-          <div className="depth-orb depth-orb-two" />
-          <div className="depth-orb depth-orb-three" />
-
-          <div className="depth-ring depth-ring-one" />
-          <div className="depth-ring depth-ring-two" />
-
-          <div className="depth-beam depth-beam-one" />
-          <div className="depth-beam depth-beam-two" />
-
-          <div className="depth-crosshair">
-            <span />
-            <i />
-          </div>
-        </div>
-
-        <div className="elite-background-type">
-          <div
-            className="motion-layer motion-layer-one"
-            data-motion-layer
-          >
-            <span>{copy.first}</span>
-            <i>{copy.second}</i>
-          </div>
-
-          <div
-            className="motion-layer motion-layer-two"
-            data-motion-layer
-          >
-            <span>{copy.second}</span>
-            <i>{copy.third}</i>
-          </div>
-
-          <div
-            className="motion-layer motion-layer-three"
-            data-motion-layer
-          >
-            <span>{copy.third}</span>
-            <i>{copy.first}</i>
-          </div>
-
-          <div
-            className="motion-layer motion-layer-four"
-            data-motion-layer
-          >
-            <span>{copy.first}</span>
-            <i>{copy.third}</i>
-          </div>
-        </div>
-
-        <div className="elite-background-noise" />
-        <div className="elite-background-scan" />
-      </div>
-
-      <section id="home" className="elite-hero">
-        <div className="hero-depth-line hero-depth-line-one" />
-        <div className="hero-depth-line hero-depth-line-two" />
-
-        <div className="elite-hero-content">
-          <div className="elite-hero-index">
-            INDEPENDENT ESPORTS ORGANIZATION
-            <span> — 2026</span>
-          </div>
-
-          <h1>
-            SILENT MOVES.
-            <br />
-            <span>DEADLY RESULTS.</span>
-          </h1>
-
-          <p className="elite-hero-description">
-            BUILT ON DISCIPLINE.
-            <br />
-            UNITED BY THE GAME.
-          </p>
-
-          <button
-            className="elite-scroll-hint"
-            onClick={() => navigateTo("manifesto")}
-          >
-            SCROLL TO EXPLORE
-            <ArrowDown size={15} />
-          </button>
-        </div>
-
-        <div className="hero-side-index">K7 / 001</div>
-        <div className="hero-depth-orbit" />
-      </section>
-
-      <section
-        id="manifesto"
-        className="elite-manifesto-section"
-      >
-        <div className="elite-section-inner reveal-content">
-          <div className="section-eyebrow">
-            01 / OUR MINDSET
-          </div>
-
-          <div className="elite-manifesto-title">
-            LESS NOISE.
-            <br />
-            <span>MORE IMPACT.</span>
-          </div>
-
-          <p className="elite-manifesto-text">
-            No unnecessary words.
-            <br />
-            No wasted movement.
-            <br />
-            Only focus, teamwork and results.
-          </p>
-
-          <div className="elite-manifesto-mark">
-            DISCIPLINE IS THE DIFFERENCE
-          </div>
-        </div>
-      </section>
-
-      <Slogan
-        number="02"
-        label="THE CONNECTION"
-        first="ONE CREW."
-        second="ONE PURPOSE."
-      />
+      <header className="k7-app-header">
+        <img src="/k7-logo-transparent.png" alt="" className="k7-header-logo" />
+        <div className="k7-header-brand"><strong>K7 CREW</strong><span>TELEGRAM MINI APP</span></div>
+        {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+          <span className="k7-header-access"><Crown size={12} /> УПРАВЛЕНИЕ</span>
+        )}
+      </header>
 
       <section
         id="chat"
         data-nav-section
-        className="elite-content-section"
+        className={`elite-content-section k7-native-pane ${activeTab === "chat" ? "k7-pane-active" : ""}`}
       >
+        <SceneBackdrop scene="chat" />
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             03 / COMMUNICATION
@@ -1041,6 +797,17 @@ export default function Home() {
               </div>
             </div>
 
+            {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+              <div className="k7-chat-management">
+                <button type="button" className="k7-panel-button" onClick={() => setChatManageOpen((value) => !value)}>
+                  <Shield size={13} /> НАСТРОЙКИ ЧАТА
+                </button>
+                {chatManageOpen && <div className="k7-chat-management-tools">
+                  <span>Автоудаление сообщений — 10 минут</span>
+                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>ОЧИСТИТЬ ЧАТ</button>
+                </div>}
+              </div>
+            )}
             <div
               className="k7-chat-feed"
               ref={chatFeedRef}
@@ -1138,6 +905,9 @@ export default function Home() {
                         </div>
 
                         <div className="k7-chat-message-actions">
+                          {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="Удалить сообщение">УДАЛИТЬ</button>
+                          )}
                           <button
                             onClick={() => setReplyTo(message)}
                             aria-label="Reply"
@@ -1242,18 +1012,13 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        number="04"
-        label="THE COMPETITION"
-        first="NO EXCUSES."
-        second="ONLY RESULTS."
-      />
 
       <section
         id="events"
         data-nav-section
-        className="elite-content-section"
+        className={`elite-content-section k7-native-pane ${activeTab === "events" ? "k7-pane-active" : ""}`}
       >
+        <SceneBackdrop scene="events" />
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             05 / COMPETITION
@@ -1266,18 +1031,13 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        number="06"
-        label="THE SQUAD"
-        first="STRONGER"
-        second="AS ONE."
-      />
 
       <section
         id="roster"
         data-nav-section
-        className="elite-content-section elite-roster-section"
+        className={`elite-content-section k7-native-pane elite-roster-section ${activeTab === "roster" ? "k7-pane-active" : ""}`}
       >
+        <SceneBackdrop scene="roster" />
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             07 / THE SQUAD
@@ -1365,18 +1125,13 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        number="08"
-        label="THE LEGACY"
-        first="BUILT TO"
-        second="BE REMEMBERED."
-      />
 
       <section
         id="news"
         data-nav-section
-        className="elite-content-section"
+        className={`elite-content-section k7-native-pane ${activeTab === "news" ? "k7-pane-active" : ""}`}
       >
+        <SceneBackdrop scene="news" />
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             09 / LATEST UPDATES
@@ -1389,18 +1144,13 @@ export default function Home() {
         </div>
       </section>
 
-      <Slogan
-        number="10"
-        label="THE PERFORMANCE"
-        first="PROVE IT."
-        second="EVERY MATCH."
-      />
 
       <section
         id="stats"
         data-nav-section
-        className="elite-content-section"
+        className={`elite-content-section k7-native-pane ${activeTab === "stats" ? "k7-pane-active" : ""}`}
       >
+        <SceneBackdrop scene="stats" />
         <div className="elite-section-inner reveal-content">
           <div className="section-eyebrow">
             11 / PERFORMANCE
@@ -1414,15 +1164,6 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="elite-footer">
-        <div className="elite-footer-slogan">
-          SILENT MOVES. DEADLY RESULTS.
-        </div>
-
-        <div className="elite-footer-copy">
-          K7 CREW © 2026
-        </div>
-      </footer>
 
       <nav
         className="elite-bottom-nav"
