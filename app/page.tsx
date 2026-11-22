@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { EventsPanel, NewsPanel, StatsPanel, RosterAdminPanel } from "@/components/k7-panels";
+import CinemaWorld from "@/components/cinema-world";
 import {
   MessageCircle,
   CalendarDays,
@@ -57,46 +59,23 @@ interface ChatMessage {
 }
 
 const tabs = [
-  { id: "chat", label: "Ð§Ð°Ñ", icon: MessageCircle },
-  { id: "events", label: "Ð¡Ð¾Ð±ÑÑÐ¸Ñ", icon: CalendarDays },
-  { id: "roster", label: "Ð¡Ð¾ÑÑÐ°Ð²", icon: Users },
-  { id: "news", label: "ÐÐ¾Ð²Ð¾ÑÑÐ¸", icon: Newspaper },
-  { id: "stats", label: "Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°", icon: Trophy },
+  { id: "chat", label: "\u{427}\u{430}\u{442}", icon: MessageCircle },
+  { id: "events", label: "\u{421}\u{43E}\u{431}\u{44B}\u{442}\u{438}\u{44F}", icon: CalendarDays },
+  { id: "roster", label: "\u{421}\u{43E}\u{441}\u{442}\u{430}\u{432}", icon: Users },
+  { id: "news", label: "\u{41D}\u{43E}\u{432}\u{43E}\u{441}\u{442}\u{438}", icon: Newspaper },
+  { id: "stats", label: "\u{421}\u{442}\u{430}\u{442}\u{438}\u{441}\u{442}\u{438}\u{43A}\u{430}", icon: Trophy },
 ] as const;
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
-const chatReactionOptions = ["ð¥", "â¤ï¸", "ð", "ð"];
+const chatReactionOptions = ["\u{1F525}", "\u{2764}\u{FE0F}", "\u{1F44D}", "\u{1F44E}"];
 
-const sceneCopy: Record<
-  TabId,
-  { first: string; second: string; third: string }
-> = {
-  chat: {
-    first: "ONE CREW",
-    second: "NOISE IS NOTHING",
-    third: "STAY CONNECTED",
-  },
-  events: {
-    first: "ENTER THE ARENA",
-    second: "BUILT FOR PRESSURE",
-    third: "NEXT MATCH",
-  },
-  roster: {
-    first: "UNITED BY THE GAME",
-    second: "EVERY ROLE MATTERS",
-    third: "THE SQUAD",
-  },
-  news: {
-    first: "NO NOISE",
-    second: "JUST IMPACT",
-    third: "THE LATEST",
-  },
-  stats: {
-    first: "NUMBERS NEVER LIE",
-    second: "PROVE YOUR LEVEL",
-    third: "ONLY RESULTS",
-  },
+const sceneCopy: Record<TabId, { first: string; second: string; third: string }> = {
+  chat: { first: "ONE CREW", second: "ONE SIGNAL", third: "01 / SIGNAL â CONNECTED" },
+  events: { first: "ENTER", second: "THE ARENA", third: "02 / ARENA â COMPETE" },
+  roster: { first: "BUILT", second: "AS ONE", third: "03 / FORMATION â UNITED" },
+  news: { first: "MAKE", second: "AN IMPACT", third: "04 / TRANSMISSION â LIVE" },
+  stats: { first: "NUMBERS", second: "NEVER LIE", third: "05 / PRECISION â PROVE IT" },
 };
 
 function getPlayerName(player: RosterPlayer) {
@@ -217,44 +196,35 @@ function PlayerCard({
 }
 
 /**
- * Five unique art directions on one continuous CINEMA canvas.
- * Everything here is purely decorative and remains behind the live UI.
- * No player imagery and no separate slogan screens.
+ * Each scene has a distinct silhouette. The live controls are never in 3D:
+ * only these decorative assets and the shared WebGL world are animated.
  */
 const sceneIdentity: Record<TabId, { number: string; label: string }> = {
-  chat: { number: "01", label: "THE FREQUENCY" },
-  events: { number: "02", label: "THE ARENA" },
-  roster: { number: "03", label: "THE FORMATION" },
-  news: { number: "04", label: "THE SIGNAL" },
-  stats: { number: "05", label: "THE PROOF" },
+  chat: { number: "01", label: "SIGNAL" },
+  events: { number: "02", label: "ARENA" },
+  roster: { number: "03", label: "FORMATION" },
+  news: { number: "04", label: "TRANSMISSION" },
+  stats: { number: "05", label: "PRECISION" },
 };
 
 function SceneBackdrop({ scene }: { scene: TabId }) {
   const words = sceneCopy[scene];
   const identity = sceneIdentity[scene];
   return (
-    <div className={`k7-scene-backdrop k7-scene-${scene}`} aria-hidden="true" data-k7-scene>
-      <div className="k7-scene-light k7-scene-light-primary" />
-      <div className="k7-scene-light k7-scene-light-secondary" />
-      <div className="k7-scene-grid" />
-      <div className="k7-scene-filmline" />
-      <div className="k7-scene-structure">
-        <div className="k7-structure-frame" />
-        <div className="k7-structure-emblem">K7</div>
-        <div className="k7-structure-beam" />
-        <div className="k7-structure-bars">
-          {[1, 2, 3, 4, 5, 6, 7].map((index) => <i key={index} />)}
-        </div>
+    <div className={`k7-stage k7-stage-${scene}`} aria-hidden="true">
+      <div className="k7-stage-vignette" />
+      <div className="k7-stage-axis" />
+      <div className="k7-stage-symbolic" />
+      <div className="k7-stage-topline"><span>CREW / EST. 2026</span><span>{identity.number} â {identity.label}</span></div>
+      <div className="k7-stage-typography">
+        <span className="k7-stage-title">{words.first}</span>
+        <span className="k7-stage-echo">{words.second}</span>
       </div>
-      <div className="k7-scene-word k7-scene-word-a">{words.first}</div>
-      <div className="k7-scene-word k7-scene-word-b">{words.second}</div>
-      <div className="k7-scene-word k7-scene-word-c">{words.third}</div>
-      <div className="k7-scene-monogram">K7</div>
-      {(scene === "events" || scene === "news" || scene === "stats") && (
-        <img className="k7-scene-logo" src="/k7-logo-transparent.png" alt="" draggable={false} />
-      )}
-      <div className="k7-scene-signature"><b>{identity.number}</b><span>{identity.label}</span></div>
-      <div className="k7-scene-scrim" />
+      <div className="k7-stage-footer">{words.third}</div>
+      {scene === "roster" && <div className="k7-stage-structural-mark">K7</div>}
+      {scene === "news" && <div className="k7-stage-press-seal">K7<span>EST / 26</span></div>}
+      {scene === "events" && <img className="k7-stage-logo-fragment" src="/k7-logo-transparent.png" alt="" draggable={false} />}
+      {scene === "stats" && <div className="k7-stage-coordinate">00.00 <span>METRIC / ACTIVE</span></div>}
     </div>
   );
 }
@@ -297,6 +267,7 @@ export default function Home() {
   const chatInputFocusedRef = useRef(false);
 
   const chatShouldStickToBottomRef = useRef(true);
+  const chapterScrollFrameRef = useRef<number | null>(null);
   const chatOlderLoadingRef = useRef(false);
 
   const chatPrependPositionRef = useRef<{
@@ -368,7 +339,7 @@ export default function Home() {
   async function moderateChat(id?: string) {
     const isManager = accessRole === "OWNER" || accessRole === "IGL";
     if (!isManager) return;
-    if (!window.confirm(id ? "Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÑÐ¾ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ?" : "ÐÑÐ¸ÑÑÐ¸ÑÑ Ð²ÐµÑÑ ÑÐ°Ñ Ð´Ð»Ñ Ð²ÑÐµÑ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ¾Ð²?")) return;
+    if (!window.confirm(id ? "\u{423}\u{434}\u{430}\u{43B}\u{438}\u{442}\u{44C} \u{44D}\u{442}\u{43E} \u{441}\u{43E}\u{43E}\u{431}\u{449}\u{435}\u{43D}\u{438}\u{435}?" : "\u{41E}\u{447}\u{438}\u{441}\u{442}\u{438}\u{442}\u{44C} \u{432}\u{435}\u{441}\u{44C} \u{447}\u{430}\u{442} \u{434}\u{43B}\u{44F} \u{432}\u{441}\u{435}\u{445} \u{443}\u{447}\u{430}\u{441}\u{442}\u{43D}\u{438}\u{43A}\u{43E}\u{432}?")) return;
     try {
       const response = await fetch("/api/chat", {
         method: "DELETE", credentials: "include",
@@ -376,11 +347,11 @@ export default function Home() {
         body: JSON.stringify(id ? { id } : { all: true })
       });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÑÐ°ÑÐ¸Ð¸");
+      if (!response.ok || !result.success) throw new Error(result.error || "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}");
       setChatMessages((current) => id ? current.filter((message) => message.id !== id) : []);
       setChatHasMore(false);
       setChatError("");
-    } catch (err) { setChatError(err instanceof Error ? err.message : "ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÑÐ°ÑÐ¸Ð¸"); }
+    } catch (err) { setChatError(err instanceof Error ? err.message : "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}"); }
   }
 
   async function loadOlderChat() {
@@ -548,7 +519,7 @@ export default function Home() {
       now - previous.time < 350
     ) {
       lastTapRef.current = null;
-      void toggleChatReaction(messageId, "ð¥");
+      void toggleChatReaction(messageId, "\u{1F525}");
       return;
     }
 
@@ -648,7 +619,7 @@ export default function Home() {
 
     const introTimer = window.setTimeout(() => {
       setIntroVisible(false);
-    }, 2300);
+    }, 650);
 
     return () => {
       cancelled = true;
@@ -699,70 +670,72 @@ export default function Home() {
     }
   }, [chatMessages]);
 
-  // Cinematic scroll: all five chapters live on one continuous page.
-  // The bottom menu tracks the chapter currently under the viewer's eye.
+  // Fast mobile CINEMA: one continuous scroll with lightweight RAF parallax.
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-nav-section]"));
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) entry.target.classList.add("is-visible");
-        }
-      },
-      { threshold: 0.04, rootMargin: "0px 0px -8% 0px" }
-    );
-    document.querySelectorAll(".reveal-content").forEach((item) => revealObserver.observe(item));
-
-    let frame = 0;
-    const updateCinema = () => {
-      frame = 0;
-      const focusY = window.innerHeight * 0.44;
-      let nearest: TabId = "chat";
-      let nearestDistance = Infinity;
-
-      for (const section of sections) {
-        const rect = section.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
-        const distance = Math.abs(centerY - focusY);
-        if (rect.bottom > 0 && rect.top < window.innerHeight && distance < nearestDistance) {
-          nearest = section.id as TabId;
-          nearestDistance = distance;
-        }
-        // No need to animate scenes far outside the viewport.
-        if (rect.bottom < -200 || rect.top > window.innerHeight + 200) continue;
-
-        const span = Math.max(rect.height / 2, window.innerHeight / 2, 1);
-        const relative = Math.max(-1, Math.min(1, (focusY - centerY) / span));
-        const centered = 1 - Math.abs(relative);
-        const motion = reducedMotion.matches ? 0 : relative;
-        section.style.setProperty("--k7-travel", `${(motion * 105).toFixed(1)}px`);
-        section.style.setProperty("--k7-travel-neg", `${(-motion * 105).toFixed(1)}px`);
-        section.style.setProperty("--k7-travel-half", `${(motion * 53).toFixed(1)}px`);
-        section.style.setProperty("--k7-travel-half-neg", `${(-motion * 53).toFixed(1)}px`);
-        section.style.setProperty("--k7-angle", `${(motion * 12).toFixed(2)}deg`);
-        section.style.setProperty("--k7-glow", `${(0.54 + centered * 0.46).toFixed(3)}`);
-        section.style.setProperty("--k7-scale", `${(1.01 + centered * 0.20).toFixed(3)}`);
-        section.style.setProperty("--k7-blur", `${(0.5 + Math.abs(motion) * 2.4).toFixed(2)}px`);
-        section.style.setProperty("--k7-bright", `${(0.64 + centered * 0.7).toFixed(2)}`);
-        section.style.setProperty("--k7-focus", centered.toFixed(3));
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const reveal = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
       }
-      // Don't jump to another tab when the keyboard moves the viewport.
-      if (!chatInputFocusedRef.current && nearestDistance !== Infinity) {
-        setActiveTab((previous) => previous === nearest ? previous : nearest);
+    }, { threshold: 0.03, rootMargin: "0px 0px 12% 0px" });
+    document.querySelectorAll(".reveal-content").forEach((node) => reveal.observe(node));
+    let raf = 0;
+    let lastActive: TabId = "chat";
+    const render = () => {
+      raf = 0;
+      const center = window.innerHeight * 0.39;
+      let closest: TabId = lastActive;
+      let best = Infinity;
+      for (const section of sections) {
+        const bounds = section.getBoundingClientRect();
+        if (bounds.bottom < -100 || bounds.top > window.innerHeight + 100) continue;
+        const mid = bounds.top + bounds.height * 0.5;
+        const distance = Math.abs(mid - center);
+        if (distance < best) { best = distance; closest = section.id as TabId; }
+        const spread = Math.max(bounds.height * .5, window.innerHeight * .5);
+        const travel = Math.max(-1, Math.min(1, (center - mid) / spread));
+        section.style.setProperty("--scene-shift", `${(reduced.matches ? 0 : travel * 36).toFixed(1)}px`);
+        section.style.setProperty("--scene-shift-fast", `${(reduced.matches ? 0 : travel * -62).toFixed(1)}px`);
+        section.style.setProperty("--scene-focus", `${(1 - Math.abs(travel)).toFixed(2)}`);
+      }
+      if (!chatInputFocusedRef.current && best !== Infinity && closest !== lastActive) {
+        lastActive = closest;
+        setActiveTab(closest);
+      }
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      document.documentElement.style.setProperty("--k7-scroll", height > 0 ? `${(window.scrollY / height * 100).toFixed(2)}%` : "0%");
+    };
+    const requestRender = () => { if (!raf) raf = requestAnimationFrame(render); };
+    render();
+    window.addEventListener("scroll", requestRender, { passive: true });
+    window.addEventListener("resize", requestRender);
+    reduced.addEventListener("change", requestRender);
+    return () => {
+      window.removeEventListener("scroll", requestRender);
+      window.removeEventListener("resize", requestRender);
+      reduced.removeEventListener("change", requestRender);
+      reveal.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // A manual gesture immediately cancels programmatic camera navigation.
+  useEffect(() => {
+    const interrupt = () => {
+      if (chapterScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(chapterScrollFrameRef.current);
+        chapterScrollFrameRef.current = null;
       }
     };
-    const requestUpdate = () => { if (!frame) frame = window.requestAnimationFrame(updateCinema); };
-    updateCinema();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-    reducedMotion.addEventListener("change", requestUpdate);
+    window.addEventListener("touchstart", interrupt, { passive: true });
+    window.addEventListener("wheel", interrupt, { passive: true });
+    window.addEventListener("pointerdown", interrupt, { passive: true });
     return () => {
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      reducedMotion.removeEventListener("change", requestUpdate);
-      revealObserver.disconnect();
-      if (frame) window.cancelAnimationFrame(frame);
+      interrupt();
+      window.removeEventListener("touchstart", interrupt);
+      window.removeEventListener("wheel", interrupt);
+      window.removeEventListener("pointerdown", interrupt);
     };
   }, []);
 
@@ -770,11 +743,30 @@ export default function Home() {
     if (!tabs.some((tab) => tab.id === id)) return;
     chatInputFocusedRef.current = false;
     setActiveTab(id as TabId);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document.getElementById(id)?.scrollIntoView({
-      behavior: reducedMotion ? "auto" : "smooth",
-      block: "start",
-    });
+    const node = document.getElementById(id);
+    if (!node) return;
+    const destination = window.scrollY + node.getBoundingClientRect().top - 48;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { window.scrollTo(0, destination); return; }
+    // Native smooth scrolling over a multi-chapter distance feels slow on iOS.
+    // Explicitly cap chapter navigation at 440ms, regardless of distance.
+    if (chapterScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(chapterScrollFrameRef.current);
+      chapterScrollFrameRef.current = null;
+    }
+    const initial = window.scrollY;
+    const delta = destination - initial;
+    const started = performance.now();
+    const duration = 360;
+    const animate = (time: number) => {
+      const t = Math.min(1, (time - started) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      window.scrollTo(0, initial + delta * eased);
+      chapterScrollFrameRef.current = t < 1
+        ? window.requestAnimationFrame(animate)
+        : null;
+    };
+    chapterScrollFrameRef.current = window.requestAnimationFrame(animate);
   }
 
   function getPlayerForSlot(slot: string) {
@@ -796,27 +788,16 @@ export default function Home() {
         </div>
       )}
 
-      <div className="elite-background" aria-hidden="true">
-        <div className="elite-background-vignette" />
-        <div className="elite-background-grid" />
-        <div className="elite-background-depth">
-          <div className="depth-orb depth-orb-one" />
-          <div className="depth-orb depth-orb-two" />
-          <div className="depth-orb depth-orb-three" />
-          <div className="depth-ring depth-ring-one" />
-          <div className="depth-ring depth-ring-two" />
-          <div className="depth-beam depth-beam-one" />
-          <div className="depth-beam depth-beam-two" />
-        </div>
-        <div className="elite-background-noise" />
-      </div>
+      <CinemaWorld />
+
 
       <header className="k7-app-header">
-        <img src="/k7-logo-transparent.png" alt="" className="k7-header-logo" />
-        <div className="k7-header-brand"><strong>K7 CREW</strong><span>TELEGRAM MINI APP</span></div>
+        <strong className="k7-header-brand">K7<span> / CREW</span></strong>
+        <span className="k7-header-scene"><b>{sceneIdentity[activeTab].number}</b> {sceneIdentity[activeTab].label}</span>
         {(accessRole === "OWNER" || accessRole === "IGL") && (
-          <span className="k7-header-access"><Crown size={12} /> Ð£ÐÐ ÐÐÐÐÐÐÐ</span>
+          <span className="k7-header-access" title="Owner / captain"><Crown size={13} /> CONTROL</span>
         )}
+        <i className="k7-header-progress" aria-hidden="true" />
       </header>
 
       <section
@@ -842,13 +823,13 @@ export default function Home() {
                 </h2>
 
                 <p>ONE CREW. ONE CONNECTION.</p>
-                <p className="k7-chat-timer">Ð¢ÐÐÐÐÐ  Ð£ÐÐÐÐÐÐÐ¯ Ð¡ÐÐÐÐ©ÐÐÐÐ â 10 ÐÐÐ.</p>
+                <p className="k7-chat-timer">&#x422;&#x410;&#x419;&#x41C;&#x415;&#x420; &#x423;&#x414;&#x410;&#x41B;&#x415;&#x41D;&#x418;&#x42F; &#x421;&#x41E;&#x41E;&#x411;&#x429;&#x415;&#x41D;&#x418;&#x419; &#x2014; 10 &#x41C;&#x418;&#x41D;.</p>
                 {viewer && (
                   <div className="k7-chat-viewer">
                     {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
                     <span>
                       <strong>{viewer.username ? `@${viewer.username}` : viewer.firstName}</strong>
-                      <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "Ð£ÑÐ°ÑÑÐ½Ð¸Ðº ÑÐ¾Ð¾Ð±ÑÐµÑÑÐ²Ð°" : accessRole)}</small>
+                      <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "\u{423}\u{447}\u{430}\u{441}\u{442}\u{43D}\u{438}\u{43A} \u{441}\u{43E}\u{43E}\u{431}\u{449}\u{435}\u{441}\u{442}\u{432}\u{430}" : accessRole)}</small>
                     </span>
                   </div>
                 )}
@@ -863,11 +844,11 @@ export default function Home() {
             {(accessRole === "OWNER" || accessRole === "IGL") && (
               <div className="k7-chat-management">
                 <button type="button" className="k7-panel-button" onClick={() => setChatManageOpen((value) => !value)}>
-                  <Shield size={13} /> ÐÐÐ¡Ð¢Ð ÐÐÐÐ Ð§ÐÐ¢Ð
+                  <Shield size={13} /> &#x41D;&#x410;&#x421;&#x422;&#x420;&#x41E;&#x419;&#x41A;&#x418; &#x427;&#x410;&#x422;&#x410;
                 </button>
                 {chatManageOpen && <div className="k7-chat-management-tools">
-                  <span>ÐÐ²ÑÐ¾ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ðµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â 10 Ð¼Ð¸Ð½ÑÑ</span>
-                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>ÐÐ§ÐÐ¡Ð¢ÐÐ¢Ð¬ Ð§ÐÐ¢</button>
+                  <span>&#x410;&#x432;&#x442;&#x43E;&#x443;&#x434;&#x430;&#x43B;&#x435;&#x43D;&#x438;&#x435; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x439; &#x2014; 10 &#x43C;&#x438;&#x43D;&#x443;&#x442;</span>
+                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>&#x41E;&#x427;&#x418;&#x421;&#x422;&#x418;&#x422;&#x42C; &#x427;&#x410;&#x422;</button>
                 </div>}
               </div>
             )}
@@ -969,7 +950,7 @@ export default function Home() {
 
                         <div className="k7-chat-message-actions">
                           {(accessRole === "OWNER" || accessRole === "IGL") && (
-                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ">Ð£ÐÐÐÐÐ¢Ð¬</button>
+                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;">&#x423;&#x414;&#x410;&#x41B;&#x418;&#x422;&#x42C;</button>
                           )}
                           <button
                             onClick={() => setReplyTo(message)}
@@ -1040,7 +1021,7 @@ export default function Home() {
                       <strong>{getChatName(replyTo)}</strong>
                     </div>
                     <button onClick={() => setReplyTo(null)} aria-label="Cancel reply">
-                      Ã
+                      &#xD7;
                     </button>
                   </div>
                 )}
@@ -1053,7 +1034,7 @@ export default function Home() {
                     onFocus={() => { chatInputFocusedRef.current = true; }}
                     onBlur={() => { chatInputFocusedRef.current = false; }}
                     placeholder="Write a message..."
-                    aria-label="Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ ÑÐ°ÑÐ°"
+                    aria-label="&#x421;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435; &#x447;&#x430;&#x442;&#x430;"
                     maxLength={1000}
                     rows={1}
                     disabled={!authReady || chatSending}
