@@ -186,3 +186,40 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Change event state without altering the published event details.
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canManageContent(user.accessRole)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" ||
+      !("id" in body) || typeof body.id !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id) ||
+      !("status" in body) || (body.status !== "COMPLETED" && body.status !== "CANCELLED" && body.status !== "UPCOMING")) {
+      return NextResponse.json({ error: "Invalid event status" }, { status: 400 });
+    }
+    const { data, error } = await getSupabaseAdmin()
+      .from("events")
+      .update({ status: body.status })
+      .eq("id", body.id)
+      .select("id, status")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Event status update failed:", error);
+      return NextResponse.json({ error: "Could not update event" }, { status: 503 });
+    }
+    if (!data) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    return NextResponse.json({ success: true, event: data }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Event PATCH error:", error);
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+}
