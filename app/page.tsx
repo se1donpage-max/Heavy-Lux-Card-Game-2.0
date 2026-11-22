@@ -344,7 +344,7 @@ export default function Home() {
   }
 
   async function moderateChat(id?: string) {
-    const isManager = accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN";
+    const isManager = accessRole === "OWNER" || accessRole === "IGL";
     if (!isManager) return;
     if (!window.confirm(id ? "Удалить это сообщение?" : "Очистить весь чат для всех участников?")) return;
     try {
@@ -677,56 +677,82 @@ export default function Home() {
     }
   }, [chatMessages]);
 
-  // Reveal content on the currently visible mobile tab.
+  // Cinematic scroll: all five chapters live on one continuous page.
+  // The bottom menu tracks the chapter currently under the viewer's eye.
   useEffect(() => {
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-nav-section]"));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const revealObserver = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => {
-        if (entry.isIntersecting) entry.target.classList.add("is-visible");
-      }),
-      { threshold: 0.04 }
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) entry.target.classList.add("is-visible");
+        }
+      },
+      { threshold: 0.04, rootMargin: "0px 0px -8% 0px" }
     );
-    document.querySelectorAll(".reveal-content").forEach((el) => revealObserver.observe(el));
-    return () => revealObserver.disconnect();
-  }, []);
+    document.querySelectorAll(".reveal-content").forEach((item) => revealObserver.observe(item));
 
-  // Per-tab scroll parallax: subtle on mobile, off for reduced motion.
-  useEffect(() => {
-    const pane = document.getElementById(activeTab);
-    if (!pane) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      if (reduced) return;
-      const bounds = pane.getBoundingClientRect();
-      const distance = Math.max(1, bounds.height - window.innerHeight);
-      const progress = Math.max(0, Math.min(1, -bounds.top / distance));
-      pane.style.setProperty("--k7-travel", `${Math.round(progress * 75)}px`);
-      pane.style.setProperty("--k7-travel-neg", `${Math.round(progress * -75)}px`);
-      pane.style.setProperty("--k7-travel-half", `${Math.round(progress * 38)}px`);
-      pane.style.setProperty("--k7-travel-half-neg", `${Math.round(progress * -38)}px`);
-      pane.style.setProperty("--k7-angle", `${(progress * 7 - 3.5).toFixed(2)}deg`);
-      pane.style.setProperty("--k7-glow", `${(0.67 + Math.sin(progress * Math.PI) * 0.33).toFixed(3)}`);
-      pane.style.setProperty("--k7-scale", `${(1.01 + progress * .15).toFixed(3)}`);
-      pane.style.setProperty("--k7-blur", `${(1.8 - Math.sin(progress * Math.PI) * 1.4).toFixed(2)}px`);
-      pane.style.setProperty("--k7-bright", `${(.76 + Math.sin(progress * Math.PI) * .54).toFixed(2)}`);
+    let frame = 0;
+    const updateCinema = () => {
+      frame = 0;
+      const focusY = window.innerHeight * 0.44;
+      let nearest: TabId = "chat";
+      let nearestDistance = Infinity;
+
+      for (const section of sections) {
+        const rect = section.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        const distance = Math.abs(centerY - focusY);
+        if (rect.bottom > 0 && rect.top < window.innerHeight && distance < nearestDistance) {
+          nearest = section.id as TabId;
+          nearestDistance = distance;
+        }
+        // No need to animate scenes far outside the viewport.
+        if (rect.bottom < -200 || rect.top > window.innerHeight + 200) continue;
+
+        const span = Math.max(rect.height / 2, window.innerHeight / 2, 1);
+        const relative = Math.max(-1, Math.min(1, (focusY - centerY) / span));
+        const centered = 1 - Math.abs(relative);
+        const motion = reducedMotion.matches ? 0 : relative;
+        section.style.setProperty("--k7-travel", `${(motion * 105).toFixed(1)}px`);
+        section.style.setProperty("--k7-travel-neg", `${(-motion * 105).toFixed(1)}px`);
+        section.style.setProperty("--k7-travel-half", `${(motion * 53).toFixed(1)}px`);
+        section.style.setProperty("--k7-travel-half-neg", `${(-motion * 53).toFixed(1)}px`);
+        section.style.setProperty("--k7-angle", `${(motion * 12).toFixed(2)}deg`);
+        section.style.setProperty("--k7-glow", `${(0.54 + centered * 0.46).toFixed(3)}`);
+        section.style.setProperty("--k7-scale", `${(1.01 + centered * 0.20).toFixed(3)}`);
+        section.style.setProperty("--k7-blur", `${(0.5 + Math.abs(motion) * 2.4).toFixed(2)}px`);
+        section.style.setProperty("--k7-bright", `${(0.64 + centered * 0.7).toFixed(2)}`);
+        section.style.setProperty("--k7-focus", centered.toFixed(3));
+      }
+      // Don't jump to another tab when the keyboard moves the viewport.
+      if (!chatInputFocusedRef.current && nearestDistance !== Infinity) {
+        setActiveTab((previous) => previous === nearest ? previous : nearest);
+      }
     };
-    const requestUpdate = () => { if (!raf) raf = window.requestAnimationFrame(update); };
-    update();
+    const requestUpdate = () => { if (!frame) frame = window.requestAnimationFrame(updateCinema); };
+    updateCinema();
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", requestUpdate);
+    reducedMotion.addEventListener("change", requestUpdate);
     return () => {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
-      if (raf) window.cancelAnimationFrame(raf);
+      reducedMotion.removeEventListener("change", requestUpdate);
+      revealObserver.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [activeTab]);
+  }, []);
 
   function navigateTo(id: string) {
     if (!tabs.some((tab) => tab.id === id)) return;
     chatInputFocusedRef.current = false;
     setActiveTab(id as TabId);
-    window.scrollTo({ top: 0, behavior: "auto" });
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(id)?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
   }
 
   function getPlayerForSlot(slot: string) {
@@ -748,10 +774,25 @@ export default function Home() {
         </div>
       )}
 
+      <div className="elite-background" aria-hidden="true">
+        <div className="elite-background-vignette" />
+        <div className="elite-background-grid" />
+        <div className="elite-background-depth">
+          <div className="depth-orb depth-orb-one" />
+          <div className="depth-orb depth-orb-two" />
+          <div className="depth-orb depth-orb-three" />
+          <div className="depth-ring depth-ring-one" />
+          <div className="depth-ring depth-ring-two" />
+          <div className="depth-beam depth-beam-one" />
+          <div className="depth-beam depth-beam-two" />
+        </div>
+        <div className="elite-background-noise" />
+      </div>
+
       <header className="k7-app-header">
         <img src="/k7-logo-transparent.png" alt="" className="k7-header-logo" />
         <div className="k7-header-brand"><strong>K7 CREW</strong><span>TELEGRAM MINI APP</span></div>
-        {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+        {(accessRole === "OWNER" || accessRole === "IGL") && (
           <span className="k7-header-access"><Crown size={12} /> УПРАВЛЕНИЕ</span>
         )}
       </header>
@@ -759,7 +800,7 @@ export default function Home() {
       <section
         id="chat"
         data-nav-section
-        className={`elite-content-section k7-native-pane ${activeTab === "chat" ? "k7-pane-active" : ""}`}
+        className="elite-content-section k7-cinema-section"
       >
         <SceneBackdrop scene="chat" />
         <div className="elite-section-inner reveal-content">
@@ -797,7 +838,7 @@ export default function Home() {
               </div>
             </div>
 
-            {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+            {(accessRole === "OWNER" || accessRole === "IGL") && (
               <div className="k7-chat-management">
                 <button type="button" className="k7-panel-button" onClick={() => setChatManageOpen((value) => !value)}>
                   <Shield size={13} /> НАСТРОЙКИ ЧАТА
@@ -905,7 +946,7 @@ export default function Home() {
                         </div>
 
                         <div className="k7-chat-message-actions">
-                          {(accessRole === "OWNER" || accessRole === "IGL" || accessRole === "ADMIN") && (
+                          {(accessRole === "OWNER" || accessRole === "IGL") && (
                             <button type="button" onClick={() => void moderateChat(message.id)} aria-label="Удалить сообщение">УДАЛИТЬ</button>
                           )}
                           <button
@@ -1016,7 +1057,7 @@ export default function Home() {
       <section
         id="events"
         data-nav-section
-        className={`elite-content-section k7-native-pane ${activeTab === "events" ? "k7-pane-active" : ""}`}
+        className="elite-content-section k7-cinema-section"
       >
         <SceneBackdrop scene="events" />
         <div className="elite-section-inner reveal-content">
@@ -1026,7 +1067,7 @@ export default function Home() {
 
           <EventsPanel
             authReady={authReady}
-            canManage={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
+            canManage={accessRole === "OWNER" || accessRole === "IGL"}
           />
         </div>
       </section>
@@ -1035,7 +1076,7 @@ export default function Home() {
       <section
         id="roster"
         data-nav-section
-        className={`elite-content-section k7-native-pane elite-roster-section ${activeTab === "roster" ? "k7-pane-active" : ""}`}
+        className="elite-content-section k7-cinema-section elite-roster-section"
       >
         <SceneBackdrop scene="roster" />
         <div className="elite-section-inner reveal-content">
@@ -1117,7 +1158,7 @@ export default function Home() {
                 </strong>
               </div>
 
-              {(accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL") && (
+              {(accessRole === "OWNER" || accessRole === "IGL") && (
                 <RosterAdminPanel roster={roster} onUpdated={loadRoster} />
               )}
             </>
@@ -1129,7 +1170,7 @@ export default function Home() {
       <section
         id="news"
         data-nav-section
-        className={`elite-content-section k7-native-pane ${activeTab === "news" ? "k7-pane-active" : ""}`}
+        className="elite-content-section k7-cinema-section"
       >
         <SceneBackdrop scene="news" />
         <div className="elite-section-inner reveal-content">
@@ -1139,7 +1180,7 @@ export default function Home() {
 
           <NewsPanel
             authReady={authReady}
-            canManage={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
+            canManage={accessRole === "OWNER" || accessRole === "IGL"}
           />
         </div>
       </section>
@@ -1148,7 +1189,7 @@ export default function Home() {
       <section
         id="stats"
         data-nav-section
-        className={`elite-content-section k7-native-pane ${activeTab === "stats" ? "k7-pane-active" : ""}`}
+        className="elite-content-section k7-cinema-section"
       >
         <SceneBackdrop scene="stats" />
         <div className="elite-section-inner reveal-content">
@@ -1158,7 +1199,7 @@ export default function Home() {
 
           <StatsPanel
             authReady={authReady}
-            canSubmit={accessRole === "OWNER" || accessRole === "ADMIN" || accessRole === "IGL"}
+            canSubmit={accessRole === "OWNER" || accessRole === "IGL"}
             roster={roster}
           />
         </div>
