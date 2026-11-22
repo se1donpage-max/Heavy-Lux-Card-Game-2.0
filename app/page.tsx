@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -58,16 +57,16 @@ interface ChatMessage {
 }
 
 const tabs = [
-  { id: "chat", label: "Чат", icon: MessageCircle },
-  { id: "events", label: "События", icon: CalendarDays },
-  { id: "roster", label: "Состав", icon: Users },
-  { id: "news", label: "Новости", icon: Newspaper },
-  { id: "stats", label: "Статистика", icon: Trophy },
+  { id: "chat", label: "Ð§Ð°Ñ", icon: MessageCircle },
+  { id: "events", label: "Ð¡Ð¾Ð±ÑÑÐ¸Ñ", icon: CalendarDays },
+  { id: "roster", label: "Ð¡Ð¾ÑÑÐ°Ð²", icon: Users },
+  { id: "news", label: "ÐÐ¾Ð²Ð¾ÑÑÐ¸", icon: Newspaper },
+  { id: "stats", label: "Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°", icon: Trophy },
 ] as const;
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
-const chatReactionOptions = ["🔥", "❤️", "👍", "👎"];
+const chatReactionOptions = ["ð¥", "â¤ï¸", "ð", "ð"];
 
 const sceneCopy: Record<
   TabId,
@@ -217,21 +216,44 @@ function PlayerCard({
   );
 }
 
-/** Scene typography is part of each tab, not a separate scroll section. */
+/**
+ * Five unique art directions on one continuous CINEMA canvas.
+ * Everything here is purely decorative and remains behind the live UI.
+ * No player imagery and no separate slogan screens.
+ */
+const sceneIdentity: Record<TabId, { number: string; label: string }> = {
+  chat: { number: "01", label: "THE FREQUENCY" },
+  events: { number: "02", label: "THE ARENA" },
+  roster: { number: "03", label: "THE FORMATION" },
+  news: { number: "04", label: "THE SIGNAL" },
+  stats: { number: "05", label: "THE PROOF" },
+};
+
 function SceneBackdrop({ scene }: { scene: TabId }) {
   const words = sceneCopy[scene];
+  const identity = sceneIdentity[scene];
   return (
-    <div className="k7-scene-backdrop" aria-hidden="true" data-k7-scene>
+    <div className={`k7-scene-backdrop k7-scene-${scene}`} aria-hidden="true" data-k7-scene>
       <div className="k7-scene-light k7-scene-light-primary" />
       <div className="k7-scene-light k7-scene-light-secondary" />
       <div className="k7-scene-grid" />
-      <div className="k7-scene-orbit k7-scene-orbit-a" />
-      <div className="k7-scene-orbit k7-scene-orbit-b" />
+      <div className="k7-scene-filmline" />
+      <div className="k7-scene-structure">
+        <div className="k7-structure-frame" />
+        <div className="k7-structure-emblem">K7</div>
+        <div className="k7-structure-beam" />
+        <div className="k7-structure-bars">
+          {[1, 2, 3, 4, 5, 6, 7].map((index) => <i key={index} />)}
+        </div>
+      </div>
       <div className="k7-scene-word k7-scene-word-a">{words.first}</div>
       <div className="k7-scene-word k7-scene-word-b">{words.second}</div>
       <div className="k7-scene-word k7-scene-word-c">{words.third}</div>
       <div className="k7-scene-monogram">K7</div>
-      <img className="k7-scene-logo" src="/k7-logo-transparent.png" alt="" draggable={false} />
+      {(scene === "events" || scene === "news" || scene === "stats") && (
+        <img className="k7-scene-logo" src="/k7-logo-transparent.png" alt="" draggable={false} />
+      )}
+      <div className="k7-scene-signature"><b>{identity.number}</b><span>{identity.label}</span></div>
       <div className="k7-scene-scrim" />
     </div>
   );
@@ -346,7 +368,7 @@ export default function Home() {
   async function moderateChat(id?: string) {
     const isManager = accessRole === "OWNER" || accessRole === "IGL";
     if (!isManager) return;
-    if (!window.confirm(id ? "Удалить это сообщение?" : "Очистить весь чат для всех участников?")) return;
+    if (!window.confirm(id ? "Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÑÐ¾ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ?" : "ÐÑÐ¸ÑÑÐ¸ÑÑ Ð²ÐµÑÑ ÑÐ°Ñ Ð´Ð»Ñ Ð²ÑÐµÑ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ¾Ð²?")) return;
     try {
       const response = await fetch("/api/chat", {
         method: "DELETE", credentials: "include",
@@ -354,11 +376,11 @@ export default function Home() {
         body: JSON.stringify(id ? { id } : { all: true })
       });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Ошибка модерации");
+      if (!response.ok || !result.success) throw new Error(result.error || "ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÑÐ°ÑÐ¸Ð¸");
       setChatMessages((current) => id ? current.filter((message) => message.id !== id) : []);
       setChatHasMore(false);
       setChatError("");
-    } catch (err) { setChatError(err instanceof Error ? err.message : "Ошибка модерации"); }
+    } catch (err) { setChatError(err instanceof Error ? err.message : "ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÑÐ°ÑÐ¸Ð¸"); }
   }
 
   async function loadOlderChat() {
@@ -526,7 +548,7 @@ export default function Home() {
       now - previous.time < 350
     ) {
       lastTapRef.current = null;
-      void toggleChatReaction(messageId, "🔥");
+      void toggleChatReaction(messageId, "ð¥");
       return;
     }
 
@@ -793,7 +815,7 @@ export default function Home() {
         <img src="/k7-logo-transparent.png" alt="" className="k7-header-logo" />
         <div className="k7-header-brand"><strong>K7 CREW</strong><span>TELEGRAM MINI APP</span></div>
         {(accessRole === "OWNER" || accessRole === "IGL") && (
-          <span className="k7-header-access"><Crown size={12} /> УПРАВЛЕНИЕ</span>
+          <span className="k7-header-access"><Crown size={12} /> Ð£ÐÐ ÐÐÐÐÐÐÐ</span>
         )}
       </header>
 
@@ -820,13 +842,13 @@ export default function Home() {
                 </h2>
 
                 <p>ONE CREW. ONE CONNECTION.</p>
-                <p className="k7-chat-timer">ТАЙМЕР УДАЛЕНИЯ СООБЩЕНИЙ — 10 МИН.</p>
+                <p className="k7-chat-timer">Ð¢ÐÐÐÐÐ  Ð£ÐÐÐÐÐÐÐ¯ Ð¡ÐÐÐÐ©ÐÐÐÐ â 10 ÐÐÐ.</p>
                 {viewer && (
                   <div className="k7-chat-viewer">
                     {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
                     <span>
                       <strong>{viewer.username ? `@${viewer.username}` : viewer.firstName}</strong>
-                      <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "Участник сообщества" : accessRole)}</small>
+                      <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "Ð£ÑÐ°ÑÑÐ½Ð¸Ðº ÑÐ¾Ð¾Ð±ÑÐµÑÑÐ²Ð°" : accessRole)}</small>
                     </span>
                   </div>
                 )}
@@ -841,11 +863,11 @@ export default function Home() {
             {(accessRole === "OWNER" || accessRole === "IGL") && (
               <div className="k7-chat-management">
                 <button type="button" className="k7-panel-button" onClick={() => setChatManageOpen((value) => !value)}>
-                  <Shield size={13} /> НАСТРОЙКИ ЧАТА
+                  <Shield size={13} /> ÐÐÐ¡Ð¢Ð ÐÐÐÐ Ð§ÐÐ¢Ð
                 </button>
                 {chatManageOpen && <div className="k7-chat-management-tools">
-                  <span>Автоудаление сообщений — 10 минут</span>
-                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>ОЧИСТИТЬ ЧАТ</button>
+                  <span>ÐÐ²ÑÐ¾ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ðµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â 10 Ð¼Ð¸Ð½ÑÑ</span>
+                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>ÐÐ§ÐÐ¡Ð¢ÐÐ¢Ð¬ Ð§ÐÐ¢</button>
                 </div>}
               </div>
             )}
@@ -947,7 +969,7 @@ export default function Home() {
 
                         <div className="k7-chat-message-actions">
                           {(accessRole === "OWNER" || accessRole === "IGL") && (
-                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="Удалить сообщение">УДАЛИТЬ</button>
+                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ">Ð£ÐÐÐÐÐ¢Ð¬</button>
                           )}
                           <button
                             onClick={() => setReplyTo(message)}
@@ -1018,7 +1040,7 @@ export default function Home() {
                       <strong>{getChatName(replyTo)}</strong>
                     </div>
                     <button onClick={() => setReplyTo(null)} aria-label="Cancel reply">
-                      ×
+                      Ã
                     </button>
                   </div>
                 )}
@@ -1031,7 +1053,7 @@ export default function Home() {
                     onFocus={() => { chatInputFocusedRef.current = true; }}
                     onBlur={() => { chatInputFocusedRef.current = false; }}
                     placeholder="Write a message..."
-                    aria-label="Сообщение чата"
+                    aria-label="Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ ÑÐ°ÑÐ°"
                     maxLength={1000}
                     rows={1}
                     disabled={!authReady || chatSending}
