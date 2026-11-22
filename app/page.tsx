@@ -250,6 +250,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [introVisible, setIntroVisible] = useState(true);
 
+  const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState("");
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatText, setChatText] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -264,6 +267,7 @@ export default function Home() {
   } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const chatInputFocusedRef = useRef(false);
 
   async function loadRoster() {
     try {
@@ -421,18 +425,89 @@ export default function Home() {
     };
   }
 
+  // Telegram authentication must finish before API requests.
   useEffect(() => {
-    void loadRoster();
+    let cancelled = false;
+
+    async function initializeApp() {
+      try {
+        const telegram = (
+          window as Window & {
+            Telegram?: {
+              WebApp?: {
+                initData?: string;
+                ready?: () => void;
+                expand?: () => void;
+              };
+            };
+          }
+        ).Telegram?.WebApp;
+
+        telegram?.ready?.();
+        telegram?.expand?.();
+
+        const initData = telegram?.initData;
+
+        if (!initData) {
+          throw new Error(
+            "Open K7 CREW inside Telegram to sign in."
+          );
+        }
+
+        const response = await fetch("/api/auth", {
+          method: "POST",
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ initData }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || "Telegram authentication failed"
+          );
+        }
+
+        if (cancelled) return;
+
+        setAuthError("");
+        setAuthReady(true);
+
+        await loadRoster();
+      } catch (err) {
+        if (cancelled) return;
+
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Authentication failed";
+
+        setAuthError(message);
+        setChatError(message);
+        setError(message);
+        setLoading(false);
+      }
+    }
+
+    void initializeApp();
 
     const introTimer = window.setTimeout(() => {
       setIntroVisible(false);
     }, 2300);
 
-    return () => window.clearTimeout(introTimer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(introTimer);
+    };
   }, []);
 
+  // Chat requests only run after successful authentication.
   useEffect(() => {
-    if (activeTab !== "chat") return;
+    if (!authReady || activeTab !== "chat") return;
 
     void loadChat();
 
@@ -443,17 +518,9 @@ export default function Home() {
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, authReady]);
 
-  useEffect(() => {
-    if (activeTab === "chat" && chatMessages.length > 0) {
-      chatEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }
-  }, [chatMessages, activeTab]);
-
+  // Keep the active tab stable while the keyboard is open.
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(
       "[data-nav-section]"
@@ -461,6 +528,8 @@ export default function Home() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (chatInputFocusedRef.current) return;
+
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const id = entry.target.id;
@@ -808,7 +877,11 @@ export default function Home() {
             </div>
 
             <div className="k7-chat-feed">
-              {chatLoading && chatMessages.length === 0 ? (
+              {!authReady ? (
+                <div className="k7-chat-status">
+                  {authError || "CONNECTING TO K7 CREW..."}
+                </div>
+              ) : chatLoading && chatMessages.length === 0 ? (
                 <div className="k7-chat-status">
                   CONNECTING TO THE CREW...
                 </div>
@@ -1006,22 +1079,28 @@ export default function Home() {
 
             <button
               className="elite-refresh"
-              onClick={loadRoster}
-              disabled={loading}
+              onClick={() => void loadRoster()}
+              disabled={loading || !authReady}
               aria-label="Refresh roster"
             >
               <RefreshCw size={17} />
             </button>
           </div>
 
-          {loading ? (
+          {!authReady ? (
+            <div className="elite-loading">
+              {authError || "AUTHENTICATING..."}
+            </div>
+          ) : loading ? (
             <div className="elite-loading">
               LOADING THE SQUAD...
             </div>
           ) : error ? (
             <div className="elite-error">
               <p>{error}</p>
-              <button onClick={loadRoster}>TRY AGAIN</button>
+              <button onClick={() => void loadRoster()}>
+                TRY AGAIN
+              </button>
             </div>
           ) : (
             <>
@@ -1133,7 +1212,6 @@ export default function Home() {
           activeTab === "chat" ? "is-visible" : ""
         }`}
         aria-hidden={activeTab !== "chat"}
-        inert={activeTab !== "chat"}
       >
         <div className="k7-chat-composer-inner">
           {replyTo && (
@@ -1159,10 +1237,23 @@ export default function Home() {
                 setChatText(event.target.value.slice(0, 1000))
               }
               onKeyDown={handleChatKeyDown}
+              onPointerDown={() => {
+                chatInputFocusedRef.current = true;
+              }}
+              onFocus={() => {
+                chatInputFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                chatInputFocusedRef.current = false;
+              }}
               placeholder="Write a message..."
               maxLength={1000}
               rows={1}
-              disabled={activeTab !== "chat" || chatSending}
+              disabled={
+                activeTab !== "chat" ||
+                !authReady ||
+                chatSending
+              }
             />
 
             <span className="k7-chat-counter">
@@ -1174,6 +1265,7 @@ export default function Home() {
               onClick={() => void sendChatMessage()}
               disabled={
                 activeTab !== "chat" ||
+                !authReady ||
                 !chatText.trim() ||
                 chatSending
               }
