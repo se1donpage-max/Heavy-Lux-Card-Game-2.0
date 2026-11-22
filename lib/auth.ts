@@ -56,16 +56,43 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       return null;
     }
 
+    // Капитан получает права IGL, пока остаётся капитаном.
+    // Проверяем актуальный состав, а не роль из старой сессии.
+    let effectiveRole = data.access_role as AccessRole;
+
+    if (effectiveRole === "MEMBER") {
+      const { data: rosterRecord, error: rosterError } =
+        await supabase
+          .from("roster")
+          .select("is_captain")
+          .eq("telegram_id", session.user.telegramId)
+          .maybeSingle();
+
+      if (rosterError) {
+        console.error(
+          "Captain permission lookup failed:",
+          rosterError
+        );
+
+        return null;
+      }
+
+      if (rosterRecord?.is_captain) {
+        effectiveRole = "IGL";
+      }
+    }
+
     return {
       telegramId: Number(data.telegram_id),
       firstName: data.first_name,
       lastName: data.last_name,
       username: data.username,
       photoUrl: data.photo_url,
-      accessRole: data.access_role as AccessRole
+      accessRole: effectiveRole
     };
   } catch (error) {
     console.error("Authentication lookup failed:", error);
+
     return null;
   }
 }
