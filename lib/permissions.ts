@@ -17,11 +17,8 @@ const permissions: Record<AccessRole, Permission[]> = {
     "SUBMIT_MATCH_RESULTS"
   ],
 
-  ADMIN: [
-    "MANAGE_ROSTER",
-    "MANAGE_CONTENT",
-    "SUBMIT_MATCH_RESULTS"
-  ],
+  // ADMIN is a legacy account role; only OWNER and IGL can manage content.
+  ADMIN: [],
 
   IGL: [
     "MANAGE_ROSTER",
