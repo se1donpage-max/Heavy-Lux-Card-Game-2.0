@@ -153,6 +153,29 @@ function getChatTime(date: string) {
   });
 }
 
+function mergeChatMessages(
+  current: ChatMessage[],
+  incoming: ChatMessage[]
+): ChatMessage[] {
+  const now = Date.now();
+  const byId = new Map<string, ChatMessage>();
+
+  for (const message of [...current, ...incoming]) {
+    if (Date.parse(message.expires_at) > now) {
+      byId.set(message.id, message);
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => {
+    const difference =
+      Date.parse(a.created_at) - Date.parse(b.created_at);
+
+    return difference !== 0
+      ? difference
+      : a.id.localeCompare(b.id);
+  });
+}
+
 function PlayerCard({
   player,
   slot,
@@ -255,6 +278,8 @@ export default function Home() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatText, setChatText] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatHasMore, setChatHasMore] = useState(false);
+  const [chatLoadingOlder, setChatLoadingOlder] = useState(false);
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -266,7 +291,16 @@ export default function Home() {
   } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const chatFeedRef = useRef<HTMLDivElement | null>(null);
   const chatInputFocusedRef = useRef(false);
+
+  const chatShouldStickToBottomRef = useRef(true);
+  const chatOlderLoadingRef = useRef(false);
+
+  const chatPrependPositionRef = useRef<{
+    height: number;
+    top: number;
+  } | null>(null);
 
   async function loadRoster() {
     try {
@@ -309,7 +343,11 @@ export default function Home() {
         throw new Error(result.error || "Could not load chat");
       }
 
-      setChatMessages(result.messages ?? []);
+      setChatMessages((current) =>
+        mergeChatMessages(current, result.messages ?? [])
+      );
+
+      setChatHasMore(Boolean(result.hasMore));
 
       if (result.currentUserId != null) {
         setCurrentUserId(Number(result.currentUserId));
@@ -322,6 +360,80 @@ export default function Home() {
       );
     } finally {
       if (!silent) setChatLoading(false);
+    }
+  }
+
+  async function loadOlderChat() {
+    const feed = chatFeedRef.current;
+    const oldestMessage = chatMessages[0];
+
+    if (
+      !feed ||
+      !oldestMessage ||
+      !chatHasMore ||
+      chatOlderLoadingRef.current
+    ) {
+      return;
+    }
+
+    chatOlderLoadingRef.current = true;
+    setChatLoadingOlder(true);
+
+    try {
+      const params = new URLSearchParams({
+        beforeCreatedAt: oldestMessage.created_at,
+        beforeId: oldestMessage.id,
+      });
+
+      const response = await fetch(`/api/chat?${params.toString()}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Could not load older messages");
+      }
+
+      const olderMessages = result.messages ?? [];
+
+      if (olderMessages.length > 0) {
+        chatPrependPositionRef.current = {
+          height: feed.scrollHeight,
+          top: feed.scrollTop,
+        };
+
+        setChatMessages((current) =>
+          mergeChatMessages(current, olderMessages)
+        );
+      }
+
+      setChatHasMore(Boolean(result.hasMore));
+    } catch (err) {
+      setChatError(
+        err instanceof Error
+          ? err.message
+          : "Could not load older messages"
+      );
+    } finally {
+      chatOlderLoadingRef.current = false;
+      setChatLoadingOlder(false);
+    }
+  }
+
+  function handleChatFeedScroll() {
+    const feed = chatFeedRef.current;
+    if (!feed) return;
+
+    const distanceFromBottom =
+      feed.scrollHeight - feed.clientHeight - feed.scrollTop;
+
+    chatShouldStickToBottomRef.current =
+      distanceFromBottom < 110;
+
+    if (feed.scrollTop < 70) {
+      void loadOlderChat();
     }
   }
 
@@ -354,6 +466,8 @@ export default function Home() {
 
       setChatText("");
       setReplyTo(null);
+
+      chatShouldStickToBottomRef.current = true;
 
       await loadChat(true);
     } catch (err) {
@@ -518,6 +632,34 @@ export default function Home() {
 
     return () => window.clearInterval(interval);
   }, [activeTab, authReady]);
+
+  // Keep chat position stable when messages change.
+  useEffect(() => {
+    const feed = chatFeedRef.current;
+
+    if (!feed || chatMessages.length === 0) return;
+
+    const previousPosition = chatPrependPositionRef.current;
+
+    if (previousPosition) {
+      chatPrependPositionRef.current = null;
+
+      window.requestAnimationFrame(() => {
+        feed.scrollTop =
+          feed.scrollHeight -
+          previousPosition.height +
+          previousPosition.top;
+      });
+
+      return;
+    }
+
+    if (chatShouldStickToBottomRef.current) {
+      window.requestAnimationFrame(() => {
+        feed.scrollTop = feed.scrollHeight;
+      });
+    }
+  }, [chatMessages]);
 
   // Keep the active tab stable while the keyboard is open.
   useEffect(() => {
@@ -881,7 +1023,17 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="k7-chat-feed">
+            <div
+              className="k7-chat-feed"
+              ref={chatFeedRef}
+              onScroll={handleChatFeedScroll}
+            >
+              {chatLoadingOlder && (
+                <div className="k7-chat-history-loading">
+                  LOADING OLDER MESSAGES...
+                </div>
+              )}
+
               {!authReady ? (
                 <div className="k7-chat-status">
                   {authError || "CONNECTING TO K7 CREW..."}
