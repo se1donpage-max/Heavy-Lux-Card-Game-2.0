@@ -24,6 +24,8 @@ const permissions: Record<AccessRole, Permission[]> = {
   ],
 
   IGL: [
+    "MANAGE_ROSTER",
+    "MANAGE_CONTENT",
     "SUBMIT_MATCH_RESULTS"
   ],
 
