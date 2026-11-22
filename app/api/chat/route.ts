@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { canManageContent } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -241,5 +242,48 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Chat POST error:", error);
     return jsonError("Internal server error", 500);
+  }
+}
+
+// Moderation requests never trust a client-supplied admin flag.
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return jsonError("Unauthorized", 401);
+    if (!canManageContent(user.accessRole)) return jsonError("Forbidden", 403);
+
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") {
+      return jsonError("Invalid payload", 400);
+    }
+
+    const action = body as { id?: unknown; all?: unknown };
+
+    if (
+      action.all !== true &&
+      (typeof action.id !== "string" || !uuidPattern.test(action.id))
+    ) {
+      return jsonError("Invalid message ID", 400);
+    }
+
+    const db = getSupabaseAdmin();
+
+    const operation = action.all === true
+      ? db.from("chat_messages")
+          .delete()
+          .gt("expires_at", new Date(0).toISOString())
+      : db.from("chat_messages")
+          .delete()
+          .eq("id", action.id as string);
+
+    const { error } = await operation;
+
+    if (error) {
+      return jsonError("Could not delete messages", 503);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return jsonError("Invalid request", 400);
   }
 }
