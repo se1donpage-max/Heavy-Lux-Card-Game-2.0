@@ -77,13 +77,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: existing, error: existingError } = await supabase
+    const { data: existingRows, error: existingError } = await supabase
       .from("chat_reactions")
-      .select("id")
+      .select("*")
       .eq("message_id", messageId)
-      .eq("telegram_id", user.telegramId)
-      .eq("reaction", reaction)
-      .maybeSingle();
+      .eq("telegram_id", user.telegramId);
 
     if (existingError) {
       return NextResponse.json(
@@ -91,6 +89,10 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
+
+    const existing = existingRows?.find((row) =>
+      row.reaction === reaction || row.emoji === reaction
+    );
 
     if (existing) {
       const { error } = await supabase
@@ -112,16 +114,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { error } = await supabase
+    // Support both database column variants.
+    let { error } = await supabase
       .from("chat_reactions")
       .insert({
         message_id: messageId,
         telegram_id: user.telegramId,
-        reaction
+        emoji: reaction,
       });
 
+    if (
+      error &&
+      (
+        error.code === "PGRST204" ||
+        error.code === "42703" ||
+        /column.*emoji|emoji.*column/i.test(error.message)
+      )
+    ) {
+      const retry = await supabase
+        .from("chat_reactions")
+        .insert({
+          message_id: messageId,
+          telegram_id: user.telegramId,
+          reaction,
+        });
+
+      error = retry.error;
+    }
+
     if (error) {
-      console.error("Reaction creation failed:", error.message);
+      console.error(
+        "Reaction creation failed:",
+        error.message
+      );
 
       return NextResponse.json(
         { error: "Could not add reaction" },
