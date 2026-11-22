@@ -62,11 +62,7 @@ export async function GET(request: NextRequest) {
           username,
           photo_url
         ),
-        chat_reactions (
-          id,
-          telegram_id,
-          reaction
-        )
+        chat_reactions (*)
       `)
       .gt("expires_at", new Date().toISOString());
 
@@ -88,7 +84,28 @@ export async function GET(request: NextRequest) {
 
     const rows = data ?? [];
     const hasMore = rows.length > PAGE_SIZE;
-    const messages = rows.slice(0, PAGE_SIZE).reverse();
+
+    const messages = rows
+      .slice(0, PAGE_SIZE)
+      .reverse()
+      .map((row) => ({
+        ...row,
+        chat_reactions: (row.chat_reactions ?? []).map((item) => {
+          // Original schema uses emoji;
+          // some deployed databases use reaction.
+          const reaction = item as typeof item & {
+            emoji?: string;
+            reaction?: string;
+          };
+
+          return {
+            id: reaction.id,
+            telegram_id: reaction.telegram_id,
+            reaction:
+              reaction.reaction ?? reaction.emoji ?? "",
+          };
+        }),
+      }));
 
     return NextResponse.json({
       success: true,
@@ -141,7 +158,10 @@ export async function POST(request: NextRequest) {
         : null;
 
     if (!content || content.length > MESSAGE_LIMIT) {
-      return jsonError("Message must contain 1–1000 characters", 400);
+      return jsonError(
+        "Message must contain 1–1000 characters",
+        400
+      );
     }
 
     if (replyTo && !uuidPattern.test(replyTo)) {
@@ -204,7 +224,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Chat message creation failed:", error);
+      console.error(
+        "Chat message creation failed:",
+        error
+      );
       return jsonError("Could not send message", 503);
     }
 
