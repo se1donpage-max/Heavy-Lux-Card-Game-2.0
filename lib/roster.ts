@@ -85,5 +85,5 @@ export function validateRosterInput(
 }
 
 export function canEditRoster(role: AccessRole): boolean {
-  return role === "OWNER" || role === "ADMIN";
+  return role === "OWNER" || role === "ADMIN" || role === "IGL";
 }
