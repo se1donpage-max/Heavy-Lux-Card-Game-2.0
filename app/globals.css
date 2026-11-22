@@ -3278,3 +3278,302 @@ textarea:focus-visible {
   }
   .depth-orb, .depth-ring { animation: none !important; }
 }
+
+
+/* ============================================================
+   K7 CREW / CINEMA 2.3 — FIVE DISTINCT ART-DIRECTED CHAPTERS
+   The page remains one continuous scroll. Every title, logo and
+   lighting treatment belongs INSIDE its chapter, behind the UI.
+   ============================================================ */
+
+/* Dark film base with readable typography and stronger visual rhythm. */
+.k7-cinema-section,
+#chat.k7-cinema-section {
+  position: relative;
+  min-height: 100svh;
+  padding-top: clamp(168px, 24svh, 265px);
+  padding-bottom: clamp(112px, 17svh, 175px);
+  overflow: clip;
+  isolation: isolate;
+}
+.k7-cinema-section .k7-scene-backdrop {
+  inset: 0;
+  background: #08090a;
+  /* Keep chapters continuous while retaining a dramatic center stage. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 5%, #000 95%, transparent);
+}
+.k7-cinema-section .k7-scene-backdrop::after { background: none; }
+.k7-cinema-section .k7-scene-backdrop::before {
+  opacity: .18;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.08) 4px, transparent 5px);
+}
+.k7-scene-scrim {
+  position: absolute; inset: 0; z-index: 5;
+  background: linear-gradient(180deg,
+    rgba(4,5,6,.03) 0%, rgba(4,5,6,.12) 22%,
+    rgba(4,5,6,.46) 47%, rgba(4,5,6,.62) 75%, rgba(4,5,6,.15) 100%);
+}
+.k7-cinema-section .k7-scene-word {
+  z-index: 3;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: condensed;
+  line-height: .79;
+  text-wrap: nowrap;
+  max-width: none;
+  overflow: visible;
+  letter-spacing: -.055em;
+  opacity: 1;
+  filter: blur(var(--k7-blur, .6px)) brightness(var(--k7-bright, 1.1));
+  text-shadow: 0 8px 55px rgba(0,0,0,.5);
+}
+.k7-cinema-section .k7-scene-word-a {
+  top: 7%; left: -3%;
+  font-size: clamp(134px, 24vw, 380px);
+  color: rgba(247,248,250,.54);
+  -webkit-text-stroke: .5px rgba(255,255,255,.26);
+}
+.k7-cinema-section .k7-scene-word-b {
+  top: 43%; right: -19%;
+  font-size: clamp(96px, 16vw, 270px);
+  color: rgba(255,255,255,.05);
+  -webkit-text-stroke: 1.5px rgba(255,255,255,.43);
+  text-shadow: 0 0 48px rgba(255,255,255,.05);
+}
+.k7-cinema-section .k7-scene-word-c {
+  left: -14%; bottom: 6%;
+  font-size: clamp(110px, 18vw, 290px);
+  color: rgba(248,249,251,.24);
+  -webkit-text-stroke: .5px rgba(255,255,255,.15);
+}
+.k7-scene-signature {
+  position: absolute; top: 76px; left: clamp(20px, 6vw, 78px);
+  display: flex; align-items: center; gap: 12px;
+  z-index: 4; white-space: nowrap;
+  color: rgba(255,255,255,.75);
+  font: 700 10px/1.1 var(--font-body);
+  letter-spacing: .27em;
+}
+.k7-scene-signature b {
+  font: 900 23px/.9 var(--font-display);
+  letter-spacing: .02em; color: white;
+}
+.k7-scene-signature::before { content: ''; width: 26px; height: 1px; background: rgba(255,255,255,.85); }
+.k7-scene-grid { opacity: .16; }
+.k7-scene-filmline {
+  position: absolute; z-index: 2; top: 0; bottom: 0;
+  width: 1px; left: 8%; opacity: .37;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,.65), transparent);
+}
+.k7-scene-structure {
+  position: absolute; inset: 0; z-index: 2;
+  pointer-events: none; transform-style: preserve-3d;
+}
+.k7-structure-frame,
+.k7-structure-emblem,
+.k7-structure-beam,
+.k7-structure-bars { position: absolute; }
+.k7-structure-frame { border: 1px solid rgba(255,255,255,.14); }
+.k7-structure-emblem {
+  color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.29);
+  font: 900 clamp(155px, 38vw, 530px)/.8 var(--font-display);
+  letter-spacing: -.11em;
+  transform: translate3d(var(--k7-travel-half, 0px),var(--k7-travel-neg,0px),0);
+}
+.k7-structure-beam { background: linear-gradient(90deg, transparent,rgba(252,253,255,.42),transparent); }
+.k7-structure-bars { display: flex; gap: 8px; align-items: center; }
+.k7-structure-bars i { display: block; flex: 1; min-width: 2px; background: rgba(255,255,255,.24); }
+.k7-cinema-section .k7-scene-monogram {
+  z-index: 1; font-size: clamp(310px, 65vw, 930px);
+  -webkit-text-stroke: 1px rgba(255,255,255,.15);
+  opacity: calc(.42 + var(--k7-focus,.5) * .38);
+}
+.k7-cinema-section .k7-scene-logo { z-index: 2; }
+.k7-cinema-section .k7-scene-light { z-index: 1; transition: opacity .4s ease; }
+.k7-cinema-section .k7-scene-light-primary {
+  filter: blur(36px); opacity: var(--k7-glow,.75);
+}
+.k7-cinema-section .k7-scene-light-secondary {
+  filter: blur(65px); opacity: calc(var(--k7-glow,.75) * .75);
+}
+.k7-cinema-section .elite-section-inner { z-index: 7; }
+.k7-cinema-section .k7-chat,
+.k7-cinema-section .k7-data-panel,
+.k7-cinema-section .roster-player {
+  background-color: rgba(8,9,11,.79);
+  box-shadow: 0 26px 85px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.11);
+}
+.k7-cinema-section .k7-chat,
+.k7-cinema-section .k7-data-panel,
+.k7-cinema-section .roster-player {
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+
+/* SCENE 01 — CHAT / a living transmission, sonar, concentric signals.
+   The K7 type is a fragment of the signal, not a pasted logo. */
+#chat .k7-scene-backdrop { background: radial-gradient(ellipse at 74% 20%, #1c2027 0%, #0b0c0f 42%, #050506 90%); }
+#chat .k7-scene-word-a {
+  top: 9%; left: -10%;
+  font-size: clamp(152px,27vw,390px);
+  color: rgba(255,255,255,.6);
+  transform: perspective(950px) translate3d(var(--k7-travel-neg, 0px), var(--k7-travel-half, 0px), 45px) rotateY(-9deg) rotate(-12deg) scale(var(--k7-scale,1));
+}
+#chat .k7-scene-word-b { top: 52%; right: -38%; -webkit-text-stroke-color: rgba(255,255,255,.3); }
+#chat .k7-scene-word-c { bottom: 4%; left: -12%; opacity: .75; }
+#chat .k7-structure-frame {
+  top: 2%; right: -28%; width: min(95vw, 880px); aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 0 0 42px rgba(255,255,255,.018),0 0 0 92px rgba(255,255,255,.012),inset 0 0 70px rgba(255,255,255,.025);
+  transform: translate3d(var(--k7-travel-half,0px), var(--k7-travel-neg,0px),0) rotate(-17deg);
+}
+#chat .k7-structure-emblem { top: 15%; right: 1%; opacity: .75; transform: rotate(-18deg) translateY(var(--k7-travel-neg,0px)); }
+#chat .k7-structure-beam { top: 9%; right: 13%; width: 2px; height: 62%; background: linear-gradient(180deg,transparent,rgba(255,255,255,.52),transparent); transform: rotate(-30deg); }
+#chat .k7-structure-bars { top: 24%; left: 8%; width: 56%; height: 95px; transform: rotate(90deg) translateY(var(--k7-travel-half,0px)); opacity: .8; }
+#chat .k7-structure-bars i:nth-child(1), #chat .k7-structure-bars i:nth-child(7) { height: 18%; }
+#chat .k7-structure-bars i:nth-child(2), #chat .k7-structure-bars i:nth-child(6) { height: 45%; }
+#chat .k7-structure-bars i:nth-child(3), #chat .k7-structure-bars i:nth-child(5) { height: 78%; }
+#chat .k7-structure-bars i:nth-child(4) { height: 100%; background: rgba(255,255,255,.55); }
+#chat .k7-scene-monogram { opacity: .1; top: 34%; left: -25%; right: auto; }
+
+/* SCENE 02 — EVENTS / diagonal stadium lights and hard architectural slashes.
+   Only this scene uses a huge physical emblem. */
+#events .k7-scene-backdrop { background: linear-gradient(123deg,#070708 4%,#202127 42%,#09090b 70%,#020203); }
+#events .k7-scene-word-a { top: 10%; left: -22%; color: rgba(255,255,255,.6); font-size: clamp(144px,25vw,370px); }
+#events .k7-scene-word-b { top: 50%; right: -17%; color: rgba(255,255,255,.08); -webkit-text-stroke-color: rgba(255,255,255,.52); }
+#events .k7-scene-word-c { left: -2%; bottom: 6%; }
+#events .k7-structure-frame {
+  right: -35%; top: -13%; width: 105%; height: 78%;
+  border: 0; background: linear-gradient(105deg,transparent 29%,rgba(255,255,255,.06) 31%,rgba(255,255,255,.01) 38%,transparent 46%);
+  transform: skewX(-23deg) translateX(var(--k7-travel-half,0px));
+}
+#events .k7-structure-emblem { bottom: 6%; left: -12%; font-size: clamp(170px, 40vw, 590px); opacity: .36; transform: rotate(11deg); }
+#events .k7-structure-beam {
+  top: -12%; left: 35%; width: 12%; height: 115%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.31),transparent);
+  filter: blur(17px); transform: skewX(-23deg) translateX(var(--k7-travel-half,0px));
+}
+#events .k7-structure-bars { top: 0; right: 10%; width: 1px; height: 100%; display:block; background: rgba(255,255,255,.4); transform: rotate(24deg); }
+#events .k7-structure-bars i { display: none; }
+#events .k7-scene-logo {
+  top: 3%; right: -3%; width: clamp(180px, 42vw, 550px);
+  opacity: calc(.17 + var(--k7-focus,.6) * .25);
+  filter: grayscale(1) drop-shadow(0 12px 36px rgba(255,255,255,.25));
+  transform: perspective(930px) rotateY(-18deg) rotateZ(17deg) translate3d(var(--k7-travel-half,0px),var(--k7-travel-neg,0px),50px);
+}
+#events .k7-scene-monogram { opacity: .06; top: 20%; }
+
+/* SCENE 03 — ROSTER / precise vertical formation lines.
+   Repeated physical logos are deliberately absent. */
+#roster .k7-scene-backdrop { background: linear-gradient(170deg,#101216,#060709 40%,#17191c 76%,#050506); }
+#roster .k7-scene-word-a { top: 7%; left: -10%; font-size: clamp(128px,22vw,310px); color: rgba(255,255,255,.59); }
+#roster .k7-scene-word-b { top: 43%; right: -29%; font-size: clamp(117px,18vw,270px); }
+#roster .k7-scene-word-c { bottom: 8%; left: -23%; color: rgba(255,255,255,.27); }
+#roster .k7-structure-frame {
+  top: 7%; left: 8%; width: 84%; height: 81%;
+  border: 0; border-left: 1px solid rgba(255,255,255,.23);
+  border-right: 1px solid rgba(255,255,255,.23);
+  transform: rotate(-5deg) translateX(var(--k7-travel-half,0px));
+}
+#roster .k7-structure-emblem { top: 24%; right: -16%; font-size: clamp(250px, 59vw, 860px); transform: rotate(90deg) translateY(var(--k7-travel-neg,0px)); -webkit-text-stroke-color: rgba(255,255,255,.39); opacity: .74; }
+#roster .k7-structure-beam { top: 0; left: 19%; width: 15%; height: 100%; transform: skewX(-12deg); background: linear-gradient(90deg,transparent,rgba(255,255,255,.11),transparent); }
+#roster .k7-structure-bars { top: 10%; left: 7%; width: 86%; height: 75%; align-items: stretch; gap: 12px; }
+#roster .k7-structure-bars i { height: 100%; width: 1px; flex: 1; background: linear-gradient(180deg,rgba(255,255,255,.28),transparent 74%); }
+#roster .k7-structure-bars i:nth-child(4) { background: linear-gradient(180deg,rgba(255,255,255,.7),transparent); }
+#roster .k7-scene-monogram { top: 10%; left: -35%; right: auto; opacity: .07; }
+
+/* SCENE 04 — NEWS / large editorial typography, horizontal ticker.
+   The emblem is a small press seal instead of a giant repeated stamp. */
+#news .k7-scene-backdrop { background: linear-gradient(190deg,#070708,#14161a 42%,#050607 70%,#0b0c0d); }
+#news .k7-scene-word-a { top: 11%; left: -16%; color: rgba(255,255,255,.68); font-size: clamp(155px,27vw,420px); }
+#news .k7-scene-word-b { top: 42%; right: -42%; -webkit-text-stroke-color: rgba(255,255,255,.45); transform: rotate(-90deg) translateX(var(--k7-travel-half,0px)); }
+#news .k7-scene-word-c { bottom: 8%; left: -5%; color: rgba(255,255,255,.22); }
+#news .k7-structure-frame { left: 7%; top: 11%; width: 86%; height: 65%; border: 1px solid rgba(255,255,255,.15); border-top: 4px solid rgba(255,255,255,.28); transform: rotate(-5deg); }
+#news .k7-structure-emblem { top: 10%; left: 6%; font-size: clamp(135px,28vw,380px); transform: rotate(-3deg); opacity: .55; }
+#news .k7-structure-beam { top: 26%; left: -10%; width: 115%; height: 1px; background: linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); transform: rotate(-5deg); }
+#news .k7-structure-bars { bottom: 8%; left: 5%; width: 86%; height: 21px; gap: 7px; opacity: .5; }
+#news .k7-structure-bars i { height: 1px; }
+#news .k7-scene-logo {
+  top: auto; bottom: 8%; right: 7%; width: clamp(85px,12vw,165px);
+  opacity: .55; filter: grayscale(1) contrast(1.35) drop-shadow(0 0 17px rgba(255,255,255,.19));
+  transform: rotate(10deg) translateY(var(--k7-travel-half,0px));
+}
+#news .k7-scene-monogram { opacity: .07; top: 14%; }
+
+/* SCENE 05 — STATS / measuring instruments, data columns, precision rings. */
+#stats .k7-scene-backdrop { background: radial-gradient(ellipse at 16% 18%, #23252b,#0b0d11 48%,#040506 90%); }
+#stats .k7-scene-word-a { top: 9%; left: -39%; color: rgba(255,255,255,.64); font-size: clamp(136px,22vw,340px); }
+#stats .k7-scene-word-b { top: 39%; right: -24%; font-size: clamp(114px, 18vw, 275px); -webkit-text-stroke-color: rgba(255,255,255,.6); }
+#stats .k7-scene-word-c { bottom: 7%; left: -15%; color: rgba(255,255,255,.25); }
+#stats .k7-structure-frame {
+  top: 4%; left: -16%; width: min(80vw,790px); aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.26);
+  box-shadow: inset 0 0 0 58px rgba(255,255,255,.015),0 0 0 110px rgba(255,255,255,.014), 0 0 85px rgba(255,255,255,.038);
+  transform: rotate(15deg) translateX(var(--k7-travel-half,0px));
+}
+#stats .k7-structure-emblem { top: 10%; left: 6%; opacity: .6; transform: rotate(-14deg); }
+#stats .k7-structure-beam { top: 14%; left: -8%; width: 86%; height: 2px; transform: rotate(-21deg); background: linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); }
+#stats .k7-structure-bars { top: 45%; right: 5%; width: 60%; height: 220px; align-items: end; gap: 11px; transform: skewX(-13deg); }
+#stats .k7-structure-bars i { background: linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,.04)); }
+#stats .k7-structure-bars i:nth-child(1) { height: 18%; }
+#stats .k7-structure-bars i:nth-child(2) { height: 38%; }
+#stats .k7-structure-bars i:nth-child(3) { height: 29%; }
+#stats .k7-structure-bars i:nth-child(4) { height: 65%; }
+#stats .k7-structure-bars i:nth-child(5) { height: 51%; }
+#stats .k7-structure-bars i:nth-child(6) { height: 85%; }
+#stats .k7-structure-bars i:nth-child(7) { height: 100%; background: linear-gradient(180deg,rgba(255,255,255,.57),rgba(255,255,255,.05)); }
+#stats .k7-scene-logo {
+  top: auto; bottom: 5%; right: 7%; width: clamp(85px,12vw,150px);
+  opacity: .17; filter: grayscale(1) blur(2px);
+  transform: rotate(-11deg) scale(1.3) translateY(var(--k7-travel-neg,0px));
+}
+#stats .k7-scene-monogram { top: 20%; right: -31%; opacity: .06; }
+
+/* On mobile, visual storytelling remains strong without swallowing the UI. */
+@media (max-width: 600px) {
+  .k7-cinema-section,
+  #chat.k7-cinema-section { padding: 143px 17px calc(var(--nav-height) + 100px + env(safe-area-inset-bottom)); min-height: 95svh; }
+  .k7-cinema-section .k7-scene-word { filter: blur(calc(var(--k7-blur,.6px) * .65)) brightness(var(--k7-bright,1)); }
+  .k7-cinema-section .k7-scene-word-a { top: 9%; left: -15%; font-size: clamp(112px, 30vw, 185px); color: rgba(255,255,255,.64); }
+  .k7-cinema-section .k7-scene-word-b { top: 51%; right: -39%; font-size: clamp(105px, 27vw, 174px); -webkit-text-stroke-width: 1.15px; }
+  .k7-cinema-section .k7-scene-word-c { bottom: 10%; left: -28%; font-size: clamp(112px,29vw,180px); }
+  .k7-scene-signature { top: 44px; left: 19px; font-size: 8px; letter-spacing: .18em; }
+  .k7-scene-signature::before { width: 14px; }
+  .k7-scene-signature b { font-size: 21px; }
+  .k7-cinema-section .k7-scene-monogram { font-size: 102vw; }
+  #chat .k7-structure-frame { width: 120vw; right: -53%; }
+  #chat .k7-structure-bars { width: 95%; }
+  #events .k7-scene-logo { top: 8%; right: -26%; width: 83vw; opacity: .28; }
+  #events .k7-structure-beam { width: 25%; left: 40%; }
+  #roster .k7-structure-emblem { right: -33%; font-size: 105vw; }
+  #roster .k7-structure-bars { gap: 4px; }
+  #news .k7-scene-word-a { font-size: 42vw; left: -25%; }
+  #news .k7-scene-word-b { right: -60%; }
+  #news .k7-scene-logo { width: 118px; bottom: 14%; }
+  #stats .k7-structure-frame { width: 120vw; left: -45%; }
+  #stats .k7-structure-bars { right: -6%; width: 74%; }
+  #stats .k7-scene-word-a { left: -43%; font-size: 32vw; }
+  .k7-cinema-section .k7-chat,
+  .k7-cinema-section .k7-data-panel,
+  .k7-cinema-section .roster-player { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+}
+
+/* Scrolling is the primary motion; animation is reserved for the visible scene. */
+@keyframes k7-beam-glide { 0%, 100% { opacity: .42; } 50% { opacity: .85; } }
+.elite-shell[data-scene="chat"] #chat .k7-structure-beam,
+.elite-shell[data-scene="events"] #events .k7-structure-beam,
+.elite-shell[data-scene="roster"] #roster .k7-structure-beam,
+.elite-shell[data-scene="news"] #news .k7-structure-beam,
+.elite-shell[data-scene="stats"] #stats .k7-structure-beam { animation: k7-beam-glide 5.5s ease-in-out infinite; }
+
+/* Respect motion preferences and keep type permanently readable. */
+@media (prefers-reduced-motion: reduce) {
+  .k7-cinema-section .k7-scene-word,
+  .k7-cinema-section .k7-scene-logo,
+  .k7-cinema-section .k7-scene-monogram,
+  .k7-structure-emblem,
+  .k7-structure-frame,
+  .k7-structure-beam,
+  .k7-structure-bars { animation: none !important; transition: none !important; transform: none !important; filter: none !important; }
+  .k7-cinema-section .k7-scene-word-a { opacity: .9; }
+}
