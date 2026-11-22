@@ -48,7 +48,10 @@ export async function POST(request: NextRequest) {
       console.error("TELEGRAM_BOT_TOKEN is missing");
 
       return NextResponse.json(
-        { success: false, error: "Authentication service unavailable" },
+        {
+          success: false,
+          error: "Authentication service unavailable",
+        },
         { status: 503 }
       );
     }
@@ -60,7 +63,10 @@ export async function POST(request: NextRequest) {
 
     if (!verified?.user) {
       return NextResponse.json(
-        { success: false, error: "Telegram authentication failed" },
+        {
+          success: false,
+          error: "Telegram authentication failed",
+        },
         { status: 401 }
       );
     }
@@ -88,7 +94,10 @@ export async function POST(request: NextRequest) {
       console.error("Profile creation failed:", insertError);
 
       return NextResponse.json(
-        { success: false, error: "Could not create profile" },
+        {
+          success: false,
+          error: "Could not create profile",
+        },
         { status: 503 }
       );
     }
@@ -107,12 +116,16 @@ export async function POST(request: NextRequest) {
       console.error("Profile update failed:", updateError);
 
       return NextResponse.json(
-        { success: false, error: "Could not update profile" },
+        {
+          success: false,
+          error: "Could not update profile",
+        },
         { status: 503 }
       );
     }
 
-    // Assign MEMBER only when the profile has no role.
+    // Keep existing assigned roles.
+    // Set MEMBER only if the role is missing.
     const { error: roleError } = await supabase
       .from("profiles")
       .update({ access_role: "MEMBER" })
@@ -120,10 +133,16 @@ export async function POST(request: NextRequest) {
       .is("access_role", null);
 
     if (roleError) {
-      console.error("Default role assignment failed:", roleError);
+      console.error(
+        "Default role assignment failed:",
+        roleError
+      );
 
       return NextResponse.json(
-        { success: false, error: "Could not configure profile role" },
+        {
+          success: false,
+          error: "Could not configure profile role",
+        },
         { status: 503 }
       );
     }
@@ -141,10 +160,16 @@ export async function POST(request: NextRequest) {
         .eq("telegram_id", telegramUser.id);
 
       if (ownerError) {
-        console.error("Owner assignment failed:", ownerError);
+        console.error(
+          "Owner assignment failed:",
+          ownerError
+        );
 
         return NextResponse.json(
-          { success: false, error: "Could not configure owner access" },
+          {
+            success: false,
+            error: "Could not configure owner access",
+          },
           { status: 503 }
         );
       }
@@ -180,7 +205,10 @@ export async function POST(request: NextRequest) {
     console.error("Telegram authentication error:", error);
 
     return NextResponse.json(
-      { success: false, error: "Authentication failed" },
+      {
+        success: false,
+        error: "Authentication failed",
+      },
       { status: 500 }
     );
   }
