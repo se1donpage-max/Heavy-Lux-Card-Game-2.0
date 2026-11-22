@@ -180,3 +180,43 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
+const matchEditIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!canSubmitMatchResults(user.accessRole)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    const input = body as Record<string, unknown>;
+    if (typeof input.id !== "string" || !matchEditIdPattern.test(input.id) ||
+        typeof input.title !== "string" || !input.title.trim() || input.title.length > 100 ||
+        typeof input.playedAt !== "string" || !Number.isFinite(Date.parse(input.playedAt)) ||
+        typeof input.placement !== "number" || !Number.isInteger(input.placement) || input.placement < 1 || input.placement > 100) {
+      return NextResponse.json({ error: "Invalid match details" }, { status: 400 });
+    }
+    const { data, error } = await getSupabaseAdmin().from("matches").update({
+      title: input.title.trim(), played_at: new Date(input.playedAt).toISOString(), placement: input.placement
+    }).eq("id", input.id).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not update match" }, { status: 503 });
+    if (!data) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!canSubmitMatchResults(user.accessRole)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" || !("id" in body) || typeof body.id !== "string" || !matchEditIdPattern.test(body.id))
+      return NextResponse.json({ error: "Invalid match ID" }, { status: 400 });
+    const { data, error } = await getSupabaseAdmin().from("matches").delete().eq("id", body.id).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not delete match" }, { status: 503 });
+    if (!data) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
+}
