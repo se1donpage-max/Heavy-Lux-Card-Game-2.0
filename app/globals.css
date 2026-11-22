@@ -3741,3 +3741,211 @@ html.k7-keyboard-open #chat .k7-chat-viewer,html.k7-keyboard-open #chat .k7-chat
 @media (max-width:600px) {
   .k7-world-canvas {filter:none;opacity:.5;}
 }
+
+
+/* K7 ROSTER — scroll-linked rifle monogram (actual source vector, no GIF loop). */
+#roster .k7-scroll-rifle {
+  --k7-visibility:0;
+  --k7-dash:1000;
+  --k7-fill:0;
+  --k7-move-x:0px;
+  --k7-follow:0px;
+  --k7-yaw:-13deg;
+  --k7-roll:-5deg;
+  --k7-scale:.87;
+  --k7-glow:5px;
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  user-select:none;
+  overflow:hidden;
+  isolation:isolate;
+}
+#roster .k7-scroll-rifle-motion {
+  position:absolute;
+  top:var(--k7-follow);
+  left:50%;
+  width:min(1080px,117vw);
+  aspect-ratio:3 / 1;
+  transform:translate3d(calc(-50% + var(--k7-move-x)),0,0)
+    perspective(900px) rotateY(var(--k7-yaw)) rotateZ(var(--k7-roll)) scale(var(--k7-scale));
+  opacity:var(--k7-visibility);
+  transform-origin:52% 50%;
+  will-change:transform,opacity;
+  filter:drop-shadow(0 0 var(--k7-glow) rgba(255,255,255,.33));
+}
+#roster .k7-scroll-rifle-svg {
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+#roster .k7-scroll-rifle-trace {
+  stroke-dashoffset:var(--k7-dash);
+  vector-effect:non-scaling-stroke;
+}
+#roster .k7-scroll-rifle-solid { opacity:var(--k7-fill); }
+@media (max-width:600px) {
+  #roster .k7-scroll-rifle-motion {
+    width:119vw;
+    filter:drop-shadow(0 0 6px rgba(255,255,255,.25));
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  #roster .k7-scroll-rifle-motion { transform:translateX(-50%) !important; }
+  #roster .k7-scroll-rifle-trace { stroke-dashoffset:0 !important; }
+}
+
+/* ====================================================================
+   K7 CREW / CINEMA 4.0 — WS2 OCEAN + SCROLL-LINKED KINETIC SLOGANS
+   One uninterrupted 5-chapter background. All actual UI is foreground.
+   Compatible with Telegram Mini App WebView; requires no WebGL.
+   ==================================================================== */
+.elite-shell { background:#040506; }
+.k7-cinema-backdrop {
+  position:fixed;
+  inset:0;
+  z-index:1;
+  width:100%;
+  height:100dvh;
+  pointer-events:none;
+  overflow:hidden;
+  user-select:none;
+  isolation:isolate;
+  background:#040506;
+}
+.k7-cinema-ocean {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  opacity:.82;
+}
+.k7-cinema-darkening {
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(180deg,rgba(1,2,3,.55),rgba(1,2,3,.38) 34%,rgba(1,2,3,.72) 100%),
+    radial-gradient(ellipse at center, transparent 12%,rgba(0,0,0,.47) 96%);
+}
+.k7-cinema-slogans { position:absolute; inset:0; }
+.k7-cinema-slogan {
+  position:absolute;
+  display:flex;
+  flex-direction:column;
+  gap:clamp(8px,1.5vh,20px);
+  width:max-content;
+  max-width:115%;
+  transform-origin:50% 50%;
+  will-change:transform,opacity;
+  color:#fff;
+  font-family:var(--font-display),"Arial Black",sans-serif;
+  text-transform:uppercase;
+  line-height:.82;
+  letter-spacing:-.055em;
+  text-rendering:geometricPrecision;
+  -webkit-font-smoothing:antialiased;
+  text-shadow:0 1px 35px rgba(255,255,255,.24);
+}
+.k7-cinema-slogan-label {
+  display:block;
+  margin-left:.38em;
+  font:800 clamp(10px,.9vw,14px)/1.4 var(--font-body),Arial,sans-serif;
+  letter-spacing:.28em;
+  color:#f8f8f8;
+}
+.k7-cinema-slogan strong { display:block; font-weight:900; white-space:nowrap; }
+.k7-cinema-slogan-first { font-size:clamp(82px,19vw,310px); }
+.k7-cinema-slogan-second { font-size:clamp(82px,16.5vw,260px); }
+.k7-cinema-slogan--chat { left:-5%; top:14%; transform-origin:15% 20%; }
+.k7-cinema-slogan--chat .k7-cinema-slogan-second { margin-left:13%; }
+.k7-cinema-slogan--events { right:-11%; top:19%; text-align:right; transform-origin:85% 50%; }
+.k7-cinema-slogan--events .k7-cinema-slogan-second { font-size:clamp(63px,11.6vw,188px); }
+.k7-cinema-slogan--events .k7-cinema-slogan-label { text-align:right; margin-right:2.8em; }
+.k7-cinema-slogan--roster { left:-9%; top:30%; transform-origin:30% 40%; }
+.k7-cinema-slogan--roster .k7-cinema-slogan-second { margin-left:8%; }
+.k7-cinema-slogan--news { right:-5%; top:13%; text-align:right; transform-origin:80% 20%; }
+.k7-cinema-slogan--news .k7-cinema-slogan-second { margin-right:12%; }
+.k7-cinema-slogan--news .k7-cinema-slogan-label { margin-right:3em; }
+.k7-cinema-slogan--stats { left:-8%; bottom:12%; transform-origin:25% 75%; }
+.k7-cinema-slogan--stats .k7-cinema-slogan-second { margin-left:12%; }
+.k7-cinema-foreground-vignette {
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,rgba(1,2,3,.2),transparent 26%,transparent 65%,rgba(1,2,3,.16));
+}
+/* Eliminate the former repeated geometric placeholders and giant local copy.
+   Team Roster's dedicated K7 rifle stays as one subtle section-only mark. */
+.k7-cinema-section .k7-stage { background:transparent; }
+.k7-cinema-section .k7-stage-vignette,
+.k7-cinema-section .k7-stage-axis,
+.k7-cinema-section .k7-stage-symbolic,
+.k7-cinema-section .k7-stage-typography,
+.k7-cinema-section .k7-stage-footer,
+.k7-cinema-section .k7-stage-press-seal,
+.k7-cinema-section .k7-stage-logo-fragment,
+.k7-cinema-section .k7-stage-coordinate { display:none!important; }
+.k7-cinema-section .k7-stage-topline {
+  color:rgba(255,255,255,.7);
+  text-shadow:0 2px 12px #000;
+}
+#roster .k7-scroll-rifle-motion { filter:drop-shadow(0 0 8px rgba(255,255,255,.1)); }
+#roster .k7-scroll-rifle { opacity:.37; }
+/* Each content plane is its own readable layer, above typography. */
+.k7-cinema-section .k7-chat,
+.k7-cinema-section .k7-data-panel,
+.k7-cinema-section .roster-player,
+.k7-cinema-section .k7-admin-panel {
+  box-shadow:0 18px 65px rgba(0,0,0,.44);
+}
+@media (max-width:600px) {
+  .k7-cinema-backdrop { height:var(--k7-visual-height,100dvh); }
+  .k7-cinema-ocean { opacity:.73; }
+  .k7-cinema-darkening {
+    background:linear-gradient(180deg,rgba(2,3,4,.5),rgba(2,3,4,.52) 35%,rgba(2,3,4,.8));
+  }
+  .k7-cinema-slogan {
+    max-width:130%;
+    gap:clamp(5px,1.4vh,11px);
+    letter-spacing:-.06em;
+  }
+  .k7-cinema-slogan-label { font-size:9px; letter-spacing:.22em; }
+  .k7-cinema-slogan-first { font-size:clamp(74px,22vw,120px); }
+  .k7-cinema-slogan-second { font-size:clamp(67px,18vw,112px); }
+  .k7-cinema-slogan--chat { left:-12%;top:15%; }
+  .k7-cinema-slogan--events { right:-16%;top:28%; }
+  .k7-cinema-slogan--events .k7-cinema-slogan-second { font-size:clamp(51px,13vw,75px); }
+  .k7-cinema-slogan--roster { left:-12%;top:18%; }
+  .k7-cinema-slogan--news { right:-9%;top:24%; }
+  .k7-cinema-slogan--stats { left:-13%;bottom:21%; }
+  #roster .k7-scroll-rifle { opacity:.28; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k7-cinema-slogan { will-change:auto; }
+}
+
+/* K7 CREW / English cinematic slogan sizes — fit long phrases on mobile. */
+.k7-cinema-slogan--chat .k7-cinema-slogan-second { font-size:clamp(70px,13.5vw,215px); }
+.k7-cinema-slogan--events .k7-cinema-slogan-first { font-size:clamp(76px,15.2vw,248px); }
+.k7-cinema-slogan--events .k7-cinema-slogan-second { font-size:clamp(76px,15vw,240px); }
+.k7-cinema-slogan--roster .k7-cinema-slogan-first { font-size:clamp(76px,16vw,254px); }
+.k7-cinema-slogan--roster .k7-cinema-slogan-second { font-size:clamp(65px,12.4vw,198px); }
+.k7-cinema-slogan--stats .k7-cinema-slogan-first { font-size:clamp(76px,15.8vw,250px); }
+.k7-cinema-slogan--stats .k7-cinema-slogan-second { font-size:clamp(72px,14.5vw,228px); }
+@media (max-width:600px) {
+  .k7-cinema-slogan--chat .k7-cinema-slogan-second { font-size:clamp(52px,13.4vw,82px); }
+  .k7-cinema-slogan--events .k7-cinema-slogan-first { font-size:clamp(65px,16vw,96px); }
+  .k7-cinema-slogan--events .k7-cinema-slogan-second { font-size:clamp(61px,15.5vw,95px); }
+  .k7-cinema-slogan--roster .k7-cinema-slogan-first { font-size:clamp(60px,15vw,92px); }
+  .k7-cinema-slogan--roster .k7-cinema-slogan-second { font-size:clamp(46px,11.5vw,71px); }
+  .k7-cinema-slogan--stats .k7-cinema-slogan-first { font-size:clamp(55px,13.8vw,84px); }
+  .k7-cinema-slogan--stats .k7-cinema-slogan-second { font-size:clamp(62px,15vw,91px); }
+}
+
+/* Poster remains visible until the first decoded scroll frame is ready. */
+.k7-cinema-ocean { opacity:0; transition:opacity .24s ease; }
+.k7-cinema-ocean.is-ready { opacity:.82; }
+@media (max-width:600px) { .k7-cinema-ocean.is-ready { opacity:.73; } }
+@media (prefers-reduced-motion:reduce) { .k7-cinema-ocean { transition:none; } }
