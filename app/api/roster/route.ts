@@ -267,3 +267,24 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+
+// Change a player's role, game ID or vacant slot, without recreating the record.
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!canManageRoster(user.accessRole)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    const input = body as RosterInput;
+    const validationError = validateRosterInput(input);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    const { data, error } = await getSupabaseAdmin().from("roster")
+      .update({ slot: input.slot, game_role: input.gameRole, in_game_id: input.inGameId ?? null })
+      .eq("telegram_id", input.telegramId).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not update player; the slot may be occupied" }, { status: 409 });
+    if (!data) return NextResponse.json({ error: "Player not found" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
+}
