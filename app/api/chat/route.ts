@@ -8,12 +8,16 @@ export const dynamic = "force-dynamic";
 
 const MESSAGE_LIMIT = 1000;
 const MESSAGE_LIFETIME_MINUTES = 10;
+const PAGE_SIZE = 50;
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-export async function GET() {
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
 
@@ -21,9 +25,29 @@ export async function GET() {
       return jsonError("Unauthorized", 401);
     }
 
+    const params = request.nextUrl.searchParams;
+    const beforeCreatedAt = params.get("beforeCreatedAt");
+    const beforeId = params.get("beforeId");
+
+    if (
+      (beforeCreatedAt && !beforeId) ||
+      (!beforeCreatedAt && beforeId)
+    ) {
+      return jsonError("Invalid pagination cursor", 400);
+    }
+
+    if (
+      beforeCreatedAt &&
+      (Number.isNaN(Date.parse(beforeCreatedAt)) ||
+        !beforeId ||
+        !uuidPattern.test(beforeId))
+    ) {
+      return jsonError("Invalid pagination cursor", 400);
+    }
+
     const supabase = getSupabaseAdmin();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("chat_messages")
       .select(`
         id,
@@ -44,18 +68,32 @@ export async function GET() {
           reaction
         )
       `)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(100);
+      .gt("expires_at", new Date().toISOString());
+
+    if (beforeCreatedAt && beforeId) {
+      query = query.or(
+        `created_at.lt.${beforeCreatedAt},and(created_at.eq.${beforeCreatedAt},id.lt.${beforeId})`
+      );
+    }
+
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(PAGE_SIZE + 1);
 
     if (error) {
       console.error("Chat GET failed:", error);
       return jsonError("Could not load messages", 503);
     }
 
+    const rows = data ?? [];
+    const hasMore = rows.length > PAGE_SIZE;
+    const messages = rows.slice(0, PAGE_SIZE).reverse();
+
     return NextResponse.json({
       success: true,
-      messages: data ?? [],
+      messages,
+      hasMore,
       currentUserId: user.telegramId,
     });
   } catch (error) {
@@ -106,9 +144,6 @@ export async function POST(request: NextRequest) {
       return jsonError("Message must contain 1–1000 characters", 400);
     }
 
-    const uuidPattern =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
     if (replyTo && !uuidPattern.test(replyTo)) {
       return jsonError("Invalid reply reference", 400);
     }
@@ -116,12 +151,13 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     if (replyTo) {
-      const { data: parentMessage, error: parentError } = await supabase
-        .from("chat_messages")
-        .select("id")
-        .eq("id", replyTo)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
+      const { data: parentMessage, error: parentError } =
+        await supabase
+          .from("chat_messages")
+          .select("id")
+          .eq("id", replyTo)
+          .gt("expires_at", new Date().toISOString())
+          .maybeSingle();
 
       if (parentError) {
         console.error("Reply lookup failed:", parentError);
@@ -129,13 +165,17 @@ export async function POST(request: NextRequest) {
       }
 
       if (!parentMessage) {
-        return jsonError("Original message not found or expired", 404);
+        return jsonError(
+          "Original message not found or expired",
+          404
+        );
       }
     }
 
     const createdAt = new Date();
     const expiresAt = new Date(
-      createdAt.getTime() + MESSAGE_LIFETIME_MINUTES * 60 * 1000
+      createdAt.getTime() +
+        MESSAGE_LIFETIME_MINUTES * 60 * 1000
     );
 
     const { data: message, error } = await supabase
