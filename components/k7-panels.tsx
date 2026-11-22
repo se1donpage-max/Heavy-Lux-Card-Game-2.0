@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, RefreshCw, Shield, Trophy } from "lucide-react";
+import NewsStudio from "@/components/news-studio";
 
 export interface K7RosterPlayer {
   id: string;
@@ -31,14 +31,6 @@ type EventRecord = {
   event_format: string | null;
   poster_url: string | null;
   result: string | null;
-};
-
-type NewsRecord = {
-  id: string;
-  title: string;
-  content: string;
-  cover_url: string | null;
-  published_at: string;
 };
 
 type PlayerStats = {
@@ -83,7 +75,7 @@ function formatDate(value: string) {
   const date = new Date(value);
 
   return Number.isNaN(date.getTime())
-    ? "—"
+    ? "â"
     : date.toLocaleString("ru-RU", {
         day: "2-digit",
         month: "short",
@@ -125,7 +117,7 @@ function SectionState({
           className="k7-panel-button"
           onClick={retry}
         >
-          ПОВТОРИТЬ
+          ÐÐÐÐ¢ÐÐ ÐÐ¢Ð¬
         </button>
       )}
     </div>
@@ -158,7 +150,7 @@ function SectionHeader({
         className="k7-panel-icon"
         onClick={onRefresh}
         disabled={busy}
-        aria-label="Обновить данные"
+        aria-label="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ Ð´Ð°Ð½Ð½ÑÐµ"
       >
         <RefreshCw size={17} />
       </button>
@@ -177,7 +169,7 @@ async function requestJson(path: string, init?: RequestInit) {
 
   if (!response.ok || result.success === false) {
     throw new Error(
-      result.error || `Ошибка запроса (${response.status})`
+      result.error || `ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿ÑÐ¾ÑÐ° (${response.status})`
     );
   }
 
@@ -190,13 +182,14 @@ export function EventsPanel({
 }: PanelProps) {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [filter, setFilter] = useState<
-    "UPCOMING" | "COMPLETED"
+    "UPCOMING" | "COMPLETED" | "CANCELLED"
   >("UPCOMING");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
@@ -216,7 +209,7 @@ export function EventsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось загрузить события"
+          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ñ"
       );
     } finally {
       setLoading(false);
@@ -246,9 +239,8 @@ export function EventsPanel({
           eventDate: new Date(date).toISOString(),
           description,
           eventFormat,
-          ...(posterUrl.trim()
-            ? { posterUrl: posterUrl.trim() }
-            : {}),
+          ...(editingId ? { posterUrl: posterUrl.trim() } :
+              posterUrl.trim() ? { posterUrl: posterUrl.trim() } : {}),
         }),
       });
 
@@ -266,7 +258,7 @@ export function EventsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось сохранить событие"
+          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¾ÑÑÐ°Ð½Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"
       );
     } finally {
       setSaving(false);
@@ -294,7 +286,7 @@ export function EventsPanel({
         <div
           className="k7-panel-tabs"
           role="group"
-          aria-label="Статус мероприятий"
+          aria-label="Ð¡ÑÐ°ÑÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
         >
           <button
             type="button"
@@ -303,7 +295,7 @@ export function EventsPanel({
             }
             onClick={() => setFilter("UPCOMING")}
           >
-            ПРЕДСТОЯЩИЕ
+            ÐÐ ÐÐÐ¡Ð¢ÐÐ¯Ð©ÐÐ
           </button>
 
           <button
@@ -313,8 +305,9 @@ export function EventsPanel({
             }
             onClick={() => setFilter("COMPLETED")}
           >
-            ЗАВЕРШЁННЫЕ
+            ÐÐÐÐÐ Ð¨ÐÐÐÐ«Ð
           </button>
+          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}>ÐÐ¢ÐÐÐÐÐÐÐ«Ð</button>
         </div>
 
         {canManage && (
@@ -323,7 +316,7 @@ export function EventsPanel({
             className="k7-panel-button"
             onClick={() => { setEditingId(null); setTitle(""); setDate(""); setDescription(""); setEventFormat(""); setPosterUrl(""); setShowForm((value) => !value); }}
           >
-            {showForm ? "ЗАКРЫТЬ" : "+ СОБЫТИЕ"}
+            {showForm ? "ÐÐÐÐ Ð«Ð¢Ð¬" : "+ Ð¡ÐÐÐ«Ð¢ÐÐ"}
           </button>
         )}
       </div>
@@ -334,7 +327,7 @@ export function EventsPanel({
           onSubmit={(event) => void createEvent(event)}
         >
           <label>
-            Название
+            ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ
             <input
               required
               maxLength={120}
@@ -346,7 +339,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            Дата и время
+            ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ
             <input
               type="datetime-local"
               required
@@ -358,7 +351,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            Формат
+            Ð¤Ð¾ÑÐ¼Ð°Ñ
             <input
               maxLength={100}
               value={eventFormat}
@@ -369,7 +362,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            Постер (HTTPS)
+            ÐÐ¾ÑÑÐµÑ (HTTPS)
             <input
               type="url"
               placeholder="https://..."
@@ -381,7 +374,7 @@ export function EventsPanel({
           </label>
 
           <label className="k7-panel-wide">
-            Описание
+            ÐÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ
             <textarea
               maxLength={5000}
               rows={3}
@@ -397,16 +390,16 @@ export function EventsPanel({
             disabled={saving}
           >
             {saving
-              ? "СОХРАНЕНИЕ..."
-              : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"}
+              ? "Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."
+              : editingId ? "Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬ ÐÐÐÐÐÐÐÐÐ¯" : "ÐÐÐ£ÐÐÐÐÐÐÐÐ¢Ð¬"}
           </button>
         </form>
       )}
 
       {!authReady ? (
-        <SectionState message="Войдите через Telegram" />
+        <SectionState message="ÐÐ¾Ð¹Ð´Ð¸ÑÐµ ÑÐµÑÐµÐ· Telegram" />
       ) : loading && !events.length ? (
-        <SectionState message="ЗАГРУЗКА СОБЫТИЙ..." />
+        <SectionState message="ÐÐÐÐ Ð£ÐÐÐ Ð¡ÐÐÐ«Ð¢ÐÐ..." />
       ) : error && !events.length ? (
         <SectionState
           message={error}
@@ -424,8 +417,8 @@ export function EventsPanel({
             <SectionState
               message={
                 filter === "UPCOMING"
-                  ? "Пока нет запланированных мероприятий"
-                  : "Пока нет завершённых мероприятий"
+                  ? "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð¿Ð»Ð°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+                  : "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð²ÐµÑÑÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
               }
             />
           ) : (
@@ -438,7 +431,7 @@ export function EventsPanel({
                   {item.poster_url && (
                     <img
                       src={item.poster_url}
-                      alt="Постер мероприятия"
+                      alt="ÐÐ¾ÑÑÐµÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ñ"
                       loading="lazy"
                       className="k7-panel-cover"
                     />
@@ -475,14 +468,26 @@ export function EventsPanel({
                         setEditingId(item.id); setTitle(item.title); setDate(toLocalDateTime(item.event_date));
                         setDescription(item.description ?? ""); setEventFormat(item.event_format ?? "");
                         setPosterUrl(item.poster_url ?? ""); setShowForm(true);
-                      }}>РЕДАКТИРОВАТЬ</button>
+                      }}>Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¢Ð¬</button>
+                      {item.status !== "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
+                        void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"UPCOMING"})}); setFilter("UPCOMING"); await reload(); }
+                          catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²Ð¾ÑÑÑÐ°Ð½Ð¾Ð²Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
+                      }}>ÐÐÐ¡Ð¡Ð¢ÐÐÐÐÐÐ¢Ð¬</button>}
+                      {item.status === "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
+                        void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"CANCELLED"})}); await reload(); }
+                          catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
+                      }}>ÐÐ¢ÐÐÐÐÐ¢Ð¬</button>}
                       <button type="button" className="k7-panel-button" onClick={() => {
-                        if (!window.confirm(`Удалить событие «${item.title}»?`)) return;
-                        void (async () => { try {
+                        setDeleteEventId(item.id);
+                      }}>Ð£ÐÐÐÐÐ¢Ð¬</button>
+                      {deleteEventId === item.id && <div className="k7-inline-confirm"><span>Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ?</span>
+                        <button type="button" disabled={saving} onClick={() => { void (async () => { try {
+                          setSaving(true);
                           await requestJson("/api/events", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
-                          await reload();
-                        } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить событие"); } })();
-                      }}>УДАЛИТЬ</button>
+                          setDeleteEventId(null); await reload();
+                        } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"); }
+                          finally { setSaving(false); } })(); }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
+                        <button type="button" onClick={() => setDeleteEventId(null)}>ÐÐ¢ÐÐÐÐ</button></div>}
                     </div>
                   )}
                   {canManage &&
@@ -514,13 +519,13 @@ export function EventsPanel({
                                 setError(
                                   err instanceof Error
                                     ? err.message
-                                    : "Не удалось завершить событие"
+                                    : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð²ÐµÑÑÐ¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"
                                 );
                               }
                             })();
                           }}
                         >
-                          ЗАВЕРШИТЬ
+                          ÐÐÐÐÐ Ð¨ÐÐ¢Ð¬
                         </button>
                       </div>
                     )}
@@ -534,232 +539,8 @@ export function EventsPanel({
   );
 }
 
-export function NewsPanel({
-  authReady,
-  canManage = false,
-}: PanelProps) {
-  const [news, setNews] = useState<NewsRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
-
-  const reload = useCallback(async () => {
-    if (!authReady) return;
-
-    setLoading(true);
-
-    try {
-      const result = await requestJson("/api/news");
-      setNews(result.news ?? []);
-      setError("");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось загрузить новости"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [authReady]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  async function createNews(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    if (!title.trim() || !content.trim()) return;
-
-    setSaving(true);
-
-    try {
-      await requestJson("/api/news", {
-        method: editingId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...(editingId ? { id: editingId } : {}),
-          title: title.trim(),
-          content: content.trim(),
-          ...(coverUrl.trim()
-            ? { coverUrl: coverUrl.trim() }
-            : {}),
-        }),
-      });
-
-      setTitle("");
-      setContent("");
-      setCoverUrl("");
-      setShowForm(false);
-      setEditingId(null);
-
-      await reload();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось опубликовать новость"
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="k7-data-panel">
-      <SectionHeader
-        eyebrow="K7 / BROADCAST"
-        title="THE NEWS"
-        onRefresh={() => void reload()}
-        busy={!authReady || loading}
-      />
-
-      {canManage && (
-        <div className="k7-panel-toolbar">
-          <button
-            className="k7-panel-button"
-            type="button"
-            onClick={() => {
-              setEditingId(null); setTitle(""); setContent(""); setCoverUrl("");
-              setShowForm((value) => !value);
-            }}
-          >
-            {showForm ? "ЗАКРЫТЬ" : "+ НОВОСТЬ"}
-          </button>
-        </div>
-      )}
-
-      {canManage && showForm && (
-        <form
-          className="k7-panel-form"
-          onSubmit={(event) => void createNews(event)}
-        >
-          <label>
-            Заголовок
-            <input
-              required
-              maxLength={150}
-              value={title}
-              onChange={(event) =>
-                setTitle(event.target.value)
-              }
-            />
-          </label>
-
-          <label>
-            Обложка (HTTPS)
-            <input
-              type="url"
-              placeholder="https://..."
-              value={coverUrl}
-              onChange={(event) =>
-                setCoverUrl(event.target.value)
-              }
-            />
-          </label>
-
-          <label className="k7-panel-wide">
-            Текст новости
-            <textarea
-              required
-              maxLength={20000}
-              rows={5}
-              value={content}
-              onChange={(event) =>
-                setContent(event.target.value)
-              }
-            />
-          </label>
-
-          <button
-            className="k7-panel-button k7-panel-primary"
-            disabled={saving}
-          >
-            {saving
-              ? "СОХРАНЕНИЕ..."
-              : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"}
-          </button>
-        </form>
-      )}
-
-      {!authReady ? (
-        <SectionState message="Войдите через Telegram" />
-      ) : loading && !news.length ? (
-        <SectionState message="ЗАГРУЗКА НОВОСТЕЙ..." />
-      ) : error && !news.length ? (
-        <SectionState
-          message={error}
-          retry={() => void reload()}
-        />
-      ) : (
-        <>
-          {error && (
-            <div
-              className="k7-panel-error"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
-
-          {news.length === 0 ? (
-            <SectionState message="Новостей пока нет" />
-          ) : (
-            <div className="k7-panel-cards">
-              {news.map((item) => (
-                <article
-                  key={item.id}
-                  className="k7-panel-card"
-                >
-                  {item.cover_url && (
-                    <img
-                      src={item.cover_url}
-                      alt="Обложка новости"
-                      loading="lazy"
-                      className="k7-panel-cover"
-                    />
-                  )}
-
-                  <div className="k7-panel-date">
-                    {formatDate(item.published_at)}
-                  </div>
-
-                  <h3>{item.title}</h3>
-
-                  <p className="k7-panel-preserve">
-                    {item.content}
-                  </p>
-                  {canManage && <div className="k7-panel-card-actions">
-                    <button type="button" className="k7-panel-button" onClick={() => {
-                      setEditingId(item.id); setTitle(item.title); setContent(item.content);
-                      setCoverUrl(item.cover_url ?? ""); setShowForm(true);
-                    }}>РЕДАКТИРОВАТЬ</button>
-                    <button type="button" className="k7-panel-button" onClick={() => {
-                      if (!window.confirm(`Удалить новость «${item.title}»?`)) return;
-                      void (async () => { try {
-                        await requestJson("/api/news", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
-                        await reload();
-                      } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить новость"); } })();
-                    }}>УДАЛИТЬ</button>
-                  </div>}
-                </article>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+export function NewsPanel({ authReady, canManage = false }: PanelProps) {
+  return <NewsStudio authReady={authReady} canManage={canManage} />;
 }
 
 export function StatsPanel({
@@ -779,6 +560,7 @@ export function StatsPanel({
   >("main");
   const [showForm, setShowForm] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+  const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [playedAt, setPlayedAt] = useState("");
@@ -806,7 +588,7 @@ export function StatsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось загрузить статистику"
+          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ"
       );
     } finally {
       setLoading(false);
@@ -836,7 +618,7 @@ export function StatsPanel({
       !title.trim()
     ) {
       setError(
-        "Выберите от 1 до 4 игроков и укажите дату матча"
+        "ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¾Ñ 1 Ð´Ð¾ 4 Ð¸Ð³ÑÐ¾ÐºÐ¾Ð² Ð¸ ÑÐºÐ°Ð¶Ð¸ÑÐµ Ð´Ð°ÑÑ Ð¼Ð°ÑÑÐ°"
       );
       return;
     }
@@ -870,7 +652,7 @@ export function StatsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Не удалось записать результат"
+          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð¿Ð¸ÑÐ°ÑÑ ÑÐµÐ·ÑÐ»ÑÑÐ°Ñ"
       );
     } finally {
       setSaving(false);
@@ -898,8 +680,8 @@ export function StatsPanel({
             }
           >
             {showForm
-              ? "ЗАКРЫТЬ"
-              : "+ РЕЗУЛЬТАТ МАТЧА"}
+              ? "ÐÐÐÐ Ð«Ð¢Ð¬"
+              : "+ Ð ÐÐÐ£ÐÐ¬Ð¢ÐÐ¢ ÐÐÐ¢Ð§Ð"}
           </button>
         </div>
       )}
@@ -912,7 +694,7 @@ export function StatsPanel({
           }
         >
           <label>
-            Название матча
+            ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°
             <input
               required
               maxLength={100}
@@ -924,7 +706,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            Дата и время
+            ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ
             <input
               type="datetime-local"
               required
@@ -936,7 +718,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            Место (1–100)
+            ÐÐµÑÑÐ¾ (1â100)
             <input
               type="number"
               min="1"
@@ -951,7 +733,7 @@ export function StatsPanel({
 
           <div className="k7-panel-wide k7-match-players">
             <strong>
-              Участники матча (1–4)
+              Ð£ÑÐ°ÑÑÐ½Ð¸ÐºÐ¸ Ð¼Ð°ÑÑÐ° (1â4)
             </strong>
 
             {roster.map((player) => (
@@ -970,7 +752,7 @@ export function StatsPanel({
                 </span>
 
                 <input
-                  aria-label={`Убийства: ${getName(player)}`}
+                  aria-label={`Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°: ${getName(player)}`}
                   type="number"
                   min="0"
                   max="100"
@@ -994,9 +776,9 @@ export function StatsPanel({
             ))}
 
             <small>
-              Укажи количество убийств для каждого
-              участвовавшего игрока; пустые поля означают,
-              что игрок не участвовал.
+              Ð£ÐºÐ°Ð¶Ð¸ ÐºÐ¾Ð»Ð¸ÑÐµÑÑÐ²Ð¾ ÑÐ±Ð¸Ð¹ÑÑÐ² Ð´Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾
+              ÑÑÐ°ÑÑÐ²Ð¾Ð²Ð°Ð²ÑÐµÐ³Ð¾ Ð¸Ð³ÑÐ¾ÐºÐ°; Ð¿ÑÑÑÑÐµ Ð¿Ð¾Ð»Ñ Ð¾Ð·Ð½Ð°ÑÐ°ÑÑ,
+              ÑÑÐ¾ Ð¸Ð³ÑÐ¾Ðº Ð½Ðµ ÑÑÐ°ÑÑÐ²Ð¾Ð²Ð°Ð».
             </small>
           </div>
 
@@ -1005,16 +787,16 @@ export function StatsPanel({
             disabled={saving}
           >
             {saving
-              ? "СОХРАНЕНИЕ..."
-              : "ЗАПИСАТЬ МАТЧ"}
+              ? "Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."
+              : "ÐÐÐÐÐ¡ÐÐ¢Ð¬ ÐÐÐ¢Ð§"}
           </button>
         </form>
       )}
 
       {!authReady ? (
-        <SectionState message="Войдите через Telegram" />
+        <SectionState message="ÐÐ¾Ð¹Ð´Ð¸ÑÐµ ÑÐµÑÐµÐ· Telegram" />
       ) : loading && !data ? (
-        <SectionState message="ПОЛУЧЕНИЕ СТАТИСТИКИ..." />
+        <SectionState message="ÐÐÐÐ£Ð§ÐÐÐÐ Ð¡Ð¢ÐÐ¢ÐÐ¡Ð¢ÐÐÐ..." />
       ) : error && !data ? (
         <SectionState
           message={error}
@@ -1067,7 +849,7 @@ export function StatsPanel({
                 <div
                   className="k7-panel-tabs"
                   role="group"
-                  aria-label="Таблица игроков"
+                  aria-label="Ð¢Ð°Ð±Ð»Ð¸ÑÐ° Ð¸Ð³ÑÐ¾ÐºÐ¾Ð²"
                 >
                   <button
                     type="button"
@@ -1080,7 +862,7 @@ export function StatsPanel({
                       setView("main")
                     }
                   >
-                    ОСНОВА
+                    ÐÐ¡ÐÐÐÐ
                   </button>
 
                   <button
@@ -1094,7 +876,7 @@ export function StatsPanel({
                       setView("sub")
                     }
                   >
-                    ЗАПАС
+                    ÐÐÐÐÐ¡
                   </button>
                 </div>
               </div>
@@ -1131,11 +913,11 @@ export function StatsPanel({
                   )}
                 </div>
               ) : (
-                <SectionState message="В этой группе пока нет игроков" />
+                <SectionState message="Ð ÑÑÐ¾Ð¹ Ð³ÑÑÐ¿Ð¿Ðµ Ð¿Ð¾ÐºÐ° Ð½ÐµÑ Ð¸Ð³ÑÐ¾ÐºÐ¾Ð²" />
               )}
 
               <h3 className="k7-panel-subtitle">
-                ПОСЛЕДНИЕ МАТЧИ
+                ÐÐÐ¡ÐÐÐÐÐÐ ÐÐÐ¢Ð§Ð
               </h3>
 
               {data.recentMatches.length ? (
@@ -1166,21 +948,24 @@ export function StatsPanel({
                             setEditingMatchId(match.id);
                             setTitle(match.title); setPlayedAt(toLocalDateTime(match.played_at));
                             setPlacement(String(match.placement));
-                          }}>ИЗМЕНИТЬ</button>
+                          }}>ÐÐÐÐÐÐÐ¢Ð¬</button>
                           <button type="button" className="k7-panel-button" onClick={() => {
-                            if (!window.confirm(`Удалить матч «${match.title}» и его статистику?`)) return;
-                            void (async () => { try {
+                            setDeleteMatchId(match.id);
+                          }}>Ð£ÐÐÐÐÐ¢Ð¬</button>
+                          {deleteMatchId === match.id && <div className="k7-inline-confirm">Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ Ð¸ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ?
+                            <button type="button" disabled={saving} onClick={() => { void (async () => {try { setSaving(true);
                               await requestJson("/api/matches", {method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:match.id})});
-                              await reload();
-                            } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить матч"); } })();
-                          }}>УДАЛИТЬ</button>
+                              setDeleteMatchId(null); await reload();
+                            } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ"); }
+                              finally { setSaving(false); } })(); }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
+                            <button type="button" onClick={() => setDeleteMatchId(null)}>ÐÐ¢ÐÐÐÐ</button></div>}
                         </div>}
                       </div>
                     )
                   )}
                 </div>
               ) : (
-                <SectionState message="Матчи пока не добавлены" />
+                <SectionState message="ÐÐ°ÑÑÐ¸ Ð¿Ð¾ÐºÐ° Ð½Ðµ Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ñ" />
               )}
               {canSubmit && editingMatchId && (
                 <form className="k7-panel-form" onSubmit={(event) => { event.preventDefault();
@@ -1188,13 +973,13 @@ export function StatsPanel({
                     await requestJson("/api/matches", {method:"PATCH", headers:{"Content-Type":"application/json"},
                       body:JSON.stringify({id:editingMatchId,title:title.trim(),playedAt:new Date(playedAt).toISOString(),placement:Number(placement)})});
                     setEditingMatchId(null); await reload();
-                  } catch(err) {setError(err instanceof Error ? err.message : "Не удалось обновить матч");}})();
+                  } catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð¸ÑÑ Ð¼Ð°ÑÑ");}})();
                 }}>
-                  <label>Название матча<input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
-                  <label>Дата и время<input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
-                  <label>Место<input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
-                  <button className="k7-panel-button k7-panel-primary" type="submit">СОХРАНИТЬ</button>
-                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}>ОТМЕНА</button>
+                  <label>ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°<input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
+                  <label>ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ<input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
+                  <label>ÐÐµÑÑÐ¾<input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
+                  <button className="k7-panel-button k7-panel-primary" type="submit">Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
+                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}>ÐÐ¢ÐÐÐÐ</button>
                 </form>
               )}
             </>
@@ -1216,6 +1001,7 @@ export function RosterAdminPanel({
     Member[]
   >([]);
   const [memberId, setMemberId] = useState("");
+  const [deletePlayerId, setDeletePlayerId] = useState<number | null>(null);
   const [editPlayerId, setEditPlayerId] = useState<number | null>(null);
   const [editSlot, setEditSlot] = useState("MAIN_1");
   const [editRole, setEditRole] = useState("FLEX");
@@ -1284,7 +1070,7 @@ export function RosterAdminPanel({
           setError(
             err instanceof Error
               ? err.message
-              : "Не удалось получить пользователей"
+              : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»ÐµÐ¹"
           );
         }
       });
@@ -1310,7 +1096,7 @@ export function RosterAdminPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Ошибка изменения состава"
+          : "ÐÑÐ¸Ð±ÐºÐ° Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ñ ÑÐ¾ÑÑÐ°Ð²Ð°"
       );
     } finally {
       setBusy(false);
@@ -1341,21 +1127,21 @@ export function RosterAdminPanel({
           }),
         }
       );
-    }, "Игрок добавлен в состав");
+    }, "ÐÐ³ÑÐ¾Ðº Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½ Ð² ÑÐ¾ÑÑÐ°Ð²");
   }
 
   return (
     <details className="k7-admin-panel">
       <summary>
         <Shield size={16} />
-        УПРАВЛЕНИЕ СОСТАВОМ
+        Ð£ÐÐ ÐÐÐÐÐÐÐ Ð¡ÐÐ¡Ð¢ÐÐÐÐ
       </summary>
 
       <div className="k7-admin-body">
         <p>
-          Выберите зарегистрированного участника и
-          свободную позицию. Изменения доступны
-          только уполномоченным участникам.
+          ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð·Ð°ÑÐµÐ³Ð¸ÑÑÑÐ¸ÑÐ¾Ð²Ð°Ð½Ð½Ð¾Ð³Ð¾ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ° Ð¸
+          ÑÐ²Ð¾Ð±Ð¾Ð´Ð½ÑÑ Ð¿Ð¾Ð·Ð¸ÑÐ¸Ñ. ÐÐ·Ð¼ÐµÐ½ÐµÐ½Ð¸Ñ Ð´Ð¾ÑÑÑÐ¿Ð½Ñ
+          ÑÐ¾Ð»ÑÐºÐ¾ ÑÐ¿Ð¾Ð»Ð½Ð¾Ð¼Ð¾ÑÐµÐ½Ð½ÑÐ¼ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ°Ð¼.
         </p>
 
         <form
@@ -1365,7 +1151,7 @@ export function RosterAdminPanel({
           }
         >
           <label>
-            Участник
+            Ð£ÑÐ°ÑÑÐ½Ð¸Ðº
 
             <select
               value={memberId}
@@ -1377,7 +1163,7 @@ export function RosterAdminPanel({
               required
             >
               <option value="">
-                ВЫБРАТЬ УЧАСТНИКА
+                ÐÐ«ÐÐ ÐÐ¢Ð¬ Ð£Ð§ÐÐ¡Ð¢ÐÐÐÐ
               </option>
 
               {members
@@ -1401,7 +1187,7 @@ export function RosterAdminPanel({
                     {member.username
                       ? `@${member.username}`
                       : `${member.first_name} ${member.last_name ?? ""}`}
-                    {" · "}
+                    {" Â· "}
                     {member.telegram_id}
                   </option>
                 ))}
@@ -1409,7 +1195,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            Позиция
+            ÐÐ¾Ð·Ð¸ÑÐ¸Ñ
 
             <select
               value={availableSlot}
@@ -1436,7 +1222,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            Игровая роль
+            ÐÐ³ÑÐ¾Ð²Ð°Ñ ÑÐ¾Ð»Ñ
 
             <select
               value={role}
@@ -1460,7 +1246,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            Игровой ID (необязательно)
+            ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID (Ð½ÐµÐ¾Ð±ÑÐ·Ð°ÑÐµÐ»ÑÐ½Ð¾)
 
             <input
               maxLength={40}
@@ -1482,7 +1268,7 @@ export function RosterAdminPanel({
               freeSlots.length === 0
             }
           >
-            ДОБАВИТЬ ИГРОКА
+            ÐÐÐÐÐÐÐ¢Ð¬ ÐÐÐ ÐÐÐ
           </button>
         </form>
 
@@ -1502,12 +1288,16 @@ export function RosterAdminPanel({
                     "_",
                     " "
                   )}
-                  {" · "}
+                  {" Â· "}
                   {player.game_role}
                 </small>
               </div>
 
               <div className="k7-admin-actions">
+                <button type="button" disabled={busy} onClick={() => {
+                  setEditPlayerId(player.telegram_id); setEditSlot(player.slot);
+                  setEditRole(player.game_role); setEditGameId(player.in_game_id ?? "");
+                }}>ÐÐÐÐÐÐÐ¢Ð¬</button>
                 {!player.is_captain && (
                   <button
                     type="button"
@@ -1534,57 +1324,58 @@ export function RosterAdminPanel({
                             }
                           );
                         },
-                        "Капитан назначен"
+                        "ÐÐ°Ð¿Ð¸ÑÐ°Ð½ Ð½Ð°Ð·Ð½Ð°ÑÐµÐ½"
                       )
                     }
                   >
-                    КАПИТАН
+                    ÐÐÐÐÐ¢ÐÐ
                   </button>
                 )}
 
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => {
-                    if (
-                      !window.confirm(
-                        `Убрать ${getName(player)} из состава?`
-                      )
-                    ) {
-                      return;
-                    }
-
-                    void runTask(
-                      async () => {
-                        await requestJson(
-                          "/api/roster",
-                          {
-                            method:
-                              "DELETE",
-                            headers: {
-                              "Content-Type":
-                                "application/json",
-                            },
-                            body:
-                              JSON.stringify(
-                                {
-                                  telegramId:
-                                    player.telegram_id,
-                                }
-                              ),
-                          }
-                        );
-                      },
-                      "Игрок удалён из состава"
-                    );
-                  }}
+                  onClick={() => setDeletePlayerId(player.telegram_id)}
                 >
-                  УДАЛИТЬ
+                  Ð£ÐÐÐÐÐ¢Ð¬
                 </button>
+                {deletePlayerId === player.telegram_id && <div className="k7-inline-confirm">
+                  <span>Ð£Ð±ÑÐ°ÑÑ {getName(player)} Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°?</span>
+                  <button type="button" disabled={busy} onClick={() => {
+                    void runTask(async () => {
+                      await requestJson("/api/roster", { method: "DELETE", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ telegramId: player.telegram_id }) });
+                      setDeletePlayerId(null);
+                    }, "ÐÐ³ÑÐ¾Ðº ÑÐ´Ð°Ð»ÑÐ½ Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°");
+                  }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
+                  <button type="button" onClick={() => setDeletePlayerId(null)}>ÐÐ¢ÐÐÐÐ</button>
+                </div>}
               </div>
             </div>
           ))}
         </div>
+
+        {editPlayerId !== null && (
+          <form className="k7-panel-form k7-roster-edit" onSubmit={(event) => {
+            event.preventDefault();
+            void runTask(async () => {
+              await requestJson("/api/roster", { method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ telegramId: editPlayerId, slot: editSlot, gameRole: editRole, inGameId: editGameId || null }) });
+              setEditPlayerId(null);
+            }, "ÐÐ°Ð½Ð½ÑÐµ Ð¸Ð³ÑÐ¾ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ñ");
+          }}>
+            <strong className="k7-panel-wide">Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐÐÐ ÐÐÐ ÐÐÐ</strong>
+            <label>ÐÐ¾Ð·Ð¸ÑÐ¸Ñ<select value={editSlot} onChange={event => setEditSlot(event.target.value)}>
+              {slots.map(value => <option key={value} value={value} disabled={roster.some(player => player.slot === value && player.telegram_id !== editPlayerId)}>{value.replace("_", " ")}</option>)}
+            </select></label>
+            <label>Ð Ð¾Ð»Ñ<select value={editRole} onChange={event => setEditRole(event.target.value)}>
+              {roles.map(value => <option key={value} value={value}>{value}</option>)}
+            </select></label>
+            <label className="k7-panel-wide">ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID<input value={editGameId} maxLength={40} onChange={event => setEditGameId(event.target.value)}/></label>
+            <button className="k7-panel-button k7-panel-primary" disabled={busy}>Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
+            <button type="button" className="k7-panel-button" onClick={() => setEditPlayerId(null)}>ÐÐ¢ÐÐÐÐ</button>
+          </form>
+        )}
 
         {error && (
           <div
