@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { EventsPanel, NewsPanel, StatsPanel, RosterAdminPanel } from "@/components/k7-panels";
 import CinemaWorld from "@/components/cinema-world";
+import CinemaWeather from "@/components/cinema-weather";
+import { CommunityCounter, ReportButton, ReportsInbox } from "@/components/community-tools";
 import {
   MessageCircle,
   CalendarDays,
@@ -14,9 +16,10 @@ import {
   RefreshCw,
   Crown,
   Shield,
+  MessageSquare,
 } from "lucide-react";
 
-type TabId = "chat" | "events" | "roster" | "news" | "stats";
+type TabId = "chat" | "events" | "roster" | "news" | "stats" | "messages";
 
 interface RosterPlayer {
   id: string;
@@ -66,6 +69,8 @@ const tabs = [
   { id: "stats", label: "\u{421}\u{442}\u{430}\u{442}\u{438}\u{441}\u{442}\u{438}\u{43A}\u{430}", icon: Trophy },
 ] as const;
 
+const adminTab = { id: "messages" as const, label: "Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ", icon: MessageSquare };
+
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
 const chatReactionOptions = ["\u{1F525}", "\u{2764}\u{FE0F}", "\u{1F44D}", "\u{1F44E}"];
@@ -76,6 +81,7 @@ const sceneCopy: Record<TabId, { first: string; second: string; third: string }>
   roster: { first: "BUILT", second: "AS ONE", third: "03 / FORMATION â UNITED" },
   news: { first: "MAKE", second: "AN IMPACT", third: "04 / TRANSMISSION â LIVE" },
   stats: { first: "NUMBERS", second: "NEVER LIE", third: "05 / PRECISION â PROVE IT" },
+  messages: { first: "DIRECT", second: "MESSAGES", third: "ADMIN / INBOX" },
 };
 
 function getPlayerName(player: RosterPlayer) {
@@ -205,6 +211,7 @@ const sceneIdentity: Record<TabId, { number: string; label: string }> = {
   roster: { number: "03", label: "FORMATION" },
   news: { number: "04", label: "TRANSMISSION" },
   stats: { number: "05", label: "PRECISION" },
+  messages: { number: "06", label: "INBOX" },
 };
 
 function SceneBackdrop({ scene }: { scene: TabId }) {
@@ -248,6 +255,7 @@ export default function Home() {
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatManageOpen, setChatManageOpen] = useState(false);
+  const [chatPendingDelete, setChatPendingDelete] = useState<string | null>(null);
   const [chatText, setChatText] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHasMore, setChatHasMore] = useState(false);
@@ -265,6 +273,9 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const chatFeedRef = useRef<HTMLDivElement | null>(null);
   const chatInputFocusedRef = useRef(false);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const chatRestoreRef = useRef(false);
+  const syncViewportRef = useRef<(() => void) | null>(null);
 
   const chatShouldStickToBottomRef = useRef(true);
   const chapterScrollFrameRef = useRef<number | null>(null);
@@ -339,7 +350,6 @@ export default function Home() {
   async function moderateChat(id?: string) {
     const isManager = accessRole === "OWNER" || accessRole === "IGL";
     if (!isManager) return;
-    if (!window.confirm(id ? "\u{423}\u{434}\u{430}\u{43B}\u{438}\u{442}\u{44C} \u{44D}\u{442}\u{43E} \u{441}\u{43E}\u{43E}\u{431}\u{449}\u{435}\u{43D}\u{438}\u{435}?" : "\u{41E}\u{447}\u{438}\u{441}\u{442}\u{438}\u{442}\u{44C} \u{432}\u{435}\u{441}\u{44C} \u{447}\u{430}\u{442} \u{434}\u{43B}\u{44F} \u{432}\u{441}\u{435}\u{445} \u{443}\u{447}\u{430}\u{441}\u{442}\u{43D}\u{438}\u{43A}\u{43E}\u{432}?")) return;
     try {
       const response = await fetch("/api/chat", {
         method: "DELETE", credentials: "include",
@@ -350,6 +360,7 @@ export default function Home() {
       if (!response.ok || !result.success) throw new Error(result.error || "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}");
       setChatMessages((current) => id ? current.filter((message) => message.id !== id) : []);
       setChatHasMore(false);
+      setChatPendingDelete(null);
       setChatError("");
     } catch (err) { setChatError(err instanceof Error ? err.message : "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}"); }
   }
@@ -457,10 +468,12 @@ export default function Home() {
 
       setChatText("");
       setReplyTo(null);
-
       chatShouldStickToBottomRef.current = true;
-
+      chatRestoreRef.current = true;
+      chatInputFocusedRef.current = false;
+      chatInputRef.current?.blur();
       await loadChat(true);
+      syncViewportRef.current?.();
     } catch (err) {
       setChatError(
         err instanceof Error ? err.message : "Sending failed"
@@ -670,6 +683,57 @@ export default function Home() {
     }
   }, [chatMessages]);
 
+  // Mobile keyboard: follow the *visual* viewport used by iOS and Telegram WebView.
+  // Keep the chat composed inside the visible window and restore chapter framing
+  // only after keyboard dismissal, without fighting manual scrolling.
+  useEffect(() => {
+    const visual = window.visualViewport;
+    const telegram = (window as Window & { Telegram?: { WebApp?: { viewportStableHeight?: number; onEvent?: (name: string, callback: () => void) => void; offEvent?: (name: string, callback: () => void) => void } } }).Telegram?.WebApp;
+    let baseline = Math.max(visual?.height ?? window.innerHeight, telegram?.viewportStableHeight ?? 0);
+    let frame = 0;
+    let keyboardPreviouslyOpen = false;
+    const update = () => {
+      frame = 0;
+      const height = Math.max(240, visual?.height ?? window.innerHeight);
+      const offsetTop = visual?.offsetTop ?? 0;
+      const root = document.documentElement;
+      root.style.setProperty("--k7-visual-height", `${height}px`);
+      root.style.setProperty("--k7-visual-top", `${offsetTop}px`);
+      const keyboardOpen = baseline - height > 125;
+      if (keyboardOpen) keyboardPreviouslyOpen = true;
+      root.classList.toggle("k7-keyboard-open", keyboardOpen && (chatInputFocusedRef.current || chatRestoreRef.current));
+      if (!keyboardOpen && !chatInputFocusedRef.current) baseline = Math.max(baseline, height);
+      if (chatRestoreRef.current && !chatInputFocusedRef.current && (!keyboardOpen || !keyboardPreviouslyOpen)) {
+        chatRestoreRef.current = false;
+        keyboardPreviouslyOpen = false;
+        root.classList.remove("k7-keyboard-open");
+        const chat = document.getElementById("chat");
+        if (chat && window.scrollY < chat.offsetTop + chat.offsetHeight + 120) {
+          const top = Math.max(0, window.scrollY + chat.getBoundingClientRect().top - 48);
+          window.scrollTo({ top, behavior: "instant" });
+        }
+        const feed = chatFeedRef.current;
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      }
+    };
+    const queue = () => { if (!frame) frame = window.requestAnimationFrame(update); };
+    syncViewportRef.current = queue;
+    queue();
+    visual?.addEventListener("resize", queue);
+    visual?.addEventListener("scroll", queue);
+    window.addEventListener("resize", queue);
+    telegram?.onEvent?.("viewportChanged", queue);
+    return () => {
+      syncViewportRef.current = null;
+      if (frame) window.cancelAnimationFrame(frame);
+      visual?.removeEventListener("resize", queue);
+      visual?.removeEventListener("scroll", queue);
+      window.removeEventListener("resize", queue);
+      telegram?.offEvent?.("viewportChanged", queue);
+      document.documentElement.classList.remove("k7-keyboard-open");
+    };
+  }, []);
+
   // Fast mobile CINEMA: one continuous scroll with lightweight RAF parallax.
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-nav-section]"));
@@ -740,8 +804,10 @@ export default function Home() {
   }, []);
 
   function navigateTo(id: string) {
-    if (!tabs.some((tab) => tab.id === id)) return;
+    const manager = accessRole === "OWNER" || accessRole === "IGL";
+    if (!tabs.some((tab) => tab.id === id) && !(id === "messages" && manager)) return;
     chatInputFocusedRef.current = false;
+    chatInputRef.current?.blur();
     setActiveTab(id as TabId);
     const node = document.getElementById(id);
     if (!node) return;
@@ -773,6 +839,9 @@ export default function Home() {
     return roster.find((player) => player.slot === slot);
   }
 
+  const canManage = accessRole === "OWNER" || accessRole === "IGL";
+  const navigationTabs = canManage ? [...tabs, adminTab] : [...tabs];
+
   return (
     <main className="elite-shell" data-scene={activeTab}>
       {introVisible && (
@@ -789,11 +858,13 @@ export default function Home() {
       )}
 
       <CinemaWorld />
+      <CinemaWeather scene={activeTab} />
 
 
       <header className="k7-app-header">
         <strong className="k7-header-brand">K7<span> / CREW</span></strong>
         <span className="k7-header-scene"><b>{sceneIdentity[activeTab].number}</b> {sceneIdentity[activeTab].label}</span>
+        <CommunityCounter authReady={authReady} />
         {(accessRole === "OWNER" || accessRole === "IGL") && (
           <span className="k7-header-access" title="Owner / captain"><Crown size={13} /> CONTROL</span>
         )}
@@ -848,7 +919,7 @@ export default function Home() {
                 </button>
                 {chatManageOpen && <div className="k7-chat-management-tools">
                   <span>&#x410;&#x432;&#x442;&#x43E;&#x443;&#x434;&#x430;&#x43B;&#x435;&#x43D;&#x438;&#x435; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x439; &#x2014; 10 &#x43C;&#x438;&#x43D;&#x443;&#x442;</span>
-                  <button type="button" className="k7-panel-button" onClick={() => void moderateChat()}>&#x41E;&#x427;&#x418;&#x421;&#x422;&#x418;&#x422;&#x42C; &#x427;&#x410;&#x422;</button>
+                  <button type="button" className="k7-panel-button" onClick={() => setChatPendingDelete("all")}>&#x41E;&#x427;&#x418;&#x421;&#x422;&#x418;&#x422;&#x42C; &#x427;&#x410;&#x422;</button>
                 </div>}
               </div>
             )}
@@ -950,7 +1021,7 @@ export default function Home() {
 
                         <div className="k7-chat-message-actions">
                           {(accessRole === "OWNER" || accessRole === "IGL") && (
-                            <button type="button" onClick={() => void moderateChat(message.id)} aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;">&#x423;&#x414;&#x410;&#x41B;&#x418;&#x422;&#x42C;</button>
+                            <button type="button" onClick={() => setChatPendingDelete(message.id)} aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;">&#x423;&#x414;&#x410;&#x41B;&#x418;&#x422;&#x42C;</button>
                           )}
                           <button
                             onClick={() => setReplyTo(message)}
@@ -1027,12 +1098,13 @@ export default function Home() {
                 )}
                 <div className="k7-chat-input-row">
                   <textarea
+                    ref={chatInputRef}
                     value={chatText}
                     onChange={(event) => setChatText(event.target.value.slice(0, 1000))}
                     onKeyDown={handleChatKeyDown}
                     onPointerDown={() => { chatInputFocusedRef.current = true; }}
-                    onFocus={() => { chatInputFocusedRef.current = true; }}
-                    onBlur={() => { chatInputFocusedRef.current = false; }}
+                    onFocus={() => { chatInputFocusedRef.current = true; chatRestoreRef.current = false; syncViewportRef.current?.(); }}
+                    onBlur={() => { chatInputFocusedRef.current = false; chatRestoreRef.current = true; syncViewportRef.current?.(); }}
                     placeholder="Write a message..."
                     aria-label="&#x421;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435; &#x447;&#x430;&#x442;&#x430;"
                     maxLength={1000}
@@ -1209,11 +1281,30 @@ export default function Home() {
       </section>
 
 
+      {canManage && <section id="messages" data-nav-section className="elite-content-section k7-cinema-section k7-admin-chapter">
+        <SceneBackdrop scene="messages" />
+        <div className="elite-section-inner reveal-content"><ReportsInbox authReady={authReady} /></div>
+      </section>}
+
+      {canManage && chatPendingDelete && <div className="k7-modal-root" onPointerDown={event => {if(event.target === event.currentTarget) setChatPendingDelete(null);}}>
+        <section className="k7-modal-panel" role="alertdialog" aria-modal="true" aria-labelledby="k7-chat-delete-title">
+          <div className="k7-modal-title"><span className="k7-panel-eyebrow">K7 / MODERATION</span><button type="button" onClick={() => setChatPendingDelete(null)} aria-label="ÐÑÐ¼ÐµÐ½Ð°">Ã</button></div>
+          <h2 id="k7-chat-delete-title">ÐÐÐÐ¢ÐÐÐ ÐÐÐÐÐÐ</h2>
+          <p>{chatPendingDelete === "all" ? "Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð²ÑÐµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ ÑÐ°ÑÐ° Ð´Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ°?" : "Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð²ÑÐ±ÑÐ°Ð½Ð½Ð¾Ðµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ Ð´Ð»Ñ Ð²ÑÐµÑ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ¾Ð²?"}</p>
+          <div className="k7-panel-card-actions">
+            <button className="k7-panel-button k7-panel-primary" type="button" onClick={() => void moderateChat(chatPendingDelete === "all" ? undefined : chatPendingDelete)}>Ð£ÐÐÐÐÐ¢Ð¬</button>
+            <button className="k7-panel-button" type="button" onClick={() => setChatPendingDelete(null)}>ÐÐ¢ÐÐÐÐ</button>
+          </div>
+        </section>
+      </div>}
+
+      <ReportButton authReady={authReady}/>
+
       <nav
         className="elite-bottom-nav"
         aria-label="Main navigation"
       >
-        {tabs.map((tab) => {
+        {navigationTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
 
