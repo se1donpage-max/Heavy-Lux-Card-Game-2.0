@@ -141,7 +141,7 @@ function SectionHeader({
         <div className="k7-panel-eyebrow">{eyebrow}</div>
         <h2>
           {title}
-          <span>.</span>
+          
         </h2>
       </div>
 
@@ -277,7 +277,7 @@ export function EventsPanel({
     <div className="k7-data-panel">
       <SectionHeader
         eyebrow="K7 / COMPETITION"
-        title="THE EVENTS"
+        title="Ð¡Ð¾Ð±ÑÑÐ¸Ñ"
         onRefresh={() => void reload()}
         busy={!authReady || loading}
       />
@@ -665,7 +665,7 @@ export function StatsPanel({
     <div className="k7-data-panel">
       <SectionHeader
         eyebrow="K7 / PERFORMANCE"
-        title="THE STATS"
+        title="Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°"
         onRefresh={() => void reload()}
         busy={!authReady || loading}
       />
