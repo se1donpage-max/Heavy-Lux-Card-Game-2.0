@@ -110,3 +110,31 @@ img { max-width: 100%; }
 }
 /* Let the final navigation destination align with the top on tall screens. */
 .elite-content-section:not(:has(~ .elite-content-section)) { min-height: calc(100svh - 180px); }
+
+.entry-shell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.entry-card { width: min(100%, 360px); text-align: center; }
+.entry-mark {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 24px;
+  border-radius: 18px;
+  background: #181819;
+}
+.entry-mark img { width: 48px; height: 48px; object-fit: contain; }
+.entry-card h1 { font-size: 28px; letter-spacing: -.04em; line-height: 1.15; }
+.entry-card p { margin: 12px auto 0; color: var(--secondary); line-height: 1.5; }
+.entry-card button { margin-top: 20px; color: white; background: var(--blue); }
+.k7-chat-status { padding: 12px; }
+.k7-keyboard-open .k7-chat-viewer, .k7-keyboard-open .k7-chat-timer { display: none; }
+.k7-keyboard-open #chat .k7-chat-heading { margin-bottom: 6px; }
+.k7-keyboard-open #chat h2 { font-size: 22px; }
+@media (max-width: 600px) {
+  .k7-chat-feed { height: min(60vh, max(160px, calc(100svh - 376px))); }
+}
