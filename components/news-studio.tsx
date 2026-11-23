@@ -127,7 +127,7 @@ export default function NewsStudio({ authReady, canManage }: { authReady: boolea
   }
   const demo: News = { id: "preview", title: draft.title || "Заголовок публикации", subtitle: draft.subtitle, category: draft.category, content: draft.content || "Текст появится здесь.", cover_url: draft.coverUrl || null, published_at: new Date().toISOString(), layout_style: draft.layoutStyle, is_pinned: draft.pinned, cta_label: draft.ctaLabel, cta_url: draft.ctaUrl };
   return <div className="k7-data-panel k7-news-studio">
-    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow">K7 / EDITORIAL TRANSMISSION</div><h2>НОВОСТИ<span>.</span></h2></div>
+    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow">K7 / EDITORIAL TRANSMISSION</div><h2>Новости</h2></div>
       <button className="k7-panel-icon" type="button" disabled={loading} aria-label="Обновить новости" onClick={() => void reload()}><RefreshCw size={17}/></button></div>
     {canManage && <div className="k7-panel-toolbar"><button type="button" className="k7-panel-button k7-panel-primary" onClick={startNew}><Plus size={15}/> СОЗДАТЬ ПУБЛИКАЦИЮ</button></div>}
     <div ref={editorRef}/>
