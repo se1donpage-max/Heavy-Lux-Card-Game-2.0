@@ -39,7 +39,7 @@ export function CommunityCounter({ authReady }: { authReady: boolean }) {
   }, [authReady, reload]);
   return <div className="k7-community-count" title="Зарегистрированные пользователи K7 CREW">
     <Users size={14} aria-hidden="true" /> <strong>{count === null ? "—" : count.toLocaleString("ru-RU")}</strong>
-    <span>В КОМЬЮНИТИ</span>
+    <span>в сообществе</span>
   </div>;
 }
 
@@ -113,7 +113,7 @@ export function ReportsInbox({ authReady }: { authReady: boolean }) {
     finally { setBusyId(null); }
   }
   return <div className="k7-data-panel k7-reports-inbox">
-    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow">K7 / ADMIN ONLY</div><h2>СООБЩЕНИЯ<span>.</span></h2></div>
+    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow">K7 / ADMIN ONLY</div><h2>Обращения</h2></div>
       <button type="button" className="k7-panel-icon" aria-label="Обновить сообщения" disabled={loading} onClick={() => void reload()}><RefreshCw size={18}/></button></div>
     <p className="k7-report-explainer"><MessageSquare size={16}/> Обращения участников видят только владелец и капитан.</p>
     {error && <div role="alert" className="k7-panel-error">{error}</div>}
