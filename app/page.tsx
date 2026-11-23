@@ -197,6 +197,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [introVisible, setIntroVisible] = useState(true);
 
+  const [needsTelegram, setNeedsTelegram] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState("");
   const [accessRole, setAccessRole] = useState<"OWNER" | "ADMIN" | "IGL" | "MEMBER">("MEMBER");
@@ -519,6 +520,7 @@ export default function Home() {
         const initData = telegram?.initData;
 
         if (!initData) {
+          if (!cancelled) setNeedsTelegram(true);
           throw new Error(
             "ÐÑÐºÑÐ¾Ð¹ÑÐµ K7 CREW Ð² Telegram, ÑÑÐ¾Ð±Ñ Ð²Ð¾Ð¹ÑÐ¸."
           );
@@ -710,7 +712,7 @@ export default function Home() {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
-  }, [accessRole]);
+  }, [accessRole, authReady, introVisible]);
 
   function navigateTo(id: TabId) {
     chatInputRef.current?.blur();
@@ -725,20 +727,25 @@ export default function Home() {
   const canManage = accessRole === "OWNER" || accessRole === "IGL";
   const navigationTabs = canManage ? [...tabs, adminTab] : [...tabs];
 
+  if (introVisible || (!authReady && !authError)) {
+    return <main className="intro-screen"><img src="/k7-logo-transparent.png" alt="K7 CREW" className="intro-logo" /></main>;
+  }
+
+  if (!authReady) {
+    return (
+      <main className="entry-shell">
+        <section className="entry-card">
+          <div className="entry-mark"><img src="/k7-logo-transparent.png" alt="K7 CREW" /></div>
+          <h1>{needsTelegram ? "ÐÑÐ¾Ð´ ÑÐµÑÐµÐ· Telegram" : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²Ð¾Ð¹ÑÐ¸"}</h1>
+          <p>{needsTelegram ? "ÐÑÐºÑÐ¾Ð¹ÑÐµ ÑÐ°Ñ Ñ Ð±Ð¾ÑÐ¾Ð¼ K7 CREW Ð² Telegram Ð¸ Ð½Ð°Ð¶Ð¼Ð¸ÑÐµ ÐºÐ½Ð¾Ð¿ÐºÑ Ð·Ð°Ð¿ÑÑÐºÐ° Ð¿ÑÐ¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ." : "ÐÐ±Ð½Ð¾Ð²Ð¸ÑÐµ ÑÑÑÐ°Ð½Ð¸ÑÑ, ÑÑÐ¾Ð±Ñ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð²ÑÐ¾Ð´ Ð² K7 CREW."}</p>
+          {!needsTelegram && <button type="button" onClick={() => window.location.reload()}>ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð²ÑÐ¾Ð´</button>}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="elite-shell" data-scene={activeTab}>
-      {introVisible && (
-        <div className="intro-screen" aria-label="K7 CREW">
-
-          <img
-            src="/k7-logo-transparent.png"
-            alt="K7 CREW"
-            className="intro-logo"
-          />
-        </div>
-      )}
-
-
       <header className="k7-app-header">
         <h1 className="k7-header-brand">K7 CREW</h1>
         <CommunityCounter authReady={authReady} />
@@ -789,7 +796,7 @@ export default function Home() {
             >
               {chatLoadingOlder && (
                 <div className="k7-chat-history-loading">
-                  LOADING OLDER MESSAGES...
+                  ÐÐ°Ð³ÑÑÐ¶Ð°ÐµÐ¼ Ð¸ÑÑÐ¾ÑÐ¸Ñâ¦
                 </div>
               )}
 
@@ -805,7 +812,7 @@ export default function Home() {
                 <div className="k7-chat-status k7-chat-error">
                   {chatError}
                   <button onClick={() => void loadChat()}>
-                    RETRY
+                    ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ
                   </button>
                 </div>
               ) : chatMessages.length === 0 ? (
@@ -853,7 +860,7 @@ export default function Home() {
 
                           {isOwn && (
                             <span className="k7-chat-you">
-                              YOU
+                              ÐÑ
                             </span>
                           )}
 
@@ -865,7 +872,7 @@ export default function Home() {
                         {repliedMessage && (
                           <div className="k7-chat-reply-preview">
                             <span>
-                              REPLY TO {getChatName(repliedMessage)}
+                              ÐÑÐ²ÐµÑ Ð´Ð»Ñ {getChatName(repliedMessage)}
                             </span>
                             <p>{repliedMessage.content}</p>
                           </div>
@@ -886,7 +893,7 @@ export default function Home() {
                             onClick={() => setReplyTo(message)}
                             aria-label="Reply"
                           >
-                            REPLY
+                            ÐÑÐ²ÐµÑÐ¸ÑÑ
                           </button>
 
                           <div className="k7-chat-reactions">
@@ -947,7 +954,7 @@ export default function Home() {
                 {replyTo && (
                   <div className="k7-chat-replying">
                     <div>
-                      <span>REPLYING TO</span>
+                      <span>ÐÑÐ²ÐµÑ Ð´Ð»Ñ</span>
                       <strong>{getChatName(replyTo)}</strong>
                     </div>
                     <button onClick={() => setReplyTo(null)} aria-label="Cancel reply">
