@@ -295,7 +295,7 @@ export function EventsPanel({
             }
             onClick={() => setFilter("UPCOMING")}
           >
-            ÐÐ ÐÐÐ¡Ð¢ÐÐ¯Ð©ÐÐ
+            ÐÑÐµÐ´ÑÑÐ¾ÑÑÐ¸Ðµ
           </button>
 
           <button
@@ -305,9 +305,9 @@ export function EventsPanel({
             }
             onClick={() => setFilter("COMPLETED")}
           >
-            ÐÐÐÐÐ Ð¨ÐÐÐÐ«Ð
+            ÐÐ°Ð²ÐµÑÑÑÐ½Ð½ÑÐµ
           </button>
-          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}>ÐÐ¢ÐÐÐÐÐÐÐ«Ð</button>
+          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}>ÐÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÐµ</button>
         </div>
 
         {canManage && (
@@ -817,28 +817,28 @@ export function StatsPanel({
             <>
               <div className="k7-stat-metrics">
                 <div>
-                  <span>MATCHES</span>
+                  <span>ÐÐ°ÑÑÐ¸</span>
                   <strong>
                     {data.team.matches}
                   </strong>
                 </div>
 
                 <div>
-                  <span>WINS</span>
+                  <span>ÐÐ¾Ð±ÐµÐ´Ñ</span>
                   <strong>
                     {data.team.wins}
                   </strong>
                 </div>
 
                 <div>
-                  <span>KILLS</span>
+                  <span>Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°</span>
                   <strong>
                     {data.team.kills}
                   </strong>
                 </div>
 
                 <div>
-                  <span>WIN RATE</span>
+                  <span>ÐÐ¾Ð»Ñ Ð¿Ð¾Ð±ÐµÐ´</span>
                   <strong>
                     {data.team.winRate}%
                   </strong>
@@ -862,7 +862,7 @@ export function StatsPanel({
                       setView("main")
                     }
                   >
-                    ÐÐ¡ÐÐÐÐ
+                    ÐÑÐ½Ð¾Ð²Ð°
                   </button>
 
                   <button
@@ -876,7 +876,7 @@ export function StatsPanel({
                       setView("sub")
                     }
                   >
-                    ÐÐÐÐÐ¡
+                    ÐÐ°Ð¿Ð°Ñ
                   </button>
                 </div>
               </div>
@@ -917,7 +917,7 @@ export function StatsPanel({
               )}
 
               <h3 className="k7-panel-subtitle">
-                ÐÐÐ¡ÐÐÐÐÐÐ ÐÐÐ¢Ð§Ð
+                ÐÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ¸
               </h3>
 
               {data.recentMatches.length ? (
