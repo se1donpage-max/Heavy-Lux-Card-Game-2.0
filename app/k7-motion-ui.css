@@ -1,0 +1,33 @@
+/* K7 V6.3 VECTOR CINEMA — presentation only. */
+.k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.elite-roster-list,.k7-chat-feed,.k7-chat-composer,.k7-modal-panel,.elite-bottom-nav,.k7-editor-studio,.k7-report-form),.entry-card {
+ --k7-corner-a:url('/k7-interface/corner-tl.svg'); --k7-corner-b:url('/k7-interface/corner-br.svg');
+ border:1px solid #393939; border-radius:0; background-color:rgba(0,0,0,.94);
+ background-image:var(--k7-corner-a),var(--k7-corner-b),linear-gradient(90deg,transparent,#fff 50%,transparent),linear-gradient(90deg,transparent,#aaa 50%,transparent);
+ background-repeat:no-repeat; background-size:92px 45px,92px 45px,36px 1px,36px 1px;
+ background-position:left top,right bottom,22% top,78% bottom;
+ animation:k7-vector-rails 5s linear infinite;
+}
+@keyframes k7-vector-rails {0%,100%{background-position:left top,right bottom,22% top,78% bottom}50%{background-position:left top,right bottom,78% top,22% bottom}}
+.k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.k7-modal-panel,.k7-editor-studio,.k7-report-form),.entry-card {padding-top:max(18px,1.25rem);padding-bottom:max(18px,1.25rem)}
+.k7-immersive-shell :is(.k7-panel-card,.k7-news-story,.k7-report-item,.k7-panel-form,.k7-editor-preview,.k7-panel-empty,.k7-rankings,.k7-recent-matches,.k7-stat-metrics > div,.k7-admin-row,.k7-match-player,.roster-player,.k7-panel-tabs) {
+ border-radius:0; border-color:#303030; background-color:#080808;
+ background-image:url('/k7-interface/corner-tl-static.svg'),url('/k7-interface/corner-br-static.svg');background-repeat:no-repeat;background-size:32px 16px,32px 16px;background-position:left top,right bottom;
+}
+.k7-immersive-shell :is(button,.k7-story-cta),.entry-card button {
+ border:1px solid transparent; border-radius:0; background-color:transparent;
+ background-image:url('/k7-interface/button-static.svg');background-size:100% 100%;background-position:center;background-repeat:no-repeat;
+ transition:filter .16s,transform .16s; color:#fff; box-shadow:none;
+}
+.k7-immersive-shell :is(.k7-panel-primary,.k7-chat-send,.elite-nav-item.active,.k7-panel-tabs button.selected),.entry-card button {background-image:url('/k7-interface/button.svg');background-color:transparent;filter:brightness(1.35)}
+.k7-immersive-shell :is(button,.k7-story-cta):not(:disabled):not([aria-disabled="true"]):active,.entry-card button:not(:disabled):active {filter:brightness(2);transform:scale(.97);background-color:transparent;box-shadow:inset 0 -2px 0 #fff}
+@media(hover:hover){.k7-immersive-shell :is(button,.k7-story-cta):not(:disabled):hover,.entry-card button:not(:disabled):hover{filter:brightness(1.65);background-color:transparent}}
+.k7-immersive-shell :is(button,.k7-story-cta):focus-visible,.entry-card button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.k7-immersive-shell :is(button,.k7-story-cta):is(:disabled,[aria-disabled="true"]),.entry-card button:disabled{background-image:url('/k7-interface/button-static.svg');filter:none;opacity:.5}
+.k7-immersive-shell .elite-bottom-nav{background-size:42px 21px,42px 21px,30px 1px,30px 1px;padding:7px;gap:3px}
+.k7-immersive-shell .elite-nav-item{min-width:0;padding-inline:2px}
+.k7-immersive-shell .elite-nav-item.active{box-shadow:inset 0 -2px 0 #fff}
+.k7-immersive-shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea){border-radius:0;background-color:#050505}
+.k7-immersive-shell :is(input,select,textarea):focus-visible{outline:1px solid #fff;outline-offset:1px}
+.k7-immersive-shell .k7-chat-feed{border-bottom:0}
+@media(prefers-reduced-motion:reduce),(update:slow){.k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.elite-roster-list,.k7-chat-feed,.k7-chat-composer,.k7-modal-panel,.elite-bottom-nav,.k7-editor-studio,.k7-report-form),.entry-card{--k7-corner-a:url('/k7-interface/corner-tl-static.svg');--k7-corner-b:url('/k7-interface/corner-br-static.svg');animation:none!important}.k7-immersive-shell :is(button,.k7-story-cta),.entry-card button{background-image:url('/k7-interface/button-static.svg')!important;transition:none!important}}
+@media(forced-colors:active){.k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.elite-roster-list,.k7-chat-feed,.k7-chat-composer,.k7-modal-panel,.elite-bottom-nav,.k7-editor-studio,.k7-report-form,.k7-panel-card,.k7-news-story,.k7-report-item,.k7-panel-form,.k7-editor-preview,.k7-panel-empty,.k7-rankings,.k7-recent-matches,.k7-stat-metrics > div,.k7-admin-row,.k7-match-player,.roster-player,.k7-panel-tabs,button,.k7-story-cta),.entry-card,.entry-card button{background-image:none!important;animation:none!important;border:1px solid CanvasText;filter:none}}
