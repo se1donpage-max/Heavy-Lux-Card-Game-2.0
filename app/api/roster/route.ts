@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -11,9 +10,10 @@ import { canManageRoster } from "@/lib/permissions";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Публичный просмотр состава
+// Просмотр состава для зарегистрированных участников
 export async function GET() {
   try {
+    if (!await getAuthenticatedUser()) return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
