@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import TelegramInit from "@/components/telegram-init";
 import "./globals.css";
+import "@/components/k7-panels-fix.css";
+import "./dark-elite.css";
 
 export const metadata: Metadata = {
   title: "K7 CREW — PUBG MOBILE ESPORTS",
