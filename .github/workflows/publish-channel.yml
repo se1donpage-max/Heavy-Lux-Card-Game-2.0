@@ -1,0 +1,28 @@
+
+name: Publish K7 CREW to Telegram
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publish K7 CREW
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          curl --fail-with-body -sS \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendAnimation" \
+            --data-urlencode 'chat_id=@k7creww' \
+            --data-urlencode 'animation=https://k7creww.onrender.com/K7_DARK_ELITE_BANNER_4K.mp4' \
+            --data-urlencode 'parse_mode=HTML' \
+            --data-urlencode 'caption=<b>K7 CREW | CONNECTED COMMUNITY</b>
+
+          Официальная платформа киберспортивной организации K7 CREW.
+
+          Будь частью команды. 
+
+          <b>ONE CREW. ONE VISION.</b>' \
+            --data-urlencode 'reply_markup={"inline_keyboard":[[{"text":"ОТКРЫТЬ K7 CREW","url":"https://t.me/k7crew_bot?startapp"}]]}'
