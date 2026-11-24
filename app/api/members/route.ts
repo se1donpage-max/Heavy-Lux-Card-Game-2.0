@@ -1,7 +1,7 @@
-
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { canManageRoster } from "@/lib/permissions";
+import { readAllRows } from "@/lib/pagination";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -31,25 +31,10 @@ export async function GET() {
       );
     }
 
-    const { data, error } = await getSupabaseAdmin()
-      .from("profiles")
-      .select(
-        "telegram_id, first_name, last_name, username"
-      )
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    if (error) {
-      console.error("Members GET failed:", error);
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Could not load members"
-        },
-        { status: 503 }
-      );
-    }
+    const db = getSupabaseAdmin();
+    const data = await readAllRows((from, to) => db.from("profiles")
+      .select("telegram_id, first_name, last_name, username")
+      .order("created_at", { ascending: false }).order("telegram_id").range(from, to));
 
     return NextResponse.json(
       {
