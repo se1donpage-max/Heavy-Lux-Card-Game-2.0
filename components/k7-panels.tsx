@@ -77,7 +77,7 @@ function formatDate(value: string) {
   const date = new Date(value);
 
   return Number.isNaN(date.getTime())
-    ? "â"
+    ? "—"
     : date.toLocaleString("ru-RU", {
         day: "2-digit",
         month: "short",
@@ -122,7 +122,7 @@ function SectionState({
           className="k7-panel-button"
           onClick={retry}
         >
-          <BrandLabel text={"ÐÐÐÐ¢ÐÐ ÐÐ¢Ð¬"} asset="actions/retry" />
+          <BrandLabel text={"ПОВТОРИТЬ"} asset="actions/retry" />
         </button>
       )}
     </div>
@@ -154,9 +154,9 @@ function SectionHeader({
         className="k7-panel-icon"
         onClick={onRefresh}
         disabled={busy}
-        aria-label="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ Ð´Ð°Ð½Ð½ÑÐµ"
+        aria-label="Обновить данные"
       >
-        <RefreshCw size={17} /><BrandLabel text="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ Ð´Ð°Ð½Ð½ÑÐµ" asset="actions/refresh_data" />
+        <RefreshCw size={17} /><BrandLabel text="Обновить данные" asset="actions/refresh_data" />
       </button>
     </div>
   );
@@ -173,12 +173,12 @@ async function requestJson(path: string, init?: RequestInit) {
   // serves HTML (for example, an authentication redirect) instead.
   const result = await response.json().catch(() => null);
   if (!result || typeof result !== "object") {
-    throw new Error(`Ð¡ÐµÑÐ²ÐµÑ Ð²ÐµÑÐ½ÑÐ» Ð½ÐµÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ JSON (${response.status})`);
+    throw new Error(`Сервер вернул некорректный JSON (${response.status})`);
   }
 
   const payload = result as { success?: boolean; error?: string };
   if (!response.ok || payload.success === false) {
-    throw new Error(payload.error || `ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿ÑÐ¾ÑÐ° (${response.status})`);
+    throw new Error(payload.error || `Ошибка запроса (${response.status})`);
   }
 
   return result;
@@ -217,7 +217,7 @@ export function EventsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ñ"
+          : "Не удалось загрузить события"
       );
     } finally {
       setLoading(false);
@@ -266,7 +266,7 @@ export function EventsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¾ÑÑÐ°Ð½Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"
+          : "Не удалось сохранить событие"
       );
     } finally {
       setSaving(false);
@@ -285,7 +285,7 @@ export function EventsPanel({
     <div className="k7-data-panel">
       <SectionHeader
         eyebrow="K7 / COMPETITION"
-        title="Ð¡Ð¾Ð±ÑÑÐ¸Ñ"
+        title="События"
         onRefresh={() => void reload()}
         busy={!authReady || loading}
       />
@@ -294,7 +294,7 @@ export function EventsPanel({
         <div
           className="k7-panel-tabs"
           role="group"
-          aria-label="Ð¡ÑÐ°ÑÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+          aria-label="Статус мероприятий"
         >
           <button
             type="button"
@@ -303,7 +303,7 @@ export function EventsPanel({
             }
             onClick={() => setFilter("UPCOMING")}
           >
-            <BrandLabel text={"ÐÑÐµÐ´ÑÑÐ¾ÑÑÐ¸Ðµ"} asset="sections/upcoming" />
+            <BrandLabel text={"Предстоящие"} asset="sections/upcoming" />
           </button>
 
           <button
@@ -313,9 +313,9 @@ export function EventsPanel({
             }
             onClick={() => setFilter("COMPLETED")}
           >
-            <BrandLabel text={"ÐÐ°Ð²ÐµÑÑÑÐ½Ð½ÑÐµ"} asset="sections/completed" />
+            <BrandLabel text={"Завершённые"} asset="sections/completed" />
           </button>
-          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}><BrandLabel text={"ÐÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÐµ"} asset="sections/cancelled" /></button>
+          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}><BrandLabel text={"Отменённые"} asset="sections/cancelled" /></button>
         </div>
 
         {canManage && (
@@ -324,7 +324,7 @@ export function EventsPanel({
             className="k7-panel-button"
             onClick={() => { setEditingId(null); setTitle(""); setDate(""); setDescription(""); setEventFormat(""); setPosterUrl(""); setShowForm((value) => !value); }}
           >
-            {showForm ? <BrandLabel text={"ÐÐÐÐ Ð«Ð¢Ð¬"} asset="actions/close" /> : <BrandLabel text={"+ Ð¡ÐÐÐ«Ð¢ÐÐ"} asset="actions/add_event" />}
+            {showForm ? <BrandLabel text={"ЗАКРЫТЬ"} asset="actions/close" /> : <BrandLabel text={"+ СОБЫТИЕ"} asset="actions/add_event" />}
           </button>
         )}
       </div>
@@ -335,7 +335,7 @@ export function EventsPanel({
           onSubmit={(event) => void createEvent(event)}
         >
           <label>
-            <BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ"} asset="fields/name" />
+            <BrandLabel text={"Название"} asset="fields/name" />
             <input
               required
               maxLength={120}
@@ -347,7 +347,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" />
+            <BrandLabel text={"Дата и время"} asset="fields/date_time" />
             <input
               type="datetime-local"
               required
@@ -359,7 +359,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            <BrandLabel text={"Ð¤Ð¾ÑÐ¼Ð°Ñ"} asset="fields/format" />
+            <BrandLabel text={"Формат"} asset="fields/format" />
             <input
               maxLength={100}
               value={eventFormat}
@@ -370,7 +370,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ¾ÑÑÐµÑ (HTTPS)"} asset="fields/poster" />
+            <BrandLabel text={"Постер (HTTPS)"} asset="fields/poster" />
             <input
               type="url"
               placeholder="https://..."
@@ -382,7 +382,7 @@ export function EventsPanel({
           </label>
 
           <label className="k7-panel-wide">
-            <BrandLabel text={"ÐÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ"} asset="fields/description" />
+            <BrandLabel text={"Описание"} asset="fields/description" />
             <textarea
               maxLength={5000}
               rows={3}
@@ -398,16 +398,16 @@ export function EventsPanel({
             disabled={saving}
           >
             {saving
-              ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."} asset="actions/saving" />
-              : editingId ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬ ÐÐÐÐÐÐÐÐÐ¯"} asset="actions/save_changes" /> : <BrandLabel text={"ÐÐÐ£ÐÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/publish" />}
+              ? <BrandLabel text={"СОХРАНЕНИЕ..."} asset="actions/saving" />
+              : editingId ? <BrandLabel text={"СОХРАНИТЬ ИЗМЕНЕНИЯ"} asset="actions/save_changes" /> : <BrandLabel text={"ОПУБЛИКОВАТЬ"} asset="actions/publish" />}
           </button>
         </form>
       )}
 
       {!authReady ? (
-        <SectionState message="ÐÐ¾Ð¹Ð´Ð¸ÑÐµ ÑÐµÑÐµÐ· Telegram" />
+        <SectionState message="Войдите через Telegram" />
       ) : loading && !events.length ? (
-        <SectionState message="ÐÐÐÐ Ð£ÐÐÐ Ð¡ÐÐÐ«Ð¢ÐÐ..." />
+        <SectionState message="ЗАГРУЗКА СОБЫТИЙ..." />
       ) : error && !events.length ? (
         <SectionState
           message={error}
@@ -425,10 +425,10 @@ export function EventsPanel({
             <SectionState
               message={
                 filter === "UPCOMING"
-                  ? "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð¿Ð»Ð°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+                  ? "Пока нет запланированных мероприятий"
                   : filter === "CANCELLED"
-                    ? "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð¾ÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
-                    : "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð²ÐµÑÑÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+                    ? "Пока нет отменённых мероприятий"
+                    : "Пока нет завершённых мероприятий"
               }
             />
           ) : (
@@ -441,7 +441,7 @@ export function EventsPanel({
                   {item.poster_url && (
                     <img
                       src={item.poster_url}
-                      alt="ÐÐ¾ÑÑÐµÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ñ"
+                      alt="Постер мероприятия"
                       loading="lazy"
                       className="k7-panel-cover"
                     />
@@ -478,26 +478,26 @@ export function EventsPanel({
                         setEditingId(item.id); setTitle(item.title); setDate(toLocalDateTime(item.event_date));
                         setDescription(item.description ?? ""); setEventFormat(item.event_format ?? "");
                         setPosterUrl(item.poster_url ?? ""); setShowForm(true);
-                      }}><BrandLabel text={"Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¢Ð¬"} asset="actions/edit" /></button>
+                      }}><BrandLabel text={"РЕДАКТИРОВАТЬ"} asset="actions/edit" /></button>
                       {item.status !== "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
                         void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"UPCOMING"})}); setFilter("UPCOMING"); await reload(); }
-                          catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²Ð¾ÑÑÑÐ°Ð½Ð¾Ð²Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
-                      }}><BrandLabel text={"ÐÐÐ¡Ð¡Ð¢ÐÐÐÐÐÐ¢Ð¬"} asset="actions/restore" /></button>}
+                          catch(err) {setError(err instanceof Error ? err.message : "Не удалось восстановить событие");}})();
+                      }}><BrandLabel text={"ВОССТАНОВИТЬ"} asset="actions/restore" /></button>}
                       {item.status === "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
                         void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"CANCELLED"})}); await reload(); }
-                          catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
-                      }}><BrandLabel text={"ÐÐ¢ÐÐÐÐÐ¢Ð¬"} asset="actions/cancel_event" /></button>}
+                          catch(err) {setError(err instanceof Error ? err.message : "Не удалось отменить событие");}})();
+                      }}><BrandLabel text={"ОТМЕНИТЬ"} asset="actions/cancel_event" /></button>}
                       <button type="button" className="k7-panel-button" onClick={() => {
                         setDeleteEventId(item.id);
-                      }}><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
-                      {deleteEventId === item.id && <div className="k7-inline-confirm"><span><BrandLabel text={"Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ?"} asset="status/delete_event" /></span>
+                      }}><BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button>
+                      {deleteEventId === item.id && <div className="k7-inline-confirm"><span><BrandLabel text={"Удалить событие?"} asset="status/delete_event" /></span>
                         <button type="button" disabled={saving} onClick={() => { void (async () => { try {
                           setSaving(true);
                           await requestJson("/api/events", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
                           setDeleteEventId(null); await reload();
-                        } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"); }
-                          finally { setSaving(false); } })(); }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
-                        <button type="button" onClick={() => setDeleteEventId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button></div>}
+                        } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить событие"); }
+                          finally { setSaving(false); } })(); }}><BrandLabel text={"ПОДТВЕРДИТЬ"} asset="actions/confirm" /></button>
+                        <button type="button" onClick={() => setDeleteEventId(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button></div>}
                     </div>
                   )}
                   {canManage &&
@@ -529,13 +529,13 @@ export function EventsPanel({
                                 setError(
                                   err instanceof Error
                                     ? err.message
-                                    : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð²ÐµÑÑÐ¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"
+                                    : "Не удалось завершить событие"
                                 );
                               }
                             })();
                           }}
                         >
-                          <BrandLabel text={"ÐÐÐÐÐ Ð¨ÐÐ¢Ð¬"} asset="actions/complete" />
+                          <BrandLabel text={"ЗАВЕРШИТЬ"} asset="actions/complete" />
                         </button>
                       </div>
                     )}
@@ -598,7 +598,7 @@ export function StatsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ"
+          : "Не удалось загрузить статистику"
       );
     } finally {
       setLoading(false);
@@ -629,7 +629,7 @@ export function StatsPanel({
       players.some((player) => !Number.isInteger(player.kills) || player.kills < 0 || player.kills > 100)
     ) {
       setError(
-        "ÐÑÐ±ÐµÑÐ¸ÑÐµ 1â4 Ð¸Ð³ÑÐ¾ÐºÐ¾Ð², Ð´Ð°ÑÑ Ð¸ ÐºÐ¾ÑÑÐµÐºÑÐ½Ð¾Ðµ ÑÐ¸ÑÐ»Ð¾ ÑÐ±Ð¸Ð¹ÑÑÐ² (0â100)"
+        "Выберите 1–4 игроков, дату и корректное число убийств (0–100)"
       );
       return;
     }
@@ -663,7 +663,7 @@ export function StatsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð¿Ð¸ÑÐ°ÑÑ ÑÐµÐ·ÑÐ»ÑÑÐ°Ñ"
+          : "Не удалось записать результат"
       );
     } finally {
       setSaving(false);
@@ -676,7 +676,7 @@ export function StatsPanel({
     <div className="k7-data-panel">
       <SectionHeader
         eyebrow="K7 / PERFORMANCE"
-        title="Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°"
+        title="Статистика"
         onRefresh={() => void reload()}
         busy={!authReady || loading}
       />
@@ -696,8 +696,8 @@ export function StatsPanel({
             }}
           >
             {showForm
-              ? <BrandLabel text={"ÐÐÐÐ Ð«Ð¢Ð¬"} asset="actions/close" />
-              : <BrandLabel text={"+ Ð ÐÐÐ£ÐÐ¬Ð¢ÐÐ¢ ÐÐÐ¢Ð§Ð"} asset="actions/add_match" />}
+              ? <BrandLabel text={"ЗАКРЫТЬ"} asset="actions/close" />
+              : <BrandLabel text={"+ РЕЗУЛЬТАТ МАТЧА"} asset="actions/add_match" />}
           </button>
         </div>
       )}
@@ -710,7 +710,7 @@ export function StatsPanel({
           }
         >
           <label>
-            <BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°"} asset="fields/match_name" />
+            <BrandLabel text={"Название матча"} asset="fields/match_name" />
             <input
               required
               maxLength={100}
@@ -722,7 +722,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" />
+            <BrandLabel text={"Дата и время"} asset="fields/date_time" />
             <input
               type="datetime-local"
               required
@@ -734,7 +734,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐµÑÑÐ¾ (1â100)"} asset="fields/placement_range" />
+            <BrandLabel text={"Место (1–100)"} asset="fields/placement_range" />
             <input
               type="number"
               min="1"
@@ -749,7 +749,7 @@ export function StatsPanel({
 
           <div className="k7-panel-wide k7-match-players">
             <strong>
-              <BrandLabel text={"Ð£ÑÐ°ÑÑÐ½Ð¸ÐºÐ¸ Ð¼Ð°ÑÑÐ° (1â4)"} asset="status/match_players" />
+              <BrandLabel text={"Участники матча (1–4)"} asset="status/match_players" />
             </strong>
 
             {roster.map((player) => (
@@ -765,7 +765,7 @@ export function StatsPanel({
                 </span>
 
                 <input
-                  aria-label={`Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°: ${getName(player)}`}
+                  aria-label={`Убийства: ${getName(player)}`}
                   type="number"
                   min="0"
                   max="100"
@@ -789,9 +789,9 @@ export function StatsPanel({
             ))}
 
             <small>
-              Ð£ÐºÐ°Ð¶Ð¸ ÐºÐ¾Ð»Ð¸ÑÐµÑÑÐ²Ð¾ ÑÐ±Ð¸Ð¹ÑÑÐ² Ð´Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾
-              ÑÑÐ°ÑÑÐ²Ð¾Ð²Ð°Ð²ÑÐµÐ³Ð¾ Ð¸Ð³ÑÐ¾ÐºÐ°; Ð¿ÑÑÑÑÐµ Ð¿Ð¾Ð»Ñ Ð¾Ð·Ð½Ð°ÑÐ°ÑÑ,
-              ÑÑÐ¾ Ð¸Ð³ÑÐ¾Ðº Ð½Ðµ ÑÑÐ°ÑÑÐ²Ð¾Ð²Ð°Ð».
+              Укажи количество убийств для каждого
+              участвовавшего игрока; пустые поля означают,
+              что игрок не участвовал.
             </small>
           </div>
 
@@ -800,16 +800,16 @@ export function StatsPanel({
             disabled={saving}
           >
             {saving
-              ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."} asset="actions/saving" />
-              : <BrandLabel text={"ÐÐÐÐÐ¡ÐÐ¢Ð¬ ÐÐÐ¢Ð§"} asset="actions/record_match" />}
+              ? <BrandLabel text={"СОХРАНЕНИЕ..."} asset="actions/saving" />
+              : <BrandLabel text={"ЗАПИСАТЬ МАТЧ"} asset="actions/record_match" />}
           </button>
         </form>
       )}
 
       {!authReady ? (
-        <SectionState message="ÐÐ¾Ð¹Ð´Ð¸ÑÐµ ÑÐµÑÐµÐ· Telegram" />
+        <SectionState message="Войдите через Telegram" />
       ) : loading && !data ? (
-        <SectionState message="ÐÐÐÐ£Ð§ÐÐÐÐ Ð¡Ð¢ÐÐ¢ÐÐ¡Ð¢ÐÐÐ..." />
+        <SectionState message="ПОЛУЧЕНИЕ СТАТИСТИКИ..." />
       ) : error && !data ? (
         <SectionState
           message={error}
@@ -830,28 +830,28 @@ export function StatsPanel({
             <>
               <div className="k7-stat-metrics">
                 <div>
-                  <span><BrandLabel text={"ÐÐ°ÑÑÐ¸"} asset="sections/matches" /></span>
+                  <span><BrandLabel text={"Матчи"} asset="sections/matches" /></span>
                   <strong>
                     {data.team.matches}
                   </strong>
                 </div>
 
                 <div>
-                  <span><BrandLabel text={"ÐÐ¾Ð±ÐµÐ´Ñ"} asset="sections/wins" /></span>
+                  <span><BrandLabel text={"Победы"} asset="sections/wins" /></span>
                   <strong>
                     {data.team.wins}
                   </strong>
                 </div>
 
                 <div>
-                  <span><BrandLabel text={"Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°"} asset="sections/kills" /></span>
+                  <span><BrandLabel text={"Убийства"} asset="sections/kills" /></span>
                   <strong>
                     {data.team.kills}
                   </strong>
                 </div>
 
                 <div>
-                  <span><BrandLabel text={"ÐÐ¾Ð»Ñ Ð¿Ð¾Ð±ÐµÐ´"} asset="sections/win_rate" /></span>
+                  <span><BrandLabel text={"Доля побед"} asset="sections/win_rate" /></span>
                   <strong>
                     {data.team.winRate}%
                   </strong>
@@ -862,7 +862,7 @@ export function StatsPanel({
                 <div
                   className="k7-panel-tabs"
                   role="group"
-                  aria-label="Ð¢Ð°Ð±Ð»Ð¸ÑÐ° Ð¸Ð³ÑÐ¾ÐºÐ¾Ð²"
+                  aria-label="Таблица игроков"
                 >
                   <button
                     type="button"
@@ -875,7 +875,7 @@ export function StatsPanel({
                       setView("main")
                     }
                   >
-                    <BrandLabel text={"ÐÑÐ½Ð¾Ð²Ð°"} asset="sections/main" />
+                    <BrandLabel text={"Основа"} asset="sections/main" />
                   </button>
 
                   <button
@@ -889,7 +889,7 @@ export function StatsPanel({
                       setView("sub")
                     }
                   >
-                    <BrandLabel text={"ÐÐ°Ð¿Ð°Ñ"} asset="sections/reserve" />
+                    <BrandLabel text={"Запас"} asset="sections/reserve" />
                   </button>
                 </div>
               </div>
@@ -926,11 +926,11 @@ export function StatsPanel({
                   )}
                 </div>
               ) : (
-                <SectionState message="Ð ÑÑÐ¾Ð¹ Ð³ÑÑÐ¿Ð¿Ðµ Ð¿Ð¾ÐºÐ° Ð½ÐµÑ Ð¸Ð³ÑÐ¾ÐºÐ¾Ð²" />
+                <SectionState message="В этой группе пока нет игроков" />
               )}
 
               <h3 className="k7-panel-subtitle">
-                <BrandLabel text={"ÐÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ¸"} asset="sections/recent_matches" />
+                <BrandLabel text={"Последние матчи"} asset="sections/recent_matches" />
               </h3>
 
               {data.recentMatches.length ? (
@@ -962,24 +962,24 @@ export function StatsPanel({
                             setEditingMatchId(match.id);
                             setTitle(match.title); setPlayedAt(toLocalDateTime(match.played_at));
                             setPlacement(String(match.placement));
-                          }}><BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/modify" /></button>
+                          }}><BrandLabel text={"ИЗМЕНИТЬ"} asset="actions/modify" /></button>
                           <button type="button" className="k7-panel-button" onClick={() => {
                             setDeleteMatchId(match.id);
-                          }}><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
-                          {deleteMatchId === match.id && <div className="k7-inline-confirm"><BrandLabel text={"Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ Ð¸ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ?"} asset="status/delete_match" />
+                          }}><BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button>
+                          {deleteMatchId === match.id && <div className="k7-inline-confirm"><BrandLabel text={"Удалить матч и статистику?"} asset="status/delete_match" />
                             <button type="button" disabled={saving} onClick={() => { void (async () => {try { setSaving(true);
                               await requestJson("/api/matches", {method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:match.id})});
                               setDeleteMatchId(null); await reload();
-                            } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ"); }
-                              finally { setSaving(false); } })(); }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
-                            <button type="button" onClick={() => setDeleteMatchId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button></div>}
+                            } catch(err) { setError(err instanceof Error ? err.message : "Не удалось удалить матч"); }
+                              finally { setSaving(false); } })(); }}><BrandLabel text={"ПОДТВЕРДИТЬ"} asset="actions/confirm" /></button>
+                            <button type="button" onClick={() => setDeleteMatchId(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button></div>}
                         </div>}
                       </div>
                     )
                   )}
                 </div>
               ) : (
-                <SectionState message="ÐÐ°ÑÑÐ¸ Ð¿Ð¾ÐºÐ° Ð½Ðµ Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ñ" />
+                <SectionState message="Матчи пока не добавлены" />
               )}
               {canSubmit && editingMatchId && (
                 <form className="k7-panel-form" onSubmit={(event) => { event.preventDefault();
@@ -987,13 +987,13 @@ export function StatsPanel({
                     await requestJson("/api/matches", {method:"PATCH", headers:{"Content-Type":"application/json"},
                       body:JSON.stringify({id:editingMatchId,title:title.trim(),playedAt:new Date(playedAt).toISOString(),placement:Number(placement)})});
                     setEditingMatchId(null); await reload();
-                  } catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð¸ÑÑ Ð¼Ð°ÑÑ");}})();
+                  } catch(err) {setError(err instanceof Error ? err.message : "Не удалось обновить матч");}})();
                 }}>
-                  <label><BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°"} asset="fields/match_name" /><input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
-                  <label><BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" /><input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
-                  <label><BrandLabel text={"ÐÐµÑÑÐ¾"} asset="fields/placement" /><input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
-                  <button className="k7-panel-button k7-panel-primary" type="submit" disabled={saving}><BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬"} asset="actions/save" /></button>
-                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
+                  <label><BrandLabel text={"Название матча"} asset="fields/match_name" /><input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
+                  <label><BrandLabel text={"Дата и время"} asset="fields/date_time" /><input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
+                  <label><BrandLabel text={"Место"} asset="fields/placement" /><input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
+                  <button className="k7-panel-button k7-panel-primary" type="submit" disabled={saving}><BrandLabel text={"СОХРАНИТЬ"} asset="actions/save" /></button>
+                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button>
                 </form>
               )}
             </>
@@ -1084,7 +1084,7 @@ export function RosterAdminPanel({
           setError(
             err instanceof Error
               ? err.message
-              : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»ÐµÐ¹"
+              : "Не удалось получить пользователей"
           );
         }
       });
@@ -1110,7 +1110,7 @@ export function RosterAdminPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "ÐÑÐ¸Ð±ÐºÐ° Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ñ ÑÐ¾ÑÑÐ°Ð²Ð°"
+          : "Ошибка изменения состава"
       );
     } finally {
       setBusy(false);
@@ -1141,21 +1141,21 @@ export function RosterAdminPanel({
           }),
         }
       );
-    }, "ÐÐ³ÑÐ¾Ðº Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½ Ð² ÑÐ¾ÑÑÐ°Ð²");
+    }, "Игрок добавлен в состав");
   }
 
   return (
     <details className="k7-admin-panel">
       <summary>
         <Shield size={16} />
-        <BrandLabel text={"Ð£ÐÐ ÐÐÐÐÐÐÐ Ð¡ÐÐ¡Ð¢ÐÐÐÐ"} asset="sections/manage_roster" />
+        <BrandLabel text={"УПРАВЛЕНИЕ СОСТАВОМ"} asset="sections/manage_roster" />
       </summary>
 
       <div className="k7-admin-body">
         <p>
-          ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð·Ð°ÑÐµÐ³Ð¸ÑÑÑÐ¸ÑÐ¾Ð²Ð°Ð½Ð½Ð¾Ð³Ð¾ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ° Ð¸
-          ÑÐ²Ð¾Ð±Ð¾Ð´Ð½ÑÑ Ð¿Ð¾Ð·Ð¸ÑÐ¸Ñ. ÐÐ·Ð¼ÐµÐ½ÐµÐ½Ð¸Ñ Ð´Ð¾ÑÑÑÐ¿Ð½Ñ
-          ÑÐ¾Ð»ÑÐºÐ¾ ÑÐ¿Ð¾Ð»Ð½Ð¾Ð¼Ð¾ÑÐµÐ½Ð½ÑÐ¼ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ°Ð¼.
+          Выберите зарегистрированного участника и
+          свободную позицию. Изменения доступны
+          только уполномоченным участникам.
         </p>
 
         <form
@@ -1165,7 +1165,7 @@ export function RosterAdminPanel({
           }
         >
           <label>
-            <BrandLabel text={"Ð£ÑÐ°ÑÑÐ½Ð¸Ðº"} asset="fields/member" />
+            <BrandLabel text={"Участник"} asset="fields/member" />
 
             <select
               value={memberId}
@@ -1177,7 +1177,7 @@ export function RosterAdminPanel({
               required
             >
               <option value="">
-                ÐÐ«ÐÐ ÐÐ¢Ð¬ Ð£Ð§ÐÐ¡Ð¢ÐÐÐÐ
+                ВЫБРАТЬ УЧАСТНИКА
               </option>
 
               {members
@@ -1201,7 +1201,7 @@ export function RosterAdminPanel({
                     {member.username
                       ? `@${member.username}`
                       : `${member.first_name} ${member.last_name ?? ""}`}
-                    {" Â· "}
+                    {" · "}
                     {member.telegram_id}
                   </option>
                 ))}
@@ -1209,7 +1209,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ¾Ð·Ð¸ÑÐ¸Ñ"} asset="fields/position" />
+            <BrandLabel text={"Позиция"} asset="fields/position" />
 
             <select
               value={availableSlot}
@@ -1236,7 +1236,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð°Ñ ÑÐ¾Ð»Ñ"} asset="fields/game_role" />
+            <BrandLabel text={"Игровая роль"} asset="fields/game_role" />
 
             <select
               value={role}
@@ -1260,7 +1260,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            <BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID (Ð½ÐµÐ¾Ð±ÑÐ·Ð°ÑÐµÐ»ÑÐ½Ð¾)"} asset="fields/game_id_optional" />
+            <BrandLabel text={"Игровой ID (необязательно)"} asset="fields/game_id_optional" />
 
             <input
               maxLength={40}
@@ -1282,7 +1282,7 @@ export function RosterAdminPanel({
               freeSlots.length === 0
             }
           >
-            <BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬ ÐÐÐ ÐÐÐ"} asset="actions/add_player" />
+            <BrandLabel text={"ДОБАВИТЬ ИГРОКА"} asset="actions/add_player" />
           </button>
         </form>
 
@@ -1299,7 +1299,7 @@ export function RosterAdminPanel({
 
                 <small>
                   <BrandLabel text={player.slot.replace("_", " ")} />
-                  {" Â· "}
+                  {" · "}
                   <BrandLabel text={player.game_role} />
                 </small>
               </div>
@@ -1308,7 +1308,7 @@ export function RosterAdminPanel({
                 <button type="button" disabled={busy} onClick={() => {
                   setEditPlayerId(player.telegram_id); setEditSlot(player.slot);
                   setEditRole(player.game_role); setEditGameId(player.in_game_id ?? "");
-                }}><BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/modify" /></button>
+                }}><BrandLabel text={"ИЗМЕНИТЬ"} asset="actions/modify" /></button>
                 {!player.is_captain && (
                   <button
                     type="button"
@@ -1335,11 +1335,11 @@ export function RosterAdminPanel({
                             }
                           );
                         },
-                        "ÐÐ°Ð¿Ð¸ÑÐ°Ð½ Ð½Ð°Ð·Ð½Ð°ÑÐµÐ½"
+                        "Капитан назначен"
                       )
                     }
                   >
-                    <BrandLabel text={"ÐÐÐÐÐ¢ÐÐ"} asset="actions/captain" />
+                    <BrandLabel text={"КАПИТАН"} asset="actions/captain" />
                   </button>
                 )}
 
@@ -1348,18 +1348,18 @@ export function RosterAdminPanel({
                   disabled={busy}
                   onClick={() => setDeletePlayerId(player.telegram_id)}
                 >
-                  <BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" />
+                  <BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" />
                 </button>
                 {deletePlayerId === player.telegram_id && <div className="k7-inline-confirm">
-                  <span>Ð£Ð±ÑÐ°ÑÑ {getName(player)} Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°?</span>
+                  <span>Убрать {getName(player)} из состава?</span>
                   <button type="button" disabled={busy} onClick={() => {
                     void runTask(async () => {
                       await requestJson("/api/roster", { method: "DELETE", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ telegramId: player.telegram_id }) });
                       setDeletePlayerId(null);
-                    }, "ÐÐ³ÑÐ¾Ðº ÑÐ´Ð°Ð»ÑÐ½ Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°");
-                  }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
-                  <button type="button" onClick={() => setDeletePlayerId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
+                    }, "Игрок удалён из состава");
+                  }}><BrandLabel text={"ПОДТВЕРДИТЬ"} asset="actions/confirm" /></button>
+                  <button type="button" onClick={() => setDeletePlayerId(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button>
                 </div>}
               </div>
             </div>
@@ -1373,18 +1373,18 @@ export function RosterAdminPanel({
               await requestJson("/api/roster", { method: "PATCH", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ telegramId: editPlayerId, slot: editSlot, gameRole: editRole, inGameId: editGameId || null }) });
               setEditPlayerId(null);
-            }, "ÐÐ°Ð½Ð½ÑÐµ Ð¸Ð³ÑÐ¾ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ñ");
+            }, "Данные игрока обновлены");
           }}>
-            <strong className="k7-panel-wide"><BrandLabel text={"Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐÐÐ ÐÐÐ ÐÐÐ"} asset="sections/edit_player" /></strong>
-            <label><BrandLabel text={"ÐÐ¾Ð·Ð¸ÑÐ¸Ñ"} asset="fields/position" /><select value={editSlot} onChange={event => setEditSlot(event.target.value)}>
+            <strong className="k7-panel-wide"><BrandLabel text={"РЕДАКТИРОВАНИЕ ИГРОКА"} asset="sections/edit_player" /></strong>
+            <label><BrandLabel text={"Позиция"} asset="fields/position" /><select value={editSlot} onChange={event => setEditSlot(event.target.value)}>
               {slots.map(value => <option key={value} value={value} disabled={roster.some(player => player.slot === value && player.telegram_id !== editPlayerId)}>{value.replace("_", " ")}</option>)}
             </select></label>
-            <label><BrandLabel text={"Ð Ð¾Ð»Ñ"} asset="fields/role" /><select value={editRole} onChange={event => setEditRole(event.target.value)}>
+            <label><BrandLabel text={"Роль"} asset="fields/role" /><select value={editRole} onChange={event => setEditRole(event.target.value)}>
               {roles.map(value => <option key={value} value={value}>{value}</option>)}
             </select></label>
-            <label className="k7-panel-wide"><BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID"} asset="fields/game_id" /><input value={editGameId} maxLength={40} onChange={event => setEditGameId(event.target.value)}/></label>
-            <button className="k7-panel-button k7-panel-primary" disabled={busy}><BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬"} asset="actions/save" /></button>
-            <button type="button" className="k7-panel-button" onClick={() => setEditPlayerId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
+            <label className="k7-panel-wide"><BrandLabel text={"Игровой ID"} asset="fields/game_id" /><input value={editGameId} maxLength={40} onChange={event => setEditGameId(event.target.value)}/></label>
+            <button className="k7-panel-button k7-panel-primary" disabled={busy}><BrandLabel text={"СОХРАНИТЬ"} asset="actions/save" /></button>
+            <button type="button" className="k7-panel-button" onClick={() => setEditPlayerId(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button>
           </form>
         )}
 

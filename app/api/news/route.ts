@@ -22,7 +22,7 @@ function parseNews(value: unknown): { value?: Record<string, string | boolean | 
   const title = typeof input.title === "string" ? input.title.trim() : "";
   const content = typeof input.content === "string" ? input.content.trim() : "";
   const subtitle = typeof input.subtitle === "string" ? input.subtitle.trim() : "";
-  const category = typeof input.category === "string" ? input.category.trim() : "ÐÐÐÐÐ¡Ð¢Ð";
+  const category = typeof input.category === "string" ? input.category.trim() : "НОВОСТИ";
   const coverUrl = typeof input.coverUrl === "string" ? input.coverUrl.trim() : "";
   const ctaLabel = typeof input.ctaLabel === "string" ? input.ctaLabel.trim() : "";
   const ctaUrl = typeof input.ctaUrl === "string" ? input.ctaUrl.trim() : "";
@@ -32,7 +32,7 @@ function parseNews(value: unknown): { value?: Record<string, string | boolean | 
       subtitle.length > 220 || category.length > 35 || !category ||
       ctaLabel.length > 48 || !allowedStyles.includes(layoutStyle) ||
       !httpsUrl(coverUrl) || !httpsUrl(ctaUrl) || (!!ctaLabel !== !!ctaUrl)) {
-    return { error: "ÐÑÐ¾Ð²ÐµÑÑÑÐµ Ð·Ð°Ð³Ð¾Ð»Ð¾Ð²Ð¾Ðº, Ð¾Ð¿Ð¸ÑÐ°Ð½Ð¸Ðµ, Ð¾ÑÐ¾ÑÐ¼Ð»ÐµÐ½Ð¸Ðµ Ð¸ HTTPS-ÑÑÑÐ»ÐºÐ¸" };
+    return { error: "Проверьте заголовок, описание, оформление и HTTPS-ссылки" };
   }
   return { value: {
     title, content, subtitle: subtitle || null, category, cover_url: coverUrl || null,
@@ -48,7 +48,7 @@ export async function GET() {
       .select("id,title,subtitle,category,content,cover_url,layout_style,is_pinned,cta_label,cta_url,published_at,created_at")
       .order("is_pinned", { ascending: false })
       .order("published_at", { ascending: false }).limit(100);
-    if (error) { console.error("News GET", error); return fail("ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ Ð½Ð¾Ð²Ð¾ÑÑÐ¸. ÐÑÐ¾Ð²ÐµÑÑÑÐµ Ð¼Ð¸Ð³ÑÐ°ÑÐ¸Ñ 004.", 503); }
+    if (error) { console.error("News GET", error); return fail("Не удалось загрузить новости. Проверьте миграцию 004.", 503); }
     return NextResponse.json({ success: true, news: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { console.error("News GET", error); return fail("Server error", 500); }
 }
@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
     const { data, error } = await getSupabaseAdmin().from("news")
       .insert({ ...parsed.value, author_id: user.telegramId })
       .select("id").single();
-    if (error) { console.error("News POST", error); return fail("ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¾Ð·Ð´Ð°ÑÑ Ð¿ÑÐ±Ð»Ð¸ÐºÐ°ÑÐ¸Ñ", 503); }
+    if (error) { console.error("News POST", error); return fail("Не удалось создать публикацию", 503); }
     return NextResponse.json({ success: true, news: data }, { status: 201 });
-  } catch { return fail("ÐÐµÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ Ð·Ð°Ð¿ÑÐ¾Ñ", 400); }
+  } catch { return fail("Некорректный запрос", 400); }
 }
 
 export async function PATCH(request: NextRequest) {
@@ -83,10 +83,10 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.value) return fail(parsed.error ?? "Invalid payload", 400);
     const { data, error } = await getSupabaseAdmin().from("news")
       .update(parsed.value).eq("id", body.id).select("id").maybeSingle();
-    if (error) { console.error("News PATCH", error); return fail("ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¾ÑÑÐ°Ð½Ð¸ÑÑ Ð¿ÑÐ±Ð»Ð¸ÐºÐ°ÑÐ¸Ñ", 503); }
-    if (!data) return fail("ÐÐ¾Ð²Ð¾ÑÑÑ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð°", 404);
+    if (error) { console.error("News PATCH", error); return fail("Не удалось сохранить публикацию", 503); }
+    if (!data) return fail("Новость не найдена", 404);
     return NextResponse.json({ success: true });
-  } catch { return fail("ÐÐµÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ Ð·Ð°Ð¿ÑÐ¾Ñ", 400); }
+  } catch { return fail("Некорректный запрос", 400); }
 }
 
 export async function DELETE(request: NextRequest) {
@@ -98,8 +98,8 @@ export async function DELETE(request: NextRequest) {
     if (!body || typeof body !== "object" || !('id' in body) || typeof body.id !== "string" || !uuid.test(body.id)) return fail("Invalid news ID", 400);
     const { data, error } = await getSupabaseAdmin().from("news")
       .delete().eq("id", body.id).select("id").maybeSingle();
-    if (error) { console.error("News DELETE", error); return fail("ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ Ð½Ð¾Ð²Ð¾ÑÑÑ", 503); }
-    if (!data) return fail("ÐÐ¾Ð²Ð¾ÑÑÑ ÑÐ¶Ðµ ÑÐ´Ð°Ð»ÐµÐ½Ð° Ð¸Ð»Ð¸ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð°", 404);
+    if (error) { console.error("News DELETE", error); return fail("Не удалось удалить новость", 503); }
+    if (!data) return fail("Новость уже удалена или не найдена", 404);
     return NextResponse.json({ success: true });
-  } catch { return fail("ÐÐµÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ Ð·Ð°Ð¿ÑÐ¾Ñ", 400); }
+  } catch { return fail("Некорректный запрос", 400); }
 }

@@ -70,7 +70,7 @@ const tabs = [
   { id: "stats", label: "\u{421}\u{442}\u{430}\u{442}\u{438}\u{441}\u{442}\u{438}\u{43A}\u{430}", icon: Trophy },
 ] as const;
 
-const adminTab = { id: "messages" as const, label: "Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ", icon: MessageSquare };
+const adminTab = { id: "messages" as const, label: "Сообщения", icon: MessageSquare };
 
 const mainSlots = ["MAIN_1", "MAIN_2", "MAIN_3", "MAIN_4"];
 const subSlots = ["SUB_1", "SUB_2", "SUB_3"];
@@ -168,11 +168,11 @@ function PlayerCard({
 
       <div className="roster-player-info">
         <div className="roster-player-name">
-          {player ? getPlayerName(player) : <BrandLabel text={"Ð¡Ð²Ð¾Ð±Ð¾Ð´Ð½Ð¾Ðµ Ð¼ÐµÑÑÐ¾"} asset="sections/free_slot" />}
+          {player ? getPlayerName(player) : <BrandLabel text={"Свободное место"} asset="sections/free_slot" />}
         </div>
 
         <div className="roster-player-role">
-          <BrandLabel text={player ? player.game_role || "TEAM MEMBER" : "ÐÐ¾ÑÑÑÐ¿Ð½Ð¾"} />
+          <BrandLabel text={player ? player.game_role || "TEAM MEMBER" : "Доступно"} />
         </div>
       </div>
 
@@ -283,7 +283,7 @@ export default function Home() {
           credentials: "include", cache: "no-store",
         });
         const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.error || "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÐ°Ñ");
+        if (!response.ok || !result.success) throw new Error(result.error || "Не удалось загрузить чат");
         if (revision !== chatRevision.current) return;
         const batch: ChatMessage[] = result.messages ?? [];
         messages = mergeChatMessages(messages, batch);
@@ -297,7 +297,7 @@ export default function Home() {
       setChatHasMore(hasMore);
       setChatError("");
     } catch (err) {
-      if (revision === chatRevision.current) setChatError(err instanceof Error ? err.message : "Ð§Ð°Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿ÐµÐ½");
+      if (revision === chatRevision.current) setChatError(err instanceof Error ? err.message : "Чат недоступен");
     } finally {
       chatRefreshBusy.current = false;
       if (!silent) setChatLoading(false);
@@ -533,7 +533,7 @@ export default function Home() {
         if (!initData) {
           if (!cancelled) setNeedsTelegram(true);
           throw new Error(
-            "ÐÑÐºÑÐ¾Ð¹ÑÐµ K7 CREW Ð² Telegram, ÑÑÐ¾Ð±Ñ Ð²Ð¾Ð¹ÑÐ¸."
+            "Откройте K7 CREW в Telegram, чтобы войти."
           );
         }
 
@@ -775,9 +775,9 @@ export default function Home() {
       <main className="entry-shell">
         <section className="entry-card">
           <div className="entry-mark"><img src="/k7-ui/brand-mark.png" alt="K7 CREW" /></div>
-          <h1>{needsTelegram ? <BrandLabel text={"ÐÑÐ¾Ð´ ÑÐµÑÐµÐ· Telegram"} asset="sections/telegram_login" /> : <BrandLabel text={"ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²Ð¾Ð¹ÑÐ¸"} asset="sections/login_failed" />}</h1>
-          <p>{needsTelegram ? "ÐÑÐºÑÐ¾Ð¹ÑÐµ ÑÐ°Ñ Ñ Ð±Ð¾ÑÐ¾Ð¼ K7 CREW Ð² Telegram Ð¸ Ð½Ð°Ð¶Ð¼Ð¸ÑÐµ ÐºÐ½Ð¾Ð¿ÐºÑ Ð·Ð°Ð¿ÑÑÐºÐ° Ð¿ÑÐ¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ." : "ÐÐ±Ð½Ð¾Ð²Ð¸ÑÐµ ÑÑÑÐ°Ð½Ð¸ÑÑ, ÑÑÐ¾Ð±Ñ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð²ÑÐ¾Ð´ Ð² K7 CREW."}</p>
-          {!needsTelegram && <button type="button" onClick={() => window.location.reload()}><BrandLabel text={"ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð²ÑÐ¾Ð´"} asset="actions/retry_login" /></button>}
+          <h1>{needsTelegram ? <BrandLabel text={"Вход через Telegram"} asset="sections/telegram_login" /> : <BrandLabel text={"Не удалось войти"} asset="sections/login_failed" />}</h1>
+          <p>{needsTelegram ? "Откройте чат с ботом K7 CREW в Telegram и нажмите кнопку запуска приложения." : "Обновите страницу, чтобы повторить вход в K7 CREW."}</p>
+          {!needsTelegram && <button type="button" onClick={() => window.location.reload()}><BrandLabel text={"Повторить вход"} asset="actions/retry_login" /></button>}
         </section>
       </main>
     );
@@ -789,7 +789,7 @@ export default function Home() {
         <h1 className="k7-header-brand"><BrandLabel text={"K7 CREW"} asset="sections/brand" /></h1>
         <CommunityCounter authReady={authReady} />
         {(accessRole === "OWNER" || accessRole === "IGL") && (
-          <span className="k7-header-access" title="Owner / captain"><Crown size={13} /> <BrandLabel text={"Ð£Ð¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ðµ"} asset="sections/management" /></span>
+          <span className="k7-header-access" title="Owner / captain"><Crown size={13} /> <BrandLabel text={"Управление"} asset="sections/management" /></span>
         )}
       </header>
 
@@ -804,8 +804,8 @@ export default function Home() {
           <div className="k7-chat">
             <div className="k7-chat-heading">
               <div>
-                <h2><BrandLabel text={"Ð§Ð°Ñ"} asset="nav/chat" /></h2>
-                <p className="k7-chat-timer"><BrandLabel text={"Ð¢Ð°Ð¹Ð¼ÐµÑ ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ñ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â 10 Ð¼Ð¸Ð½."} asset="status/chat_timer" /></p>
+                <h2><BrandLabel text={"Чат"} asset="nav/chat" /></h2>
+                <p className="k7-chat-timer"><BrandLabel text={"Таймер удаления сообщений — 10 мин."} asset="status/chat_timer" /></p>
                 {viewer && (
                   <div className="k7-chat-viewer">
                     {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
@@ -821,11 +821,11 @@ export default function Home() {
             {(accessRole === "OWNER" || accessRole === "IGL") && (
               <div className="k7-chat-management">
                 <button type="button" className="k7-panel-button" onClick={() => setChatManageOpen((value) => !value)}>
-                  <Shield size={13} /> <BrandLabel text={"ÐÐÐ¡Ð¢Ð ÐÐÐÐ Ð§ÐÐ¢Ð"} asset="actions/chat_settings" />
+                  <Shield size={13} /> <BrandLabel text={"НАСТРОЙКИ ЧАТА"} asset="actions/chat_settings" />
                 </button>
                 {chatManageOpen && <div className="k7-chat-management-tools">
-                  <span><BrandLabel text={"ÐÐ²ÑÐ¾ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ðµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â 10 Ð¼Ð¸Ð½ÑÑ"} asset="status/auto_delete" /></span>
-                  <button type="button" className="k7-panel-button" onClick={() => setChatPendingDelete("all")}><BrandLabel text={"ÐÐ§ÐÐ¡Ð¢ÐÐ¢Ð¬ Ð§ÐÐ¢"} asset="actions/clear_chat" /></button>
+                  <span><BrandLabel text={"Автоудаление сообщений — 10 минут"} asset="status/auto_delete" /></span>
+                  <button type="button" className="k7-panel-button" onClick={() => setChatPendingDelete("all")}><BrandLabel text={"ОЧИСТИТЬ ЧАТ"} asset="actions/clear_chat" /></button>
                 </div>}
               </div>
             )}
@@ -836,30 +836,30 @@ export default function Home() {
             >
               {chatLoadingOlder && (
                 <div className="k7-chat-history-loading">
-                  <BrandLabel text={"ÐÐ°Ð³ÑÑÐ¶Ð°ÐµÐ¼ Ð¸ÑÑÐ¾ÑÐ¸Ñâ¦"} asset="status/loading_history" />
+                  <BrandLabel text={"Загружаем историю…"} asset="status/loading_history" />
                 </div>
               )}
 
               {!authReady ? (
                 <div className="k7-chat-status">
-                  {authError || "ÐÐ¾Ð´ÐºÐ»ÑÑÐµÐ½Ð¸Ðµâ¦"}
+                  {authError || "Подключение…"}
                 </div>
               ) : chatLoading && chatMessages.length === 0 ? (
                 <div className="k7-chat-status">
-                  <BrandLabel text={"ÐÐ°Ð³ÑÑÐ¶Ð°ÐµÐ¼ ÑÐ°Ñâ¦"} asset="status/loading_chat" />
+                  <BrandLabel text={"Загружаем чат…"} asset="status/loading_chat" />
                 </div>
               ) : chatError && chatMessages.length === 0 ? (
                 <div className="k7-chat-status k7-chat-error">
                   {chatError}
                   <button onClick={() => void loadChat()}>
-                    <BrandLabel text={"ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ"} asset="actions/retry" />
+                    <BrandLabel text={"Повторить"} asset="actions/retry" />
                   </button>
                 </div>
               ) : chatMessages.length === 0 ? (
                 <div className="k7-chat-empty">
                   <MessageCircle size={30} />
-                  <span><BrandLabel text={"ÐÐ¾ÐºÐ° Ð½ÐµÑ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹"} asset="status/no_messages" /></span>
-                  <small>ÐÐ°ÑÐ½Ð¸ÑÐµ ÑÐ°Ð·Ð³Ð¾Ð²Ð¾Ñ Ñ ÐºÐ¾Ð¼Ð°Ð½Ð´Ð¾Ð¹.</small>
+                  <span><BrandLabel text={"Пока нет сообщений"} asset="status/no_messages" /></span>
+                  <small>Начните разговор с командой.</small>
                 </div>
               ) : (
                 chatMessages.map((message) => {
@@ -900,7 +900,7 @@ export default function Home() {
 
                           {isOwn && (
                             <span className="k7-chat-you">
-                              ÐÑ
+                              Вы
                             </span>
                           )}
 
@@ -912,7 +912,7 @@ export default function Home() {
                         {repliedMessage && (
                           <div className="k7-chat-reply-preview">
                             <span>
-                              ÐÑÐ²ÐµÑ Ð´Ð»Ñ {getChatName(repliedMessage)}
+                              Ответ для {getChatName(repliedMessage)}
                             </span>
                             <p>{repliedMessage.content}</p>
                           </div>
@@ -927,13 +927,13 @@ export default function Home() {
 
                         <div className="k7-chat-message-actions">
                           {(accessRole === "OWNER" || accessRole === "IGL") && (
-                            <button type="button" onClick={() => setChatPendingDelete(message.id)} aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;"><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
+                            <button type="button" onClick={() => setChatPendingDelete(message.id)} aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;"><BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button>
                           )}
                           <button
                             onClick={() => setReplyTo(message)}
                             aria-label="Reply"
                           >
-                            <BrandLabel text={"ÐÑÐ²ÐµÑÐ¸ÑÑ"} asset="actions/reply" />
+                            <BrandLabel text={"Ответить"} asset="actions/reply" />
                           </button>
 
                           <div className="k7-chat-reactions">
@@ -964,7 +964,7 @@ export default function Home() {
                                       reaction
                                     )
                                   }
-                                  aria-label={`${["ÐÐ³Ð¾Ð½Ñ", "Ð¡ÐµÑÐ´ÑÐµ", "ÐÑÐ°Ð²Ð¸ÑÑÑ", "ÐÐµ Ð½ÑÐ°Ð²Ð¸ÑÑÑ"][chatReactionOptions.indexOf(reaction)]}: ${matches.length}`}
+                                  aria-label={`${["Огонь", "Сердце", "Нравится", "Не нравится"][chatReactionOptions.indexOf(reaction)]}: ${matches.length}`}
                                   aria-pressed={selected}
                                 >
                                   {reaction}
@@ -995,11 +995,11 @@ export default function Home() {
                 {replyTo && (
                   <div className="k7-chat-replying">
                     <div>
-                      <span>ÐÑÐ²ÐµÑ Ð´Ð»Ñ</span>
+                      <span>Ответ для</span>
                       <strong>{getChatName(replyTo)}</strong>
                     </div>
-                    <button onClick={() => setReplyTo(null)} aria-label="ÐÑÐ¼ÐµÐ½Ð¸ÑÑ Ð¾ÑÐ²ÐµÑ">
-                      <BrandLabel text="ÐÑÐ¼ÐµÐ½Ð¸ÑÑ Ð¾ÑÐ²ÐµÑ" asset="actions/cancel_reply" />
+                    <button onClick={() => setReplyTo(null)} aria-label="Отменить ответ">
+                      <BrandLabel text="Отменить ответ" asset="actions/cancel_reply" />
                     </button>
                   </div>
                 )}
@@ -1012,7 +1012,7 @@ export default function Home() {
                     onPointerDown={() => { chatInputFocusedRef.current = true; }}
                     onFocus={() => { chatInputFocusedRef.current = true; chatRestoreRef.current = false; syncViewportRef.current?.(); }}
                     onBlur={() => { chatInputFocusedRef.current = false; chatRestoreRef.current = true; syncViewportRef.current?.(); }}
-                    placeholder="Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ"
+                    placeholder="Сообщение"
                     aria-label="&#x421;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435; &#x447;&#x430;&#x442;&#x430;"
                     maxLength={1000}
                     rows={1}
@@ -1024,9 +1024,9 @@ export default function Home() {
                     className="k7-chat-send"
                     onClick={() => void sendChatMessage()}
                     disabled={!authReady || !chatText.trim() || chatSending}
-                    aria-label="ÐÑÐ¿ÑÐ°Ð²Ð¸ÑÑ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ"
+                    aria-label="Отправить сообщение"
                   >
-                    <MessageCircle size={19} /><span className="k7-send-label"><BrandLabel text="ÐÑÐ¿ÑÐ°Ð²Ð¸ÑÑ" asset="actions/send" /></span>
+                    <MessageCircle size={19} /><span className="k7-send-label"><BrandLabel text="Отправить" asset="actions/send" /></span>
                   </button>
                 </div>
               </div>
@@ -1062,39 +1062,39 @@ export default function Home() {
 
           <div className="elite-section-heading">
             <div>
-              <h2><BrandLabel text={"Ð¡Ð¾ÑÑÐ°Ð²"} asset="nav/roster" /></h2>
+              <h2><BrandLabel text={"Состав"} asset="nav/roster" /></h2>
             </div>
 
             <button
               className="elite-refresh"
               onClick={() => void loadRoster()}
               disabled={loading || !authReady}
-              aria-label="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ ÑÐ¾ÑÑÐ°Ð²"
+              aria-label="Обновить состав"
             >
-              <RefreshCw size={17} /><BrandLabel text="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ ÑÐ¾ÑÑÐ°Ð²" asset="actions/refresh_roster" />
+              <RefreshCw size={17} /><BrandLabel text="Обновить состав" asset="actions/refresh_roster" />
             </button>
           </div>
 
           {!authReady ? (
             <div className="elite-loading">
-              {authError || "ÐÑÐ¾Ð´â¦"}
+              {authError || "Вход…"}
             </div>
           ) : loading ? (
             <div className="elite-loading">
-              <BrandLabel text={"ÐÐ°Ð³ÑÑÐ¶Ð°ÐµÐ¼ ÑÐ¾ÑÑÐ°Ð²â¦"} asset="status/loading_roster" />
+              <BrandLabel text={"Загружаем состав…"} asset="status/loading_roster" />
             </div>
           ) : error ? (
             <div className="elite-error">
               <p>{error}</p>
               <button onClick={() => void loadRoster()}>
-                <BrandLabel text={"ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ"} asset="actions/retry" />
+                <BrandLabel text={"Повторить"} asset="actions/retry" />
               </button>
             </div>
           ) : (
             <>
               <div className="elite-roster-group">
                 <div className="elite-roster-label">
-                  <BrandLabel text={"ÐÑÐ½Ð¾Ð²Ð½Ð¾Ð¹ ÑÐ¾ÑÑÐ°Ð²"} asset="sections/main_roster" /> <span><BrandLabel text={"4 Ð¼ÐµÑÑÐ°"} asset="sections/four_slots" /></span>
+                  <BrandLabel text={"Основной состав"} asset="sections/main_roster" /> <span><BrandLabel text={"4 места"} asset="sections/four_slots" /></span>
                 </div>
 
                 <div className="elite-roster-list">
@@ -1110,7 +1110,7 @@ export default function Home() {
 
               <div className="elite-roster-group">
                 <div className="elite-roster-label">
-                  <BrandLabel text={"ÐÐ°Ð¿Ð°ÑÐ½ÑÐµ"} asset="sections/sub_roster" /> <span><BrandLabel text={"3 Ð¼ÐµÑÑÐ°"} asset="sections/three_slots" /></span>
+                  <BrandLabel text={"Запасные"} asset="sections/sub_roster" /> <span><BrandLabel text={"3 места"} asset="sections/three_slots" /></span>
                 </div>
 
                 <div className="elite-roster-list">
@@ -1125,7 +1125,7 @@ export default function Home() {
               </div>
 
               <div className="elite-roster-total">
-                <span><BrandLabel text={"ÐÐ³ÑÐ¾ÐºÐ¾Ð² Ð² ÑÐ¾ÑÑÐ°Ð²Ðµ"} asset="sections/roster_count" /></span>
+                <span><BrandLabel text={"Игроков в составе"} asset="sections/roster_count" /></span>
                 <strong>
                   {roster.length.toString().padStart(2, "0")}
                 </strong>
@@ -1180,12 +1180,12 @@ export default function Home() {
 
       {canManage && chatPendingDelete && <div className="k7-modal-root" onPointerDown={event => {if(event.target === event.currentTarget) setChatPendingDelete(null);}}>
         <section className="k7-modal-panel" role="alertdialog" aria-modal="true" aria-labelledby="k7-chat-delete-title">
-          <div className="k7-modal-title"><span className="k7-panel-eyebrow"><BrandLabel text={"K7 / MODERATION"} asset="status/moderation" /></span><button type="button" onClick={() => setChatPendingDelete(null)} aria-label="ÐÑÐ¼ÐµÐ½Ð°"><BrandLabel text={"Ã"} asset="actions/close_x" /></button></div>
-          <h2 id="k7-chat-delete-title"><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐÐÐÐ"} asset="sections/confirmation" /></h2>
-          <p>{chatPendingDelete === "all" ? "Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð²ÑÐµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ ÑÐ°ÑÐ° Ð´Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ°?" : "Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð²ÑÐ±ÑÐ°Ð½Ð½Ð¾Ðµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ Ð´Ð»Ñ Ð²ÑÐµÑ ÑÑÐ°ÑÑÐ½Ð¸ÐºÐ¾Ð²?"}</p>
+          <div className="k7-modal-title"><span className="k7-panel-eyebrow"><BrandLabel text={"K7 / MODERATION"} asset="status/moderation" /></span><button type="button" onClick={() => setChatPendingDelete(null)} aria-label="Отмена"><BrandLabel text={"×"} asset="actions/close_x" /></button></div>
+          <h2 id="k7-chat-delete-title"><BrandLabel text={"ПОДТВЕРЖДЕНИЕ"} asset="sections/confirmation" /></h2>
+          <p>{chatPendingDelete === "all" ? "Удалить все сообщения чата для каждого участника?" : "Удалить выбранное сообщение для всех участников?"}</p>
           <div className="k7-panel-card-actions">
-            <button className="k7-panel-button k7-panel-primary" type="button" onClick={() => void moderateChat(chatPendingDelete === "all" ? undefined : chatPendingDelete)}><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
-            <button className="k7-panel-button" type="button" onClick={() => setChatPendingDelete(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
+            <button className="k7-panel-button k7-panel-primary" type="button" onClick={() => void moderateChat(chatPendingDelete === "all" ? undefined : chatPendingDelete)}><BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button>
+            <button className="k7-panel-button" type="button" onClick={() => setChatPendingDelete(null)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button>
           </div>
         </section>
       </div>}
@@ -1194,7 +1194,7 @@ export default function Home() {
 
       <nav
         className={`elite-bottom-nav${canManage ? " k7-nav-admin" : ""}`}
-        aria-label="ÐÑÐ½Ð¾Ð²Ð½Ð°Ñ Ð½Ð°Ð²Ð¸Ð³Ð°ÑÐ¸Ñ"
+        aria-label="Основная навигация"
       >
         {navigationTabs.map((tab) => {
           const Icon = tab.icon;

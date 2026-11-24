@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     if (!content || content.length > MESSAGE_LIMIT) {
       return jsonError(
-        "Message must contain 1â1000 characters",
+        "Message must contain 1–1000 characters",
         400
       );
     }
