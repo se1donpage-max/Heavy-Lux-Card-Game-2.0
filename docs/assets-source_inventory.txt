@@ -1,0 +1,131 @@
+app/page.tsx:783 h1 {needsTelegram ? "Вход через Telegram" : "Не удалось войти"} 
+app/page.tsx:785 button Повторить вход 
+app/page.tsx:794 h1 K7 CREW 
+app/page.tsx:811 h2 Чат 
+app/page.tsx:827 button &#x41D;&#x410;&#x421;&#x422;&#x420;&#x41E;&#x419;&#x41A;&#x418; &#x427;&#x410;&#x422;&#x410; 
+app/page.tsx:832 button &#x41E;&#x427;&#x418;&#x421;&#x422;&#x418;&#x422;&#x42C; &#x427;&#x410;&#x422; 
+app/page.tsx:858 button Повторить 
+app/page.tsx:934 button &#x423;&#x414;&#x410;&#x41B;&#x418;&#x422;&#x42C; aria-label="&#x423;&#x434;&#x430;&#x43B;&#x438;&#x442;&#x44C; &#x441;&#x43E;&#x43E;&#x431;&#x449;&#x435;&#x43D;&#x438;&#x435;"
+app/page.tsx:936 button Ответить aria-label="Reply"
+app/page.tsx:956 button {reaction} {matches.length > 0 && ( <span>{matches.length}</span> )} aria-label={`React ${reaction}`}
+app/page.tsx:1004 button &#xD7; aria-label="Cancel reply"
+app/page.tsx:1025 button  aria-label="Send message"
+app/page.tsx:1066 h2 Состав 
+app/page.tsx:1069 button  aria-label="Refresh roster"
+app/page.tsx:1090 button Повторить 
+app/page.tsx:1181 button × aria-label="Отмена"
+app/page.tsx:1182 h2 ПОДТВЕРЖДЕНИЕ 
+app/page.tsx:1185 button УДАЛИТЬ 
+app/page.tsx:1186 button ОТМЕНА 
+app/page.tsx:1202 button  aria-label={tab.label}
+components/community-tools.tsx:65 button Сообщить об ошибке 
+components/community-tools.tsx:70 button  aria-label="Закрыть"
+components/community-tools.tsx:71 h2 СООБЩИТЬ ОБ ОШИБКЕ 
+components/community-tools.tsx:72 button ЗАКРЫТЬ 
+components/community-tools.tsx:74 label Тема обращения 
+components/community-tools.tsx:75 label Сообщение 
+components/community-tools.tsx:77 button {busy ? "ОТПРАВКА..." : "ОТПРАВИТЬ"} 
+components/community-tools.tsx:116 h2 Обращения 
+components/community-tools.tsx:117 button  aria-label="Обновить сообщения"
+components/community-tools.tsx:126 h3 {item.subject} 
+components/community-tools.tsx:128 label Ответ или внутренняя заметка (до 500 символов) 
+components/community-tools.tsx:131 button В РАБОТУ 
+components/community-tools.tsx:131 button РЕШЕНО 
+components/community-tools.tsx:131 button СОХРАНИТЬ 
+components/community-tools.tsx:131 button УДАЛИТЬ 
+components/community-tools.tsx:132 button ДА, УДАЛИТЬ 
+components/community-tools.tsx:132 button ОТМЕНА 
+components/k7-panels.tsx:118 button ПОВТОРИТЬ 
+components/k7-panels.tsx:145 h2 {title} 
+components/k7-panels.tsx:151 button  aria-label="Обновить данные"
+components/k7-panels.tsx:298 button Предстоящие 
+components/k7-panels.tsx:308 button Завершённые 
+components/k7-panels.tsx:317 button Отменённые 
+components/k7-panels.tsx:321 button {showForm ? "ЗАКРЫТЬ" : "+ СОБЫТИЕ"} 
+components/k7-panels.tsx:336 label Название 
+components/k7-panels.tsx:348 label Дата и время 
+components/k7-panels.tsx:360 label Формат 
+components/k7-panels.tsx:371 label Постер (HTTPS) 
+components/k7-panels.tsx:383 label Описание 
+components/k7-panels.tsx:395 button {saving ? "СОХРАНЕНИЕ..." : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"} 
+components/k7-panels.tsx:454 h3 {item.title} 
+components/k7-panels.tsx:476 button РЕДАКТИРОВАТЬ 
+components/k7-panels.tsx:481 button ВОССТАНОВИТЬ 
+components/k7-panels.tsx:485 button ОТМЕНИТЬ 
+components/k7-panels.tsx:489 button УДАЛИТЬ 
+components/k7-panels.tsx:493 button ПОДТВЕРДИТЬ 
+components/k7-panels.tsx:499 button ОТМЕНА 
+components/k7-panels.tsx:505 button ЗАВЕРШИТЬ 
+components/k7-panels.tsx:685 button {showForm ? "ЗАКРЫТЬ" : "+ РЕЗУЛЬТАТ МАТЧА"} 
+components/k7-panels.tsx:711 label Название матча 
+components/k7-panels.tsx:723 label Дата и время 
+components/k7-panels.tsx:735 label Место (1–100) 
+components/k7-panels.tsx:755 label  
+components/k7-panels.tsx:800 button {saving ? "СОХРАНЕНИЕ..." : "ЗАПИСАТЬ МАТЧ"} 
+components/k7-panels.tsx:869 button Основа 
+components/k7-panels.tsx:883 button Запас 
+components/k7-panels.tsx:934 h3 Последние матчи 
+components/k7-panels.tsx:962 button ИЗМЕНИТЬ 
+components/k7-panels.tsx:968 button УДАЛИТЬ 
+components/k7-panels.tsx:972 button ПОДТВЕРДИТЬ 
+components/k7-panels.tsx:977 button ОТМЕНА 
+components/k7-panels.tsx:994 label Название матча 
+components/k7-panels.tsx:995 label Дата и время 
+components/k7-panels.tsx:996 label Место 
+components/k7-panels.tsx:997 button СОХРАНИТЬ 
+components/k7-panels.tsx:998 button ОТМЕНА 
+components/k7-panels.tsx:1151 summary УПРАВЛЕНИЕ СОСТАВОМ 
+components/k7-panels.tsx:1169 label Участник 
+components/k7-panels.tsx:1181 option ВЫБРАТЬ УЧАСТНИКА 
+components/k7-panels.tsx:1195 option {member.username ? `@${member.username}` : `${member.first_name} ${member.last_name ?? ""}`} {" · "} {member.telegram_id} 
+components/k7-panels.tsx:1213 label Позиция 
+components/k7-panels.tsx:1226 option {value.replace( "_", " " )} 
+components/k7-panels.tsx:1240 label Игровая роль 
+components/k7-panels.tsx:1253 option {value} 
+components/k7-panels.tsx:1264 label Игровой ID (необязательно) 
+components/k7-panels.tsx:1278 button ДОБАВИТЬ ИГРОКА 
+components/k7-panels.tsx:1313 button ИЗМЕНИТЬ 
+components/k7-panels.tsx:1318 button КАПИТАН 
+components/k7-panels.tsx:1351 button УДАЛИТЬ 
+components/k7-panels.tsx:1360 button ПОДТВЕРДИТЬ 
+components/k7-panels.tsx:1367 button ОТМЕНА 
+components/k7-panels.tsx:1384 label Позиция 
+components/k7-panels.tsx:1385 option {value.replace("_", " ")} 
+components/k7-panels.tsx:1387 label Роль 
+components/k7-panels.tsx:1388 option {value} 
+components/k7-panels.tsx:1390 label Игровой ID 
+components/k7-panels.tsx:1391 button СОХРАНИТЬ 
+components/k7-panels.tsx:1392 button ОТМЕНА 
+components/news-studio.tsx:28 a {link[1]} 
+components/news-studio.tsx:38 h4 {inlineText(trimmed.slice(3))} 
+components/news-studio.tsx:53 h3 {item.title} 
+components/news-studio.tsx:55 a {item.cta_label} 
+components/news-studio.tsx:58 button РЕДАКТИРОВАТЬ 
+components/news-studio.tsx:59 button {item.is_pinned ? "ОТКРЕПИТЬ" : "ЗАКРЕПИТЬ"} 
+components/news-studio.tsx:60 button УДАЛИТЬ 
+components/news-studio.tsx:62 button УДАЛИТЬ 
+components/news-studio.tsx:62 button ОТМЕНА 
+components/news-studio.tsx:130 h2 Новости 
+components/news-studio.tsx:131 button  aria-label="Обновить новости"
+components/news-studio.tsx:132 button СОЗДАТЬ ПУБЛИКАЦИЮ 
+components/news-studio.tsx:135 button  aria-label="Закрыть редактор"
+components/news-studio.tsx:137 label Рубрика 
+components/news-studio.tsx:138 label Стиль публикации 
+components/news-studio.tsx:138 option EDITORIAL · редакционная 
+components/news-studio.tsx:138 option STATEMENT · крупный заголовок 
+components/news-studio.tsx:138 option SPOTLIGHT · акцент на постере 
+components/news-studio.tsx:139 label Заголовок 
+components/news-studio.tsx:140 label Подзаголовок 
+components/news-studio.tsx:141 label Постер / изображение (HTTPS) 
+components/news-studio.tsx:142 button  title="Жирный"
+components/news-studio.tsx:142 button  title="Курсив"
+components/news-studio.tsx:142 button  title="Подзаголовок"
+components/news-studio.tsx:142 button  title="Цитата"
+components/news-studio.tsx:142 button  title="Список"
+components/news-studio.tsx:142 button  title="HTTPS-ссылка"
+components/news-studio.tsx:143 label Текст публикации 
+components/news-studio.tsx:144 label Кнопка действия 
+components/news-studio.tsx:145 label Ссылка кнопки (HTTPS) 
+components/news-studio.tsx:146 label Закрепить публикацию наверху 
+components/news-studio.tsx:147 button {preview ? "СКРЫТЬ ПРЕВЬЮ" : "ПРЕДПРОСМОТР"} 
+components/news-studio.tsx:147 button {saving ? "СОХРАНЯЕМ..." : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"} 
