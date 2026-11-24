@@ -234,6 +234,9 @@ export default function Home() {
 
   const chatShouldStickToBottomRef = useRef(true);
   const chatOlderLoadingRef = useRef(false);
+  const chatRefreshBusy = useRef(false);
+  const chatPageCount = useRef(1);
+  const chatRevision = useRef(0);
 
   const chatPrependPositionRef = useRef<{
     height: number;
@@ -267,36 +270,36 @@ export default function Home() {
   }
 
   async function loadChat(silent = false) {
+    if (chatRefreshBusy.current || chatOlderLoadingRef.current) return;
+    chatRefreshBusy.current = true;
+    const revision = chatRevision.current;
     try {
       if (!silent) setChatLoading(true);
-
-      const response = await fetch("/api/chat", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Could not load chat");
+      let messages: ChatMessage[] = [];
+      let hasMore = false;
+      let cursor = "";
+      for (let page = 0; page < chatPageCount.current; page++) {
+        const response = await fetch(`/api/chat${cursor}`, {
+          credentials: "include", cache: "no-store",
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð·Ð°Ð³ÑÑÐ·Ð¸ÑÑ ÑÐ°Ñ");
+        if (revision !== chatRevision.current) return;
+        const batch: ChatMessage[] = result.messages ?? [];
+        messages = mergeChatMessages(messages, batch);
+        hasMore = Boolean(result.hasMore);
+        if (result.currentUserId != null) setCurrentUserId(Number(result.currentUserId));
+        if (!hasMore || !batch.length) break;
+        cursor = "?" + new URLSearchParams({ beforeCreatedAt: batch[0].created_at, beforeId: batch[0].id });
       }
-
-      setChatMessages((current) =>
-        mergeChatMessages(current, result.messages ?? [])
-      );
-
-      setChatHasMore(Boolean(result.hasMore));
-
-      if (result.currentUserId != null) {
-        setCurrentUserId(Number(result.currentUserId));
-      }
-
+      // The server snapshot is authoritative, including moderator deletions.
+      setChatMessages(messages);
+      setChatHasMore(hasMore);
       setChatError("");
     } catch (err) {
-      setChatError(
-        err instanceof Error ? err.message : "Chat unavailable"
-      );
+      if (revision === chatRevision.current) setChatError(err instanceof Error ? err.message : "Ð§Ð°Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿ÐµÐ½");
     } finally {
+      chatRefreshBusy.current = false;
       if (!silent) setChatLoading(false);
     }
   }
@@ -312,8 +315,10 @@ export default function Home() {
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}");
+      chatRevision.current += 1;
+      if (!id) chatPageCount.current = 1;
       setChatMessages((current) => id ? current.filter((message) => message.id !== id) : []);
-      setChatHasMore(false);
+      if (!id) setChatHasMore(false);
       setChatPendingDelete(null);
       setChatError("");
     } catch (err) { setChatError(err instanceof Error ? err.message : "\u{41E}\u{448}\u{438}\u{431}\u{43A}\u{430} \u{43C}\u{43E}\u{434}\u{435}\u{440}\u{430}\u{446}\u{438}\u{438}"); }
@@ -327,12 +332,13 @@ export default function Home() {
       !feed ||
       !oldestMessage ||
       !chatHasMore ||
-      chatOlderLoadingRef.current
+      (chatOlderLoadingRef.current || chatRefreshBusy.current)
     ) {
       return;
     }
 
     chatOlderLoadingRef.current = true;
+    const revision = chatRevision.current;
     setChatLoadingOlder(true);
 
     try {
@@ -352,9 +358,11 @@ export default function Home() {
         throw new Error(result.error || "Could not load older messages");
       }
 
+      if (revision !== chatRevision.current) return;
       const olderMessages = result.messages ?? [];
 
       if (olderMessages.length > 0) {
+        chatPageCount.current += 1;
         chatPrependPositionRef.current = {
           height: feed.scrollHeight,
           top: feed.scrollTop,
@@ -471,7 +479,7 @@ export default function Home() {
   function handleChatKeyDown(
     event: KeyboardEvent<HTMLTextAreaElement>
   ) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       void sendChatMessage();
     }
@@ -502,20 +510,23 @@ export default function Home() {
 
     async function initializeApp() {
       try {
-        const telegram = (
-          window as Window & {
-            Telegram?: {
-              WebApp?: {
-                initData?: string;
-                ready?: () => void;
-                expand?: () => void;
-              };
-            };
-          }
-        ).Telegram?.WebApp;
-
+        // Allow a slow Telegram bridge to finish loading before rejecting login.
+        for (let attempt = 0; attempt < 20 && !window.Telegram?.WebApp; attempt++) {
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 100));
+          if (cancelled) return;
+        }
+        const telegram = window.Telegram?.WebApp;
         telegram?.ready?.();
         telegram?.expand?.();
+        try {
+          if (telegram?.isVersionAtLeast?.("6.1")) {
+            telegram.setBackgroundColor?.("#080809");
+            if (telegram.isVersionAtLeast("6.9")) telegram.setHeaderColor?.("#080809");
+            if (telegram.isVersionAtLeast("7.10")) telegram.setBottomBarColor?.("#080809");
+          }
+        } catch (themeError) {
+          console.warn("Telegram theme unavailable:", themeError);
+        }
 
         const initData = telegram?.initData;
 
@@ -595,6 +606,27 @@ export default function Home() {
     };
   }, []);
 
+  // Refresh server-derived privileges after captain/roster changes.
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    async function refreshAccess() {
+      try {
+        const response = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+        if (!response.ok || cancelled) return;
+        const result = await response.json();
+        if (!cancelled && result.success && ["OWNER", "ADMIN", "IGL", "MEMBER"].includes(result.user?.accessRole)) {
+          setAccessRole(result.user.accessRole);
+          setViewer(result.user);
+        }
+      } catch { /* Keep last known display role; APIs enforce actual permissions. */ }
+    }
+    const timer = window.setInterval(() => { if (!document.hidden) void refreshAccess(); }, 20000);
+    const visible = () => { if (!document.hidden) void refreshAccess(); };
+    document.addEventListener("visibilitychange", visible);
+    return () => { cancelled = true; window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
+  }, [authReady]);
+
   // Chat requests only run after successful authentication.
   useEffect(() => {
     if (!authReady || activeTab !== "chat") return;
@@ -609,6 +641,18 @@ export default function Home() {
 
     return () => window.clearInterval(interval);
   }, [activeTab, authReady]);
+
+  // Expiry also works offline or when another tab is selected.
+  useEffect(() => {
+    if (!authReady) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setChatMessages((current) => current.some((m) => Date.parse(m.expires_at) <= now)
+        ? current.filter((m) => Date.parse(m.expires_at) > now) : current);
+      setReplyTo((current) => current && Date.parse(current.expires_at) <= now ? null : current);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [authReady]);
 
   // Keep chat position stable when messages change.
   useEffect(() => {
@@ -643,7 +687,7 @@ export default function Home() {
   // only after keyboard dismissal, without fighting manual scrolling.
   useEffect(() => {
     const visual = window.visualViewport;
-    const telegram = (window as Window & { Telegram?: { WebApp?: { viewportStableHeight?: number; onEvent?: (name: string, callback: () => void) => void; offEvent?: (name: string, callback: () => void) => void } } }).Telegram?.WebApp;
+    const telegram = window.Telegram?.WebApp;
     let baseline = Math.max(visual?.height ?? window.innerHeight, telegram?.viewportStableHeight ?? 0);
     let frame = 0;
     let keyboardPreviouslyOpen = false;
@@ -701,13 +745,13 @@ export default function Home() {
       if (active && !chatInputFocusedRef.current) setActiveTab(active.id as TabId);
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
-    const observer = new ResizeObserver(schedule);
-    sections.forEach(section => observer.observe(section));
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    sections.forEach(section => observer?.observe(section));
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     schedule();
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
@@ -765,7 +809,7 @@ export default function Home() {
             <div className="k7-chat-heading">
               <div>
                 <h2>Ð§Ð°Ñ</h2>
-                <p className="k7-chat-timer">Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ Ð¸ÑÑÐµÐ·Ð°ÑÑ ÑÐµÑÐµÐ· 10 Ð¼Ð¸Ð½ÑÑ.</p>
+                <p className="k7-chat-timer">Ð¢Ð°Ð¹Ð¼ÐµÑ ÑÐ´Ð°Ð»ÐµÐ½Ð¸Ñ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â 10 Ð¼Ð¸Ð½.</p>
                 {viewer && (
                   <div className="k7-chat-viewer">
                     {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
