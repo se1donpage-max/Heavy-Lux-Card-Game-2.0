@@ -1,6 +1,7 @@
 
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { K7Intro } from "@/components/k7-intro";
 import TelegramInit from "@/components/telegram-init";
 import "./globals.css";
 import "@/components/k7-panels-fix.css";
@@ -40,7 +41,7 @@ export default function RootLayout({
 
         <TelegramInit />
 
-        {children}
+        <K7Intro>{children}</K7Intro>
       </body>
     </html>
   );

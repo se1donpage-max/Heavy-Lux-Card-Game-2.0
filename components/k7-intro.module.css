@@ -1,0 +1,14 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+  pointer-events: auto;
+  animation: introExit 3s linear both;
+}
+.video { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+@keyframes introExit { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .overlay { display: none; } }
