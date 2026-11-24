@@ -2,7 +2,11 @@
 name: K7 CREW V7.0 Test Installation
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - v70-testing
+    paths:
+      - '.github/workflows/test-v70.yml'
 
 permissions:
   contents: write
