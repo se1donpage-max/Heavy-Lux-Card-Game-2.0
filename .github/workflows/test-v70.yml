@@ -1,0 +1,76 @@
+
+name: K7 CREW V7.0 Validation
+
+on:
+  push:
+    branches:
+      - v70-testing
+    paths:
+      - '.github/workflows/test-v70.yml'
+      - 'K7_V70_CONNECTED_COMMUNITY_RC.zip'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-v70:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+
+      - name: Verify test branch
+        run: |
+          test "$GITHUB_REF_NAME" = "v70-testing"
+
+      - name: Verify archive
+        run: |
+          echo "500f75534d65ba8f52b93185200215416b9fde413d5ab9662ae13d47a2605cd2  K7_V70_CONNECTED_COMMUNITY_RC.zip" | sha256sum -c -
+          unzip -t K7_V70_CONNECTED_COMMUNITY_RC.zip
+
+      - name: Verify V6.4 baseline
+        run: |
+          unzip -p K7_V70_CONNECTED_COMMUNITY_RC.zip docs/V70_BASELINE_SHA.json > /tmp/baseline.json
+          python3 - <<'PY'
+          import json
+          import subprocess
+          with open("/tmp/baseline.json") as f:
+              baseline = json.load(f)
+          for path, expected in baseline.items():
+              actual = subprocess.check_output(
+                  ["git", "hash-object", path],
+                  text=True
+              ).strip()
+              if actual != expected:
+                  raise SystemExit("Baseline mismatch: " + path)
+              print("OK:", path)
+          PY
+
+      - name: Extract V7.0
+        run: unzip -o K7_V70_CONNECTED_COMMUNITY_RC.zip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate encoding
+        run: npm run check:encoding
+
+      - name: Validate brand assets
+        run: npm run check:assets
+
+      - name: Existing functionality tests
+        run: npm run test:local
+
+      - name: V7.0 functionality tests
+        run: node scripts/test-v7.cjs
+
+      - name: TypeScript validation
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
