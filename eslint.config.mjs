@@ -1,4 +1,3 @@
-
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FlatCompat } from "@eslint/eslintrc";
@@ -11,5 +10,6 @@ const compat = new FlatCompat({
 });
 
 export default [
+  { ignores: [".next/**", "out/**", "next-env.d.ts"] },
   ...compat.extends("next/core-web-vitals", "next/typescript")
 ];
