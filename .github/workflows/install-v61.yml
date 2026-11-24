@@ -1,0 +1,66 @@
+
+name: Install K7 CREW V6.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v61:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify V6 baseline
+        run: |
+          test "$(git hash-object app/page.tsx)" = "3aff18e5b33ca8146d77bffe800278853c74335a"
+          test "$(git hash-object app/dark-elite.css)" = "b781c336394bb8e914e1d1835a2ccfb8baaae2cb"
+          test "$(git hash-object components/brand-chapter.tsx)" = "800578193f07d89eb330414bbe6012b01c613484"
+          test "$(git hash-object app/api/reports/route.ts)" = "a0bbfcec7aae01623bd8875db2317a478e134007"
+          test ! -e components/cinema-space.tsx
+          test ! -e supabase/migrations/006_restore_community_reports.sql
+
+      - name: Install V6.1 update
+        run: |
+          echo "397126f9ac5403c50e9ffbceade12a60bafa10eaf3b67efbda9970d3d931d748  K7_V61_IMMERSIVE_UPDATE.zip" | sha256sum -c -
+          unzip -t K7_V61_IMMERSIVE_UPDATE.zip
+          unzip -o K7_V61_IMMERSIVE_UPDATE.zip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate encoding
+        run: npm run check:encoding
+
+      - name: Validate assets
+        run: npm run check:assets
+
+      - name: Local tests
+        run: npm run test:local
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit V6.1 update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/page.tsx
+          git add app/dark-elite.css
+          git add components/brand-chapter.tsx
+          git add components/cinema-space.tsx
+          git add app/api/reports/route.ts
+          git add supabase/migrations/006_restore_community_reports.sql
+          git rm K7_V61_IMMERSIVE_UPDATE.zip
+          git commit -m "K7 CREW V6.1 Immersive Cinema Update"
+          git push origin main
