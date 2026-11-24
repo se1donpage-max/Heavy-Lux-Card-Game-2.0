@@ -1,0 +1,71 @@
+
+name: Install K7 CREW V6.3 VECTOR CINEMA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v63:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify V6.2 baseline
+        run: |
+          test "$(git hash-object app/layout.tsx)" = "31ca3093c432fbf8712452d9470787522c356345"
+          test "$(git hash-object app/dark-elite.css)" = "baa2c55a35f0cc932cab9284ad8ecc87ba9945a9"
+
+      - name: Install VECTOR CINEMA
+        run: |
+          echo "99305e6c4685289c92876e469e74526f3e121b93c2eab9afac00a181cb5f1b3d  K7_V63_VECTOR_CINEMA.zip" | sha256sum -c -
+          unzip -t K7_V63_VECTOR_CINEMA.zip
+          unzip -o K7_V63_VECTOR_CINEMA.zip
+
+      - name: Verify interface assets
+        run: |
+          test -s app/k7-motion-ui.css
+          for asset in button corner-tl corner-br; do
+            test -s "public/k7-interface/$asset.svg"
+            test -s "public/k7-interface/$asset-static.svg"
+          done
+          test -s public/k7-cinema/background.mp4
+          for tab in chat news events roster stats messages; do
+            test -s "public/k7-motion/$tab.mp4"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate encoding
+        run: npm run check:encoding
+
+      - name: Validate assets
+        run: npm run check:assets
+
+      - name: Local tests
+        run: npm run test:local
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit V6.3 update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/layout.tsx
+          git add app/k7-motion-ui.css
+          git add public/k7-interface
+          git rm K7_V63_VECTOR_CINEMA.zip
+          git commit -m "K7 CREW V6.3 VECTOR CINEMA"
+          git push origin main
