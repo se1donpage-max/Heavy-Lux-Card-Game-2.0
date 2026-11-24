@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, RefreshCw, Shield, Trophy } from "lucide-react";
 import NewsStudio from "@/components/news-studio";
+import "./k7-panels-fix.css";
 
 export interface K7RosterPlayer {
   id: string;
@@ -87,7 +88,10 @@ function formatDate(value: string) {
 
 function toLocalDateTime(value: string) {
   const date = new Date(value);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
 }
 
 function getName(player: K7RosterPlayer) {
@@ -165,12 +169,16 @@ async function requestJson(path: string, init?: RequestInit) {
     ...init,
   });
 
-  const result = await response.json();
+  // Fetch decodes JSON as UTF-8. Report a useful error if a proxy
+  // serves HTML (for example, an authentication redirect) instead.
+  const result = await response.json().catch(() => null);
+  if (!result || typeof result !== "object") {
+    throw new Error(`Ð¡ÐµÑÐ²ÐµÑ Ð²ÐµÑÐ½ÑÐ» Ð½ÐµÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ JSON (${response.status})`);
+  }
 
-  if (!response.ok || result.success === false) {
-    throw new Error(
-      result.error || `ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿ÑÐ¾ÑÐ° (${response.status})`
-    );
+  const payload = result as { success?: boolean; error?: string };
+  if (!response.ok || payload.success === false) {
+    throw new Error(payload.error || `ÐÑÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿ÑÐ¾ÑÐ° (${response.status})`);
   }
 
   return result;
@@ -418,7 +426,9 @@ export function EventsPanel({
               message={
                 filter === "UPCOMING"
                   ? "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð¿Ð»Ð°Ð½Ð¸ÑÐ¾Ð²Ð°Ð½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
-                  : "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð²ÐµÑÑÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+                  : filter === "CANCELLED"
+                    ? "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð¾ÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
+                    : "ÐÐ¾ÐºÐ° Ð½ÐµÑ Ð·Ð°Ð²ÐµÑÑÑÐ½Ð½ÑÑ Ð¼ÐµÑÐ¾Ð¿ÑÐ¸ÑÑÐ¸Ð¹"
               }
             />
           ) : (
@@ -615,10 +625,11 @@ export function StatsPanel({
       !players.length ||
       players.length > 4 ||
       !playedAt ||
-      !title.trim()
+      !title.trim() ||
+      players.some((player) => !Number.isInteger(player.kills) || player.kills < 0 || player.kills > 100)
     ) {
       setError(
-        "ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¾Ñ 1 Ð´Ð¾ 4 Ð¸Ð³ÑÐ¾ÐºÐ¾Ð² Ð¸ ÑÐºÐ°Ð¶Ð¸ÑÐµ Ð´Ð°ÑÑ Ð¼Ð°ÑÑÐ°"
+        "ÐÑÐ±ÐµÑÐ¸ÑÐµ 1â4 Ð¸Ð³ÑÐ¾ÐºÐ¾Ð², Ð´Ð°ÑÑ Ð¸ ÐºÐ¾ÑÑÐµÐºÑÐ½Ð¾Ðµ ÑÐ¸ÑÐ»Ð¾ ÑÐ±Ð¸Ð¹ÑÑÐ² (0â100)"
       );
       return;
     }
@@ -675,9 +686,14 @@ export function StatsPanel({
           <button
             className="k7-panel-button"
             type="button"
-            onClick={() =>
-              setShowForm((value) => !value)
-            }
+            onClick={() => {
+              setEditingMatchId(null);
+              setTitle("");
+              setPlayedAt("");
+              setPlacement("1");
+              setSelected({});
+              setShowForm((value) => !value);
+            }}
           >
             {showForm
               ? "ÐÐÐÐ Ð«Ð¢Ð¬"
@@ -945,6 +961,7 @@ export function StatsPanel({
                         </small>
                         {canSubmit && <div className="k7-panel-card-actions">
                           <button type="button" className="k7-panel-button" onClick={() => {
+                            setShowForm(false);
                             setEditingMatchId(match.id);
                             setTitle(match.title); setPlayedAt(toLocalDateTime(match.played_at));
                             setPlacement(String(match.placement));
@@ -978,7 +995,7 @@ export function StatsPanel({
                   <label>ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°<input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
                   <label>ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ<input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
                   <label>ÐÐµÑÑÐ¾<input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
-                  <button className="k7-panel-button k7-panel-primary" type="submit">Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
+                  <button className="k7-panel-button k7-panel-primary" type="submit" disabled={saving}>Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
                   <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}>ÐÐ¢ÐÐÐÐ</button>
                 </form>
               )}
