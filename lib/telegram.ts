@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import {
@@ -31,6 +30,8 @@ export function verifyTelegramInitData(
     }
 
     const params = new URLSearchParams(initData);
+    const keys = Array.from(params.keys());
+    if (new Set(keys).size !== keys.length) return null;
     const receivedHash = params.get("hash");
 
     if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash)) {
@@ -39,7 +40,7 @@ export function verifyTelegramInitData(
 
     const entries = Array.from(params.entries())
       .filter(([key]) => key !== "hash")
-      .sort(([a], [b]) => a.localeCompare(b));
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 
     const dataCheckString = entries
       .map(([key, value]) => `${key}=${value}`)
