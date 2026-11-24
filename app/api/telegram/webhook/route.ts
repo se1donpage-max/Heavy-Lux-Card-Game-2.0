@@ -36,8 +36,18 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: message.chat.id,
+
         animation:
           `${appUrl}/K7_DARK_ELITE_BANNER_4K.mp4`,
+
+        caption:
+          "<b>K7 CREW | CONNECTED COMMUNITY</b>\n\n" +
+          "Официальная платформа киберспортивной организации K7 CREW.\n\n" +
+          "Будь частью команды. Следи за событиями, общайся, изучай статистику и оставайся в центре игровой жизни.\n\n" +
+          "<b>ONE CREW. ONE VISION.</b>",
+
+        parse_mode: "HTML",
+
         reply_markup: {
           inline_keyboard: [
             [
