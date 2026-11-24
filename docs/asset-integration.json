@@ -1,0 +1,896 @@
+
+  {
+    "file": "app/page.tsx",
+    "line": 168,
+    "text": "Свободное место",
+    "id": "sections/free_slot"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 174,
+    "text": "Доступно",
+    "id": "status/available"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 783,
+    "text": "Вход через Telegram",
+    "id": "sections/telegram_login"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 783,
+    "text": "Не удалось войти",
+    "id": "sections/login_failed"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 785,
+    "text": "Повторить вход",
+    "id": "actions/retry_login"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 794,
+    "text": "K7 CREW",
+    "id": "sections/brand"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 797,
+    "text": "Управление",
+    "id": "sections/management"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 811,
+    "text": "Чат",
+    "id": "nav/chat"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 812,
+    "text": "Таймер удаления сообщений — 10 мин.",
+    "id": "status/chat_timer"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 828,
+    "text": "НАСТРОЙКИ ЧАТА",
+    "id": "actions/chat_settings"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 831,
+    "text": "Автоудаление сообщений — 10 минут",
+    "id": "status/auto_delete"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 832,
+    "text": "ОЧИСТИТЬ ЧАТ",
+    "id": "actions/clear_chat"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 842,
+    "text": "Загружаем историю…",
+    "id": "status/loading_history"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 852,
+    "text": "Загружаем чат…",
+    "id": "status/loading_chat"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 858,
+    "text": "Повторить",
+    "id": "actions/retry"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 865,
+    "text": "Пока нет сообщений",
+    "id": "status/no_messages"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 934,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 939,
+    "text": "Ответить",
+    "id": "actions/reply"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1004,
+    "text": "×",
+    "id": "actions/close_x"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1066,
+    "text": "Состав",
+    "id": "nav/roster"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1084,
+    "text": "Загружаем состав…",
+    "id": "status/loading_roster"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1090,
+    "text": "Повторить",
+    "id": "actions/retry"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1097,
+    "text": "Основной состав",
+    "id": "sections/main_roster"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1098,
+    "text": "4 места",
+    "id": "sections/four_slots"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1113,
+    "text": "Запасные",
+    "id": "sections/sub_roster"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1114,
+    "text": "3 места",
+    "id": "sections/three_slots"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1129,
+    "text": "Игроков в составе",
+    "id": "sections/roster_count"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1181,
+    "text": "K7 / MODERATION",
+    "id": "status/moderation"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1181,
+    "text": "×",
+    "id": "actions/close_x"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1182,
+    "text": "ПОДТВЕРЖДЕНИЕ",
+    "id": "sections/confirmation"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1185,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "app/page.tsx",
+    "line": 1186,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 122,
+    "text": "ПОВТОРИТЬ",
+    "id": "actions/retry"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 304,
+    "text": "Предстоящие",
+    "id": "sections/upcoming"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 314,
+    "text": "Завершённые",
+    "id": "sections/completed"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 317,
+    "text": "Отменённые",
+    "id": "sections/cancelled"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 326,
+    "text": "ЗАКРЫТЬ",
+    "id": "actions/close"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 326,
+    "text": "+ СОБЫТИЕ",
+    "id": "actions/add_event"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 336,
+    "text": "Название",
+    "id": "fields/name"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 348,
+    "text": "Дата и время",
+    "id": "fields/date_time"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 360,
+    "text": "Формат",
+    "id": "fields/format"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 371,
+    "text": "Постер (HTTPS)",
+    "id": "fields/poster"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 383,
+    "text": "Описание",
+    "id": "fields/description"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 400,
+    "text": "СОХРАНЕНИЕ...",
+    "id": "actions/saving"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 401,
+    "text": "СОХРАНИТЬ ИЗМЕНЕНИЯ",
+    "id": "actions/save_changes"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 401,
+    "text": "ОПУБЛИКОВАТЬ",
+    "id": "actions/publish"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 480,
+    "text": "РЕДАКТИРОВАТЬ",
+    "id": "actions/edit"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 484,
+    "text": "ВОССТАНОВИТЬ",
+    "id": "actions/restore"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 488,
+    "text": "ОТМЕНИТЬ",
+    "id": "actions/cancel_event"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 491,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 492,
+    "text": "Удалить событие?",
+    "id": "status/delete_event"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 498,
+    "text": "ПОДТВЕРДИТЬ",
+    "id": "actions/confirm"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 499,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 536,
+    "text": "ЗАВЕРШИТЬ",
+    "id": "actions/complete"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 698,
+    "text": "ЗАКРЫТЬ",
+    "id": "actions/close"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 699,
+    "text": "+ РЕЗУЛЬТАТ МАТЧА",
+    "id": "actions/add_match"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 711,
+    "text": "Название матча",
+    "id": "fields/match_name"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 723,
+    "text": "Дата и время",
+    "id": "fields/date_time"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 735,
+    "text": "Место (1–100)",
+    "id": "fields/placement_range"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 750,
+    "text": "Участники матча (1–4)",
+    "id": "status/match_players"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 805,
+    "text": "СОХРАНЕНИЕ...",
+    "id": "actions/saving"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 806,
+    "text": "ЗАПИСАТЬ МАТЧ",
+    "id": "actions/record_match"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 835,
+    "text": "Матчи",
+    "id": "sections/matches"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 842,
+    "text": "Победы",
+    "id": "sections/wins"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 849,
+    "text": "Убийства",
+    "id": "sections/kills"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 856,
+    "text": "Доля побед",
+    "id": "sections/win_rate"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 879,
+    "text": "Основа",
+    "id": "sections/main"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 893,
+    "text": "Запас",
+    "id": "sections/reserve"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 920,
+    "text": "WINS",
+    "id": "roles/wins_en"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 924,
+    "text": "KILLS",
+    "id": "roles/kills_en"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 934,
+    "text": "Последние матчи",
+    "id": "sections/recent_matches"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 967,
+    "text": "ИЗМЕНИТЬ",
+    "id": "actions/modify"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 970,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 971,
+    "text": "Удалить матч и статистику?",
+    "id": "status/delete_match"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 976,
+    "text": "ПОДТВЕРДИТЬ",
+    "id": "actions/confirm"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 977,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 994,
+    "text": "Название матча",
+    "id": "fields/match_name"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 995,
+    "text": "Дата и время",
+    "id": "fields/date_time"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 996,
+    "text": "Место",
+    "id": "fields/placement"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 997,
+    "text": "СОХРАНИТЬ",
+    "id": "actions/save"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 998,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1152,
+    "text": "УПРАВЛЕНИЕ СОСТАВОМ",
+    "id": "sections/manage_roster"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1169,
+    "text": "Участник",
+    "id": "fields/member"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1213,
+    "text": "Позиция",
+    "id": "fields/position"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1240,
+    "text": "Игровая роль",
+    "id": "fields/game_role"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1264,
+    "text": "Игровой ID (необязательно)",
+    "id": "fields/game_id_optional"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1286,
+    "text": "ДОБАВИТЬ ИГРОКА",
+    "id": "actions/add_player"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1316,
+    "text": "ИЗМЕНИТЬ",
+    "id": "actions/modify"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1346,
+    "text": "КАПИТАН",
+    "id": "actions/captain"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1355,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1366,
+    "text": "ПОДТВЕРДИТЬ",
+    "id": "actions/confirm"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1367,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1383,
+    "text": "РЕДАКТИРОВАНИЕ ИГРОКА",
+    "id": "sections/edit_player"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1384,
+    "text": "Позиция",
+    "id": "fields/position"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1387,
+    "text": "Роль",
+    "id": "fields/role"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1390,
+    "text": "Игровой ID",
+    "id": "fields/game_id"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1391,
+    "text": "СОХРАНИТЬ",
+    "id": "actions/save"
+  },
+  {
+    "file": "components/k7-panels.tsx",
+    "line": 1392,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 42,
+    "text": "в сообществе",
+    "id": "status/community_count"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 66,
+    "text": "Сообщить об ошибке",
+    "id": "actions/report_bug"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 70,
+    "text": "K7 / SUPPORT",
+    "id": "status/support"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 71,
+    "text": "СООБЩИТЬ ОБ ОШИБКЕ",
+    "id": "actions/report_bug"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 72,
+    "text": "ЗАКРЫТЬ",
+    "id": "actions/close"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 74,
+    "text": "Тема обращения",
+    "id": "fields/report_subject"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 75,
+    "text": "Сообщение",
+    "id": "fields/message"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 77,
+    "text": "ОТПРАВКА...",
+    "id": "actions/sending"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 77,
+    "text": "ОТПРАВИТЬ",
+    "id": "actions/send"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 116,
+    "text": "K7 / ADMIN ONLY",
+    "id": "status/admin_only"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 116,
+    "text": "Обращения",
+    "id": "sections/reports"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 120,
+    "text": "Загрузка...",
+    "id": "status/loading"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 121,
+    "text": "Пока нет обращений.",
+    "id": "status/no_reports"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 125,
+    "text": "НОВОЕ",
+    "id": "sections/new"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 125,
+    "text": "В РАБОТЕ",
+    "id": "sections/working"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 125,
+    "text": "РЕШЕНО",
+    "id": "actions/resolved"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 128,
+    "text": "Ответ или внутренняя заметка (до 500 символов)",
+    "id": "fields/report_reply"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 131,
+    "text": "В РАБОТУ",
+    "id": "actions/in_progress"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 131,
+    "text": "РЕШЕНО",
+    "id": "actions/resolved"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 131,
+    "text": "СОХРАНИТЬ",
+    "id": "actions/save"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 131,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 132,
+    "text": "Удалить обращение?",
+    "id": "status/delete_report"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 132,
+    "text": "ДА, УДАЛИТЬ",
+    "id": "actions/yes_delete"
+  },
+  {
+    "file": "components/community-tools.tsx",
+    "line": 132,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 58,
+    "text": "РЕДАКТИРОВАТЬ",
+    "id": "actions/edit"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 59,
+    "text": "ОТКРЕПИТЬ",
+    "id": "actions/unpin"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 59,
+    "text": "ЗАКРЕПИТЬ",
+    "id": "actions/pin"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 60,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 62,
+    "text": "УДАЛИТЬ",
+    "id": "actions/delete"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 62,
+    "text": "ОТМЕНА",
+    "id": "actions/cancel"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 130,
+    "text": "K7 / EDITORIAL TRANSMISSION",
+    "id": "status/editorial_transmission"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 130,
+    "text": "Новости",
+    "id": "nav/news"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 132,
+    "text": "СОЗДАТЬ ПУБЛИКАЦИЮ",
+    "id": "actions/create_publication"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 135,
+    "text": "РЕДАКТИРОВАНИЕ",
+    "id": "sections/editing"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 135,
+    "text": "НОВАЯ ПУБЛИКАЦИЯ",
+    "id": "sections/new_publication"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 137,
+    "text": "Рубрика",
+    "id": "fields/category"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 138,
+    "text": "Стиль публикации",
+    "id": "fields/publication_style"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 139,
+    "text": "Заголовок",
+    "id": "fields/headline"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 140,
+    "text": "Подзаголовок",
+    "id": "actions/subtitle"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 141,
+    "text": "Постер / изображение (HTTPS)",
+    "id": "fields/poster_image"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 143,
+    "text": "Текст публикации",
+    "id": "fields/publication_text"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 144,
+    "text": "Кнопка действия",
+    "id": "fields/cta"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 145,
+    "text": "Ссылка кнопки (HTTPS)",
+    "id": "fields/cta_url"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 146,
+    "text": "Закрепить публикацию наверху",
+    "id": "fields/pin_top"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 147,
+    "text": "СКРЫТЬ ПРЕВЬЮ",
+    "id": "actions/hide_preview"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 147,
+    "text": "ПРЕДПРОСМОТР",
+    "id": "actions/preview"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 147,
+    "text": "СОХРАНЯЕМ...",
+    "id": "actions/saving_news"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 147,
+    "text": "СОХРАНИТЬ ИЗМЕНЕНИЯ",
+    "id": "actions/save_changes"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 147,
+    "text": "ОПУБЛИКОВАТЬ",
+    "id": "actions/publish"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 149,
+    "text": "ПРЕДПРОСМОТР",
+    "id": "actions/preview"
+  },
+  {
+    "file": "components/news-studio.tsx",
+    "line": 153,
+    "text": "Войдите через Telegram",
+    "id": "status/telegram_required"
+  }
+]
