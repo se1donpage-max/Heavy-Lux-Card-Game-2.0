@@ -1,5 +1,5 @@
 /* K7 CREW — DARK ELITE. Scope: Events, Stats and Roster Admin panels.
-   Import is included in k7-panels.tsx. Load after legacy panel styles. */
+   Imported in app/layout.tsx after globals.css. */
 .k7-data-panel,
 .k7-admin-panel {
   --k7-surface: #0b0b0d;
@@ -48,7 +48,7 @@
 .k7-panel-primary:hover:not(:disabled) { background: #d8d8dd; }
 .k7-panel-form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; padding: 16px; margin: 0 0 18px; background: #101013; border: 1px solid var(--k7-line); border-radius: 16px; }
 .k7-panel-form label { min-width: 0; display: flex; flex-direction: column; gap: 7px; color: #c3c3c8; font-size: 12px; font-weight: 650; }
-.k7-panel-form input, .k7-panel-form select, .k7-panel-form textarea { width: 100%; min-width: 0; min-height: 42px; background: #070708; color: #fff; border: 1px solid #36363b; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; }
+.k7-panel-form input, .k7-panel-form select, .k7-panel-form textarea { width: 100%; min-width: 0; min-height: 42px; background: #070708; color: #fff; border: 1px solid #36363b; border-radius: 10px; padding: 10px 12px; font-size: 16px; outline: none; }
 .k7-panel-form input:focus, .k7-panel-form select:focus, .k7-panel-form textarea:focus { border-color: #c2c2c9; }
 .k7-panel-form input::placeholder, .k7-panel-form textarea::placeholder { color: #76767f; }
 .k7-panel-form textarea { resize: vertical; }
