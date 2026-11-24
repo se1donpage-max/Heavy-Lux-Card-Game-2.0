@@ -1,0 +1,44 @@
+
+name: Fix K7 CREW UTF-8
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-encoding:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Restore original UTF-8 files
+        run: |
+          echo "9370d2bc381cc549eaf9dc096e4be7c76b7df6730e357658d40999f0970c32fb  K7_V6_UTF8_FIX.zip" | sha256sum -c -
+          unzip -t K7_V6_UTF8_FIX.zip
+          unzip -o K7_V6_UTF8_FIX.zip
+
+      - name: Check encoding
+        run: node scripts/check-encoding.mjs
+
+      - name: Check assets
+        run: node scripts/check-assets.mjs
+
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/chat/route.ts
+          git add app/api/news/route.ts
+          git add app/api/reports/route.ts
+          git add app/api/stats/route.ts
+          git add app/page.tsx
+          git add components/k7-panels.tsx
+          git add scripts/test-local.cjs
+          git rm K7_V6_UTF8_FIX.zip
+          git commit -m "Restore original V6 UTF-8 source files"
+          git push origin main
