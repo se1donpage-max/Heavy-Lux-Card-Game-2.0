@@ -1,6 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { readAllRows } from "@/lib/pagination";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -30,49 +31,16 @@ export async function GET() {
     }
 
     // Получаем только статистику матчей, в которых игрок участвовал
-    const { data: playerStats, error: statsError } = await supabase
+    type Match = { id: string; title: string; played_at: string; placement: number };
+    const stats = await readAllRows<{ match_id: string; kills: number; matches: Match | Match[] | null }>((from, to) => supabase
       .from("player_match_stats")
-      .select("match_id, kills")
-      .eq("telegram_id", user.telegramId);
-
-    if (statsError) {
-      throw statsError;
-    }
-
-    const stats = playerStats ?? [];
-    const matchIds = stats.map((item) => item.match_id);
-
-    let matchHistory: {
-      id: string;
-      title: string;
-      playedAt: string;
-      placement: number;
-      kills: number;
-    }[] = [];
-
-    if (matchIds.length > 0) {
-      const { data: matches, error: matchesError } = await supabase
-        .from("matches")
-        .select("id, title, played_at, placement")
-        .in("id", matchIds)
-        .order("played_at", { ascending: false });
-
-      if (matchesError) {
-        throw matchesError;
-      }
-
-      const killsByMatch = new Map(
-        stats.map((item) => [item.match_id, item.kills])
-      );
-
-      matchHistory = (matches ?? []).map((match) => ({
-        id: match.id,
-        title: match.title,
-        playedAt: match.played_at,
-        placement: match.placement,
-        kills: killsByMatch.get(match.id) ?? 0
-      }));
-    }
+      .select("match_id, kills, matches(id, title, played_at, placement)")
+      .eq("telegram_id", user.telegramId).order("id").range(from, to));
+    const matchHistory = stats.flatMap((item) => {
+      const match = Array.isArray(item.matches) ? item.matches[0] : item.matches;
+      return match ? [{ id: match.id, title: match.title, playedAt: match.played_at,
+        placement: match.placement, kills: item.kills }] : [];
+    }).sort((a, b) => Date.parse(b.playedAt) - Date.parse(a.playedAt));
 
     const totalMatches = matchHistory.length;
     const totalKills = stats.reduce(
