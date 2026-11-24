@@ -1,10 +1,11 @@
 "use client";
 
 import { K7PhotoUpload } from "@/components/k7-photo-upload";
+import { stableSnapshot } from "@/lib/stable-snapshot";
 import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CalendarDays, Shield, Trophy } from "lucide-react";
 import NewsStudio from "@/components/news-studio";
 
@@ -194,23 +195,26 @@ export function EventsPanel({
   const [posterUrl, setPosterUrl] = useState("");
   const [photoBusy,setPhotoBusy]=useState(false);
 
+  const requestVersion = useRef(0);
   const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
+    const version = ++requestVersion.current;
 
     if (!silent) setLoading(true);
 
     try {
       const response = await requestJson("/api/events");
-      setEvents(response.events ?? []);
-      setError("");
+      if(version!==requestVersion.current)return;
+      setEvents(old=>stableSnapshot(old,response.events??[]));
+      if(!silent)setError("");
     } catch (err) {
-      setError(
+      if(version===requestVersion.current&&!silent)setError(
         err instanceof Error
           ? err.message
           : "Не удалось загрузить события"
       );
     } finally {
-      setLoading(false);
+      if(version===requestVersion.current)setLoading(false);
     }
   }, [authReady]);
 
@@ -558,29 +562,27 @@ export function StatsPanel({
     Record<number, string>
   >({});
 
+  const requestVersion = useRef(0);
   const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
+    const version = ++requestVersion.current;
 
     if (!silent) setLoading(true);
 
     try {
       const result = await requestJson("/api/stats");
 
-      setData({
-        team: result.team,
-        rankings: result.rankings,
-        recentMatches: result.recentMatches,
-      });
-
-      setError("");
+      if(version!==requestVersion.current)return;
+      setData(old=>stableSnapshot(old,{team:result.team,rankings:result.rankings,recentMatches:result.recentMatches}));
+      if(!silent)setError("");
     } catch (err) {
-      setError(
+      if(version===requestVersion.current&&!silent)setError(
         err instanceof Error
           ? err.message
           : "Не удалось загрузить статистику"
       );
     } finally {
-      setLoading(false);
+      if(version===requestVersion.current)setLoading(false);
     }
   }, [authReady]);
 
@@ -1010,6 +1012,7 @@ export function RosterAdminPanel({
     useState("");
   const [notice, setNotice] =
     useState("");
+  useEffect(()=>{if(!notice)return;const timer=window.setTimeout(()=>setNotice(""),4000);return()=>window.clearTimeout(timer);},[notice]);
 
   const slots = [
     "MAIN_1",
@@ -1043,31 +1046,10 @@ export function RosterAdminPanel({
     ? slot
     : freeSlots[0] ?? "";
 
-  useEffect(() => {
-    let active = true;
-
-    void requestJson("/api/members")
-      .then((result) => {
-        if (active) {
-          setMembers(
-            result.members ?? []
-          );
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Не удалось получить пользователей"
-          );
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  useK7Sync(true, async (silent) => {
+    try { const result = await requestJson("/api/members"); setMembers(old=>stableSnapshot(old,result.members??[])); }
+    catch(err) { if(!silent)setError(err instanceof Error?err.message:"Не удалось получить пользователей"); }
+  }, 20000);
 
   async function runTask(
     task: () => Promise<unknown>,

@@ -4,6 +4,7 @@ import { CinemaSpace } from "@/components/cinema-space";
 import { BrandChapter } from "@/components/brand-chapter";
 import NewsStudio from "@/components/news-studio";
 import { CommunityProfile } from "@/components/community-profile";
+import { stableSnapshot } from "@/lib/stable-snapshot";
 import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
@@ -252,6 +253,7 @@ export default function Home() {
   } | null>(null);
 
   const rosterBusy = useRef(false);
+  const rosterLoaded = useRef(false);
   async function loadRoster(silent = false) {
     if (rosterBusy.current) return;
     rosterBusy.current = true;
@@ -269,10 +271,11 @@ export default function Home() {
         throw new Error(result.error || "Could not load roster");
       }
 
-      setRoster(result.roster ?? []);
+      rosterLoaded.current = true;
+      setRoster(previous => stableSnapshot(previous, result.roster ?? []));
       setError("");
     } catch (err) {
-      setError(
+      if (!silent || !rosterLoaded.current) setError(
         err instanceof Error ? err.message : "Something went wrong"
       );
     } finally {
@@ -307,7 +310,7 @@ export default function Home() {
         cursor = "?" + new URLSearchParams({ beforeCreatedAt: batch[0].created_at, beforeId: batch[0].id });
       }
       // The server snapshot is authoritative, including moderator deletions.
-      setChatMessages(messages);
+      setChatMessages(previous => stableSnapshot(previous, messages));
       setChatHasMore(hasMore);
       setChatError("");
     } catch (err) {
@@ -626,7 +629,7 @@ export default function Home() {
         const result = await response.json();
         if (!cancelled && result.success && ["OWNER", "ADMIN", "IGL", "MEMBER"].includes(result.user?.accessRole)) {
           setAccessRole(result.user.accessRole);
-          setViewer(result.user);
+          setViewer(previous => stableSnapshot(previous, result.user));
         }
       } catch { /* Keep last known display role; APIs enforce actual permissions. */ }
     }
@@ -636,20 +639,8 @@ export default function Home() {
     return () => { cancelled = true; window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
   }, [authReady]);
 
-  // Chat requests only run after successful authentication.
-  useEffect(() => {
-    if (!authReady) return;
-
-    void loadChat();
-
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void loadChat(true);
-      }
-    }, 3000);
-
-    return () => window.clearInterval(interval);
-  }, [authReady]);
+  // Poll the chat independently of scroll; refresh immediately on reconnection.
+  useK7Sync(authReady, loadChat, 3000);
 
   // Expiry also works offline or when another tab is selected.
   useEffect(() => {
@@ -817,20 +808,19 @@ export default function Home() {
         <BrandChapter id="chat" />
         <div className="elite-section-inner reveal-content">
 
-          <NewsStudio authReady={authReady} canManage={canManage} section="chat"/>
           <div className="k7-chat">
             <div className="k7-chat-heading">
               <div>
                 <h2><BrandLabel text={"Чат"} asset="nav/chat" /></h2>
                 <p className="k7-chat-timer"><BrandLabel text={"Таймер удаления сообщений — 10 мин."} asset="status/chat_timer" /></p>
                 {viewer && (
-                  <div className="k7-chat-viewer">
+                  <button type="button" className="k7-chat-viewer k7-chat-viewer-profile" aria-label="Личный кабинет" onClick={()=>setProfileId(viewer.telegramId)}>
                     {viewer.photoUrl ? <img src={viewer.photoUrl} alt="" /> : <div className="k7-chat-viewer-initial">{viewer.firstName.charAt(0).toUpperCase()}</div>}
                     <span>
                       <strong>{viewer.username ? `@${viewer.username}` : viewer.firstName}</strong>
                       <small>{roster.find((player) => player.telegram_id === viewer.telegramId)?.game_role ?? (accessRole === "MEMBER" ? "\u{423}\u{447}\u{430}\u{441}\u{442}\u{43D}\u{438}\u{43A} \u{441}\u{43E}\u{43E}\u{431}\u{449}\u{435}\u{441}\u{442}\u{432}\u{430}" : accessRole)}</small>
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -1077,11 +1067,11 @@ export default function Home() {
         <BrandChapter id="events" />
         <div className="elite-section-inner reveal-content">
 
-          <NewsStudio authReady={authReady} canManage={canManage} section="events"/>
           <EventsPanel
             authReady={authReady}
             canManage={accessRole === "OWNER" || accessRole === "IGL"}
           />
+          <NewsStudio authReady={authReady} canManage={canManage} section="events"/>
         </div>
       </section>
 
@@ -1094,7 +1084,6 @@ export default function Home() {
         <BrandChapter id="roster" />
         <div className="elite-section-inner reveal-content">
 
-          <NewsStudio authReady={authReady} canManage={canManage} section="roster"/>
           <div className="elite-section-heading">
             <div>
               <h2><BrandLabel text={"Состав"} asset="nav/roster" /></h2>
@@ -1165,6 +1154,7 @@ export default function Home() {
               )}
             </>
           )}
+          <NewsStudio authReady={authReady} canManage={canManage} section="roster"/>
         </div>
       </section>
 
@@ -1177,13 +1167,13 @@ export default function Home() {
         <BrandChapter id="stats" />
         <div className="elite-section-inner reveal-content">
 
-          <NewsStudio authReady={authReady} canManage={canManage} section="stats"/>
           <StatsPanel
             authReady={authReady}
             canSubmit={accessRole === "OWNER" || accessRole === "IGL"}
             roster={roster}
             onProfile={setProfileId}
           />
+          <NewsStudio authReady={authReady} canManage={canManage} section="stats"/>
         </div>
       </section>
 

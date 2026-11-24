@@ -17,3 +17,32 @@
 @media(prefers-reduced-motion:reduce),(update:slow){.k7-profile-card{background-image:url('/k7-interface/corner-tl-static.svg')}.k7-profile-card:after{background-image:url('/k7-interface/corner-br-static.svg')}.k7-profile-overlay button{background-image:url('/k7-interface/button-static.svg')}}
 
 .k7-publication-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:8px;margin:10px 0;}.k7-publication-gallery img,.k7-publication-gallery>div img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#080808;border:1px solid #555;display:block;}.k7-photo-upload{display:grid;gap:8px;margin-block:8px;}.k7-section-publications{margin-bottom:12px;}.k7-publication-gallery>div button{width:100%;}.k7-photo-upload small{color:#aaa;}
+
+/* V7.1 — monochrome refinement, keep cinema and controls independent of scrolling. */
+.k7-immersive-shell .k7-chat-heading{margin-bottom:10px;}
+.k7-immersive-shell button.k7-chat-viewer-profile{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:none;padding:0;min-height:44px;box-shadow:none;filter:none;max-width:100%;}
+.k7-chat-viewer-profile span{min-width:0;overflow-wrap:anywhere;}
+.k7-chat-viewer-profile img,.k7-chat-viewer-profile .k7-chat-viewer-initial{width:36px;height:36px;}
+.k7-immersive-shell .k7-chat-management{margin:8px 0 12px;}
+.k7-immersive-shell .k7-chat-feed{padding:12px;}
+.k7-immersive-shell button.k7-chat-avatar{width:36px;height:36px;border-radius:50%;}
+.k7-immersive-shell .k7-chat-composer{padding:10px;}
+.k7-immersive-shell .k7-chat-message-body,.k7-story-copy,.k7-profile-card>div,.k7-profile-field strong{min-width:0;overflow-wrap:anywhere;}
+.k7-immersive-shell .k7-section-publications{margin:14px 0 0;}
+.k7-immersive-shell #news .k7-section-publications{margin-top:0;}
+.k7-immersive-shell :is(#events,#roster,#stats) .k7-section-publications .k7-panel-head h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal;font-size:17px;letter-spacing:.025em;text-transform:uppercase;}
+.k7-immersive-shell :is(#events,#roster,#stats) .k7-section-publications .k7-panel-head{margin-bottom:12px;}
+.k7-panel-notice,.k7-panel-error{border:1px solid #555;border-left:2px solid #ddd;border-radius:0;background:#141414;color:#eee;box-shadow:none;padding:10px 12px;overflow-wrap:anywhere;}
+.k7-panel-error{border-left-style:double;border-left-width:4px;}
+.k7-immersive-shell .elite-bottom-nav{backdrop-filter:none;-webkit-backdrop-filter:none;background-color:#080808;}
+.k7-immersive-shell .elite-nav-item .k7-brand-label{min-width:0;max-width:100%;}
+.k7-immersive-shell .elite-nav-item .k7-label-art{max-width:100%;height:12px;object-fit:contain;}
+.k7-profile-content{min-height:0;flex:1;}
+.k7-profile-card h1{line-height:1.2;}.k7-profile-field strong{overflow-wrap:anywhere;}
+.k7-profile-tabs button{min-width:0;overflow-wrap:anywhere;}
+.k7-profile-overlay :is(button,input):focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.k7-profile-fields label{min-width:0;}.k7-profile-fields input[readonly]{opacity:.72;}
+.k7-publication-gallery img{object-fit:contain;border-color:#444;}
+.k7-story-cover img{display:block;max-width:100%;height:auto;}
+@media(max-width:380px){.k7-profile-overlay{padding-inline:12px;}.k7-profile-card{padding:20px 12px;gap:10px;}.k7-profile-avatar{width:56px;height:56px;}.k7-profile-card h1{font-size:19px;}.k7-profile-tabs button{font-size:10px;}}
+@media(forced-colors:active){.k7-panel-notice,.k7-panel-error{background:Canvas;color:CanvasText;border-color:CanvasText;}}

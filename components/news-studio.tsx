@@ -2,10 +2,11 @@
 
 import { K7PhotoUpload } from "@/components/k7-photo-upload";
 import { sectionTemplates, type PublicationSection } from "@/lib/publication-templates";
+import { stableSnapshot } from "@/lib/stable-snapshot";
 import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
-import { useCallback, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Edit3, Plus, Pin, Trash2, Eye, X, Bold, Italic, List, Heading2, Quote, ExternalLink } from "lucide-react";
 
 type News = {
@@ -54,8 +55,8 @@ function NewsCard({ item, canManage, onEdit, onDelete, onPin, busy }: {
   const [confirming, setConfirming] = useState(false);
   return <article className={`k7-news-story k7-news-${item.layout_style}`}>
     <div className="k7-story-kicker"><span>{item.category || "НОВОСТИ"}</span><span>{item.is_pinned && <><Pin size={12}/> ЗАКРЕПЛЕНО · </>}{new Date(item.published_at).toLocaleDateString("ru-RU")}</span></div>
-    {item.cover_url && <div className="k7-story-cover"><img src={item.cover_url} alt="Обложка новости" loading="lazy"/></div>}
-    {!!item.media_urls?.length && <div className="k7-publication-gallery">{item.media_urls.map((url,index)=><img key={`${url}-${index}`} src={url} alt={`Фото ${index+1}`} loading="lazy"/>)}</div>}
+    {item.cover_url && <div className="k7-story-cover"><img src={item.cover_url} alt="Обложка новости" loading="lazy" decoding="async"/></div>}
+    {!!item.media_urls?.length && <div className="k7-publication-gallery">{item.media_urls.map((url,index)=><img key={`${url}-${index}`} src={url} alt={`Фото ${index+1}`} loading="lazy" decoding="async"/>)}</div>}
     <div className="k7-story-copy"><h3>{item.title}</h3>{item.subtitle && <p className="k7-story-subtitle">{item.subtitle}</p>}
       <EditorialBody value={item.content}/>
       {item.cta_label && item.cta_url && <a className="k7-story-cta" href={item.cta_url} target="_blank" rel="noopener noreferrer">{item.cta_label} <ExternalLink size={15}/></a>}
@@ -77,6 +78,8 @@ export default function NewsStudio({ authReady, canManage, section="news" }: { a
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  useEffect(() => { if (!notice) return; const timer=window.setTimeout(()=>setNotice(""),4000); return ()=>window.clearTimeout(timer); }, [notice]);
+  const requestVersion = useRef(0);
   const [editorOpen, setEditorOpen] = useState(false);
   const [preview, setPreview] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,13 +90,14 @@ export default function NewsStudio({ authReady, canManage, section="news" }: { a
   const patch = (partial: Partial<Draft>) => setDraft(old => ({ ...old, ...partial }));
   const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
+    const version = ++requestVersion.current;
     if (!silent) setLoading(true);
-    try { const data = await json(`/api/news?section=${section}`); setPosts(data.news ?? []); setError(""); }
-    catch (err) { setError(err instanceof Error ? err.message : "Не удалось загрузить новости"); }
-    finally { setLoading(false); }
+    try { const data = await json(`/api/news?section=${section}`); if(version!==requestVersion.current)return; setPosts(old=>stableSnapshot(old,data.news??[])); if(!silent)setError(""); }
+    catch (err) { if(version===requestVersion.current&&!silent)setError(err instanceof Error ? err.message : "Не удалось загрузить новости"); }
+    finally { if(version===requestVersion.current)setLoading(false); }
   }, [authReady,section]);
   useK7Sync(authReady, reload, 15000);
-  function startNew() { setDraft(initial()); setEditingId(null); setEditorOpen(true); setPreview(false); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  function startNew() { setDraft(initial()); setEditingId(null); setEditorOpen(true); setPreview(false); requestAnimationFrame(()=>editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })); }
   function startEdit(post: News) {
     setDraft({ mediaUrls:post.media_urls??[], title: post.title, subtitle: post.subtitle ?? "", category: post.category, content: post.content, coverUrl: post.cover_url ?? "", layoutStyle: post.layout_style, pinned: post.is_pinned, ctaLabel: post.cta_label ?? "", ctaUrl: post.cta_url ?? "" });
     setEditingId(post.id); setEditorOpen(true); setPreview(false);
@@ -114,14 +118,14 @@ export default function NewsStudio({ authReady, canManage, section="news" }: { a
     setSaving(true); setError(""); setNotice("");
     try {
       await json("/api/news", { method: editingId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...draft, section, ...(editingId ? { id: editingId } : {}) }) });
-      setEditorOpen(false); setEditingId(null); setDraft(initial()); setNotice("Публикация сохранена"); await reload();
+      setEditorOpen(false); setEditingId(null); setDraft(initial()); setNotice("Публикация сохранена"); await reload(true);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
     finally { setSaving(false); }
   }
   async function remove(id: string) {
     setSaving(true); setError("");
     try { await json("/api/news", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-      setPosts(old => old.filter(post => post.id !== id)); setNotice("Публикация удалена"); await reload(); }
+      setPosts(old => old.filter(post => post.id !== id)); setNotice("Публикация удалена"); await reload(true); }
     catch (err) { setError(err instanceof Error ? err.message : "Ошибка удаления"); }
     finally { setSaving(false); }
   }
@@ -130,7 +134,7 @@ export default function NewsStudio({ authReady, canManage, section="news" }: { a
     try { await json("/api/news", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
       id: post.id, section, mediaUrls:post.media_urls??[], title: post.title, content: post.content, subtitle: post.subtitle ?? "", category: post.category,
       coverUrl: post.cover_url ?? "", layoutStyle: post.layout_style, pinned: !post.is_pinned, ctaLabel: post.cta_label ?? "", ctaUrl: post.cta_url ?? "",
-    }) }); await reload(); }
+    }) }); await reload(true); }
     catch (err) { setError(err instanceof Error ? err.message : "Ошибка закрепления"); }
     finally { setSaving(false); }
   }

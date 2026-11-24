@@ -113,7 +113,7 @@ export async function DELETE(request: NextRequest) {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || !('id' in body) || typeof body.id !== "string" || !uuid.test(body.id)) return fail("Invalid news ID", 400);
     const { data, error } = await getSupabaseAdmin().from("news")
-      .delete().eq("id", body.id).select("id").maybeSingle();
+      .delete().eq("id", body.id).neq("section", "chat").select("id").maybeSingle();
     if (error) { console.error("News DELETE", error); return fail("Не удалось удалить новость", 503); }
     if (!data) return fail("Новость уже удалена или не найдена", 404);
     return NextResponse.json({ success: true });

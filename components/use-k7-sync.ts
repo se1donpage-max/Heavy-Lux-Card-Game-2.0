@@ -9,7 +9,8 @@ export function useK7Sync(enabled: boolean, load: (silent: boolean) => Promise<v
     if (!enabled) return;
     let stopped = false, busy = false, first = true;
     let timer: number | undefined;
-    const schedule = () => { if (!stopped) { window.clearTimeout(timer); timer = window.setTimeout(run, interval); } };
+    // Small jitter spreads background section requests; chat keeps its exact cadence.
+    const schedule = () => { if (!stopped) { window.clearTimeout(timer); timer = window.setTimeout(run, interval + (interval >= 10000 ? Math.floor(Math.random()*1500) : 0)); } };
     async function run() {
       if (stopped || busy) return;
       if (document.hidden || !navigator.onLine) { schedule(); return; }
@@ -17,7 +18,7 @@ export function useK7Sync(enabled: boolean, load: (silent: boolean) => Promise<v
       try { await current.current(!first); first = false; } catch { /* loader owns its error state */ }
       finally { busy = false; schedule(); }
     }
-    const resume = () => { if (!document.hidden && navigator.onLine) void run(); };
+    const resume = () => { if (!document.hidden && navigator.onLine) { window.clearTimeout(timer); timer=window.setTimeout(run,interval>=10000?Math.floor(Math.random()*350):0); } };
     void run();
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("online", resume);

@@ -1,0 +1,16 @@
+{
+  "app/api/news/route.ts": "ab988617d45c1f209c841e1bdcc8eac0c1a9f926",
+  "app/k7-community.css": "34f490dd3f7f75ef94a7320e5a9913129d823ee5",
+  "app/k7-motion-ui.css": "de24922c407c17360bad990ebd73f996d281c500",
+  "app/page.tsx": "2373119e7491fac2aba4867f8f7bde2283f8350f",
+  "components/community-profile.tsx": "5d3b21dac371d793410081369761b6708e1f0488",
+  "components/community-tools.tsx": "b8f98d43771aaf3e641d38ffd873e4e608e2150c",
+  "components/k7-panels.tsx": "180a2cddac8d814b7ecd2e9f9b34ea36b3feff13",
+  "components/news-studio.tsx": "4df421c0a4cbea2cc9ad7a325c3e98993b564b0a",
+  "components/use-k7-sync.ts": "9c6d61dc7a4616157ae016816a4a6cea5373f70c",
+  "lib/publication-templates.ts": "b8010ffcaab0e7113a50d70d235b79dfe1d2223d",
+  "public/k7-interface/button.svg": "504fb6bd5c36ed443bc5b1bef1de2849f218b7fb",
+  "public/k7-interface/corner-br.svg": "73140ed62b3c1bf7cfa1665d9737514198c766f6",
+  "public/k7-interface/corner-tl.svg": "d755cfae7808800a3aebf5cd0f11076eb94fbf2b",
+  "scripts/test-v7.cjs": "bbf678c23a98f84fd6b0a3ae33cc8bb9ae1891b7"
+}

@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { UserRound, X, Pencil } from "lucide-react";
 import { BrandLabel } from "@/components/brand-label";
+import { stableSnapshot } from "@/lib/stable-snapshot";
 import { useK7Sync } from "@/components/use-k7-sync";
 import type { ProfileInput } from "@/lib/community-profile";
 type Profile = { telegramId:number; own:boolean; username:string|null; telegramName:string; photoUrl:string|null; position:string; gameRole:string|null; slot:string|null; createdAt:string|null; days:number|null; gameId:string|null; gameNickname:string|null; displayName:string|null; ageYears:number|null; showName?:boolean; showAge?:boolean; statistics:{matches:number;wins:number;kills:number;winRate:number} };
@@ -10,19 +11,22 @@ const toDraft=(p:Profile):ProfileInput=>({gameId:p.gameId??"",gameNickname:p.gam
 export function CommunityProfile({ id, onClose }: { id:number; onClose:()=>void }) {
   const [p,setP]=useState<Profile|null>(null), [draft,setDraft]=useState<ProfileInput|null>(null);
   const [tab,setTab]=useState<"profile"|"stats"|"settings">("profile"), [error,setError]=useState(""), [saving,setSaving]=useState(false), [notice,setNotice]=useState("");
+  const requestVersion=useRef(0);
+  useEffect(()=>{if(!notice)return;const timer=window.setTimeout(()=>setNotice(""),4000);return()=>window.clearTimeout(timer);},[notice]);
   async function load(silent:boolean) {
-    try { const res=await fetch(`/api/community/profile?id=${id}`,{credentials:"include",cache:"no-store"}); const data=await res.json(); if(!res.ok||!data.success) throw Error(data.error||"Ошибка загрузки"); setP(data.profile); if(!silent||!p) setError(""); }
-    catch(e){if(!silent) setError(e instanceof Error?e.message:"Профиль недоступен");}
+    const version=++requestVersion.current;
+    try { const res=await fetch(`/api/community/profile?id=${id}`,{credentials:"include",cache:"no-store"}); const data=await res.json(); if(!res.ok||!data.success) throw Error(data.error||"Ошибка загрузки"); if(version!==requestVersion.current)return;setP(old=>stableSnapshot(old,data.profile)); if(!silent||!p) setError(""); }
+    catch(e){if(version===requestVersion.current&&!silent) setError(e instanceof Error?e.message:"Профиль недоступен");}
   }
   useK7Sync(true,load,15000);
-  useEffect(()=>{const previous=document.body.style.overflow; const shell=document.querySelector<HTMLElement>(".k7-immersive-shell"); const previousInert=shell?.inert; document.body.style.overflow="hidden"; if(shell)shell.inert=true; const escape=(e:KeyboardEvent)=>{if(e.key==="Escape")onClose(); if(e.key==="Tab"){const focusable=Array.from(document.querySelectorAll<HTMLElement>(".k7-profile-overlay button:not(:disabled),.k7-profile-overlay input:not(:disabled),.k7-profile-overlay select:not(:disabled)")).filter(el=>el.getClientRects().length);const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}}; document.addEventListener("keydown",escape); return()=>{document.body.style.overflow=previous;if(shell)shell.inert=!!previousInert;document.removeEventListener("keydown",escape);};},[onClose]);
+  useEffect(()=>{const focused=document.activeElement as HTMLElement|null; const previous=document.body.style.overflow; const shell=document.querySelector<HTMLElement>(".k7-immersive-shell"); const previousInert=shell?.inert; document.body.style.overflow="hidden"; if(shell)shell.inert=true; const escape=(e:KeyboardEvent)=>{if(e.key==="Escape")onClose(); if(e.key==="Tab"){const focusable=Array.from(document.querySelectorAll<HTMLElement>(".k7-profile-overlay button:not(:disabled),.k7-profile-overlay input:not(:disabled),.k7-profile-overlay select:not(:disabled)")).filter(el=>el.getClientRects().length);const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}}; document.addEventListener("keydown",escape); return()=>{document.body.style.overflow=previous;if(shell)shell.inert=!!previousInert;document.removeEventListener("keydown",escape);focused?.focus({preventScroll:true});};},[onClose]);
   const edit=()=>{if(p?.own){setDraft(toDraft(p));setTab("settings");setNotice("");setError("");}};
   async function save(e:FormEvent){ e.preventDefault(); if(!draft||!p?.own||saving)return;setSaving(true);setError("");try{const res=await fetch("/api/community/profile",{method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(draft)});const data=await res.json();if(!res.ok||!data.success)throw Error(data.error||"Ошибка сохранения");await load(false);setTab("profile");setNotice("Профиль сохранён");}catch(e){setError(e instanceof Error?e.message:"Ошибка сохранения");}finally{setSaving(false);}}
   const field=(label:string,value:string|number|null|undefined)=><div className="k7-profile-field"><span>{label}</span><strong>{value??"—"}</strong></div>;
   return createPortal(<div className="k7-profile-overlay" role="dialog" aria-modal="true" aria-label="Профиль участника">
     <div className="k7-profile-top"><img src="/k7-ui/brand-mark.png" alt="K7 CREW"/><span>K7 / PROFILE</span><button type="button" autoFocus onClick={onClose} aria-label="Закрыть профиль"><X size={22}/></button></div>
     <div className="k7-profile-content">
-      {error&&<p role="alert" className="k7-panel-error">{error}</p>}{notice&&<p role="status">{notice}</p>}
+      {error&&<p role="alert" className="k7-panel-error">{error}</p>}{notice&&<p role="status" className="k7-panel-notice">{notice}</p>}
       {!p?<p>Загрузка профиля...</p>:<>
         <header className="k7-profile-card"><div className="k7-profile-avatar">{p.photoUrl?<img src={p.photoUrl} alt=""/>:<UserRound size={36}/>}</div><div><h1>{p.gameNickname||p.username||p.telegramName}</h1><p>{p.username?`@${p.username}`:"Telegram"}</p><strong>{p.position}{p.gameRole?` / ${p.gameRole}`:""}</strong></div></header>
         <div className="k7-profile-metrics"><div><small>Дней на площадке</small><strong>{p.days??"—"}</strong></div><div><small><BrandLabel text="Матчи" asset="sections/matches"/></small><strong>{p.statistics.matches}</strong></div></div>

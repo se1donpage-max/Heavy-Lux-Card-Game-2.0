@@ -2,10 +2,10 @@
 .k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.elite-roster-list,.k7-chat-feed,.k7-chat-composer,.k7-modal-panel,.elite-bottom-nav,.k7-editor-studio,.k7-report-form),.entry-card {
  --k7-corner-a:url('/k7-interface/corner-tl.svg'); --k7-corner-b:url('/k7-interface/corner-br.svg');
  border:1px solid #393939; border-radius:0; background-color:rgba(0,0,0,.94);
- background-image:var(--k7-corner-a),var(--k7-corner-b),linear-gradient(90deg,transparent,#fff 50%,transparent),linear-gradient(90deg,transparent,#aaa 50%,transparent);
- background-repeat:no-repeat; background-size:92px 45px,92px 45px,36px 1px,36px 1px;
+ background-image:var(--k7-corner-a),var(--k7-corner-b),linear-gradient(90deg,transparent,#888 50%,transparent),linear-gradient(90deg,transparent,#666 50%,transparent);
+ background-repeat:no-repeat; background-size:92px 45px,92px 45px,28px 1px,28px 1px;
  background-position:left top,right bottom,22% top,78% bottom;
- animation:k7-vector-rails 5s linear infinite;
+ animation:k7-vector-rails 24s ease-in-out infinite;
 }
 @keyframes k7-vector-rails {0%,100%{background-position:left top,right bottom,22% top,78% bottom}50%{background-position:left top,right bottom,78% top,22% bottom}}
 .k7-immersive-shell :is(.k7-data-panel,.k7-admin-panel,.k7-modal-panel,.k7-editor-studio,.k7-report-form),.entry-card {padding-top:max(18px,1.25rem);padding-bottom:max(18px,1.25rem)}

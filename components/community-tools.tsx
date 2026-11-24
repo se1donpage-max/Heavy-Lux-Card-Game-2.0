@@ -1,9 +1,10 @@
 "use client";
 
+import { stableSnapshot } from "@/lib/stable-snapshot";
 import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { AlertTriangle, Send, MessageSquare, Users, X } from "lucide-react";
 
 type ReportRecord = {
@@ -32,14 +33,7 @@ export function CommunityCounter({ authReady }: { authReady: boolean }) {
       if (typeof result.count === "number") setCount(result.count);
     } catch { /* Leave the last known count visible on temporary network errors. */ }
   }, []);
-  useEffect(() => {
-    if (!authReady) return;
-    void reload();
-    const interval = window.setInterval(() => { if (!document.hidden) void reload(); }, 20000);
-    const onVisible = () => { if (!document.hidden) void reload(); };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
-  }, [authReady, reload]);
+  useK7Sync(authReady,reload,20000);
   return <div className="k7-community-count" title="Зарегистрированные пользователи K7 CREW">
     <Users size={14} aria-hidden="true" /> <strong>{count === null ? "—" : count.toLocaleString("ru-RU")}</strong>
     <span><BrandLabel text={"в сообществе"} asset="status/community_count" /></span>
@@ -91,12 +85,14 @@ export function ReportsInbox({ authReady }: { authReady: boolean }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [draftReplies, setDraftReplies] = useState<Record<string, string>>({});
+  const requestVersion=useRef(0);
   const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
+    const version=++requestVersion.current;
     if (!silent) setLoading(true);
-    try { const result = await api("/api/reports"); setItems(result.reports ?? []); setError(""); }
-    catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
-    finally { setLoading(false); }
+    try { const result = await api("/api/reports"); if(version!==requestVersion.current)return;setItems(old=>stableSnapshot(old,result.reports??[])); if(!silent)setError(""); }
+    catch (err) { if(version===requestVersion.current&&!silent)setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
+    finally { if(version===requestVersion.current)setLoading(false); }
   }, [authReady]);
   useK7Sync(authReady, reload, 15000);
   async function update(item: ReportRecord, status: ReportRecord["status"]) {
