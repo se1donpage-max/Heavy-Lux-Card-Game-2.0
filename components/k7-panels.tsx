@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, RefreshCw, Shield, Trophy } from "lucide-react";
 import NewsStudio from "@/components/news-studio";
-import "./k7-panels-fix.css";
 
 export interface K7RosterPlayer {
   id: string;
