@@ -1,5 +1,7 @@
 "use client";
 
+import { BrandLabel } from "@/components/brand-label";
+
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, RefreshCw, Shield, Trophy } from "lucide-react";
 import NewsStudio from "@/components/news-studio";
@@ -112,7 +114,7 @@ function SectionState({
 }) {
   return (
     <div className="k7-panel-empty" role="status">
-      <span>{message}</span>
+      <span><BrandLabel text={message} /></span>
 
       {retry && (
         <button
@@ -120,7 +122,7 @@ function SectionState({
           className="k7-panel-button"
           onClick={retry}
         >
-          ÐÐÐÐ¢ÐÐ ÐÐ¢Ð¬
+          <BrandLabel text={"ÐÐÐÐ¢ÐÐ ÐÐ¢Ð¬"} asset="actions/retry" />
         </button>
       )}
     </div>
@@ -141,10 +143,9 @@ function SectionHeader({
   return (
     <div className="k7-panel-head">
       <div>
-        <div className="k7-panel-eyebrow">{eyebrow}</div>
+        <div className="k7-panel-eyebrow"><BrandLabel text={eyebrow} /></div>
         <h2>
-          {title}
-          
+          <BrandLabel text={title} />
         </h2>
       </div>
 
@@ -155,7 +156,7 @@ function SectionHeader({
         disabled={busy}
         aria-label="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ Ð´Ð°Ð½Ð½ÑÐµ"
       >
-        <RefreshCw size={17} />
+        <RefreshCw size={17} /><BrandLabel text="ÐÐ±Ð½Ð¾Ð²Ð¸ÑÑ Ð´Ð°Ð½Ð½ÑÐµ" asset="actions/refresh_data" />
       </button>
     </div>
   );
@@ -302,7 +303,7 @@ export function EventsPanel({
             }
             onClick={() => setFilter("UPCOMING")}
           >
-            ÐÑÐµÐ´ÑÑÐ¾ÑÑÐ¸Ðµ
+            <BrandLabel text={"ÐÑÐµÐ´ÑÑÐ¾ÑÑÐ¸Ðµ"} asset="sections/upcoming" />
           </button>
 
           <button
@@ -312,9 +313,9 @@ export function EventsPanel({
             }
             onClick={() => setFilter("COMPLETED")}
           >
-            ÐÐ°Ð²ÐµÑÑÑÐ½Ð½ÑÐµ
+            <BrandLabel text={"ÐÐ°Ð²ÐµÑÑÑÐ½Ð½ÑÐµ"} asset="sections/completed" />
           </button>
-          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}>ÐÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÐµ</button>
+          <button type="button" className={filter === "CANCELLED" ? "selected" : ""} onClick={() => setFilter("CANCELLED")}><BrandLabel text={"ÐÑÐ¼ÐµÐ½ÑÐ½Ð½ÑÐµ"} asset="sections/cancelled" /></button>
         </div>
 
         {canManage && (
@@ -323,7 +324,7 @@ export function EventsPanel({
             className="k7-panel-button"
             onClick={() => { setEditingId(null); setTitle(""); setDate(""); setDescription(""); setEventFormat(""); setPosterUrl(""); setShowForm((value) => !value); }}
           >
-            {showForm ? "ÐÐÐÐ Ð«Ð¢Ð¬" : "+ Ð¡ÐÐÐ«Ð¢ÐÐ"}
+            {showForm ? <BrandLabel text={"ÐÐÐÐ Ð«Ð¢Ð¬"} asset="actions/close" /> : <BrandLabel text={"+ Ð¡ÐÐÐ«Ð¢ÐÐ"} asset="actions/add_event" />}
           </button>
         )}
       </div>
@@ -334,7 +335,7 @@ export function EventsPanel({
           onSubmit={(event) => void createEvent(event)}
         >
           <label>
-            ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ
+            <BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ"} asset="fields/name" />
             <input
               required
               maxLength={120}
@@ -346,7 +347,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ
+            <BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" />
             <input
               type="datetime-local"
               required
@@ -358,7 +359,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            Ð¤Ð¾ÑÐ¼Ð°Ñ
+            <BrandLabel text={"Ð¤Ð¾ÑÐ¼Ð°Ñ"} asset="fields/format" />
             <input
               maxLength={100}
               value={eventFormat}
@@ -369,7 +370,7 @@ export function EventsPanel({
           </label>
 
           <label>
-            ÐÐ¾ÑÑÐµÑ (HTTPS)
+            <BrandLabel text={"ÐÐ¾ÑÑÐµÑ (HTTPS)"} asset="fields/poster" />
             <input
               type="url"
               placeholder="https://..."
@@ -381,7 +382,7 @@ export function EventsPanel({
           </label>
 
           <label className="k7-panel-wide">
-            ÐÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ
+            <BrandLabel text={"ÐÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ"} asset="fields/description" />
             <textarea
               maxLength={5000}
               rows={3}
@@ -397,8 +398,8 @@ export function EventsPanel({
             disabled={saving}
           >
             {saving
-              ? "Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."
-              : editingId ? "Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬ ÐÐÐÐÐÐÐÐÐ¯" : "ÐÐÐ£ÐÐÐÐÐÐÐÐ¢Ð¬"}
+              ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."} asset="actions/saving" />
+              : editingId ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬ ÐÐÐÐÐÐÐÐÐ¯"} asset="actions/save_changes" /> : <BrandLabel text={"ÐÐÐ£ÐÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/publish" />}
           </button>
         </form>
       )}
@@ -477,26 +478,26 @@ export function EventsPanel({
                         setEditingId(item.id); setTitle(item.title); setDate(toLocalDateTime(item.event_date));
                         setDescription(item.description ?? ""); setEventFormat(item.event_format ?? "");
                         setPosterUrl(item.poster_url ?? ""); setShowForm(true);
-                      }}>Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¢Ð¬</button>
+                      }}><BrandLabel text={"Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐ¢Ð¬"} asset="actions/edit" /></button>
                       {item.status !== "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
                         void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"UPCOMING"})}); setFilter("UPCOMING"); await reload(); }
                           catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²Ð¾ÑÑÑÐ°Ð½Ð¾Ð²Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
-                      }}>ÐÐÐ¡Ð¡Ð¢ÐÐÐÐÐÐ¢Ð¬</button>}
+                      }}><BrandLabel text={"ÐÐÐ¡Ð¡Ð¢ÐÐÐÐÐÐ¢Ð¬"} asset="actions/restore" /></button>}
                       {item.status === "UPCOMING" && <button type="button" className="k7-panel-button" onClick={() => {
                         void (async () => {try { await requestJson("/api/events", {method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,status:"CANCELLED"})}); await reload(); }
                           catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ");}})();
-                      }}>ÐÐ¢ÐÐÐÐÐ¢Ð¬</button>}
+                      }}><BrandLabel text={"ÐÐ¢ÐÐÐÐÐ¢Ð¬"} asset="actions/cancel_event" /></button>}
                       <button type="button" className="k7-panel-button" onClick={() => {
                         setDeleteEventId(item.id);
-                      }}>Ð£ÐÐÐÐÐ¢Ð¬</button>
-                      {deleteEventId === item.id && <div className="k7-inline-confirm"><span>Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ?</span>
+                      }}><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
+                      {deleteEventId === item.id && <div className="k7-inline-confirm"><span><BrandLabel text={"Ð£Ð´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ?"} asset="status/delete_event" /></span>
                         <button type="button" disabled={saving} onClick={() => { void (async () => { try {
                           setSaving(true);
                           await requestJson("/api/events", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:item.id})});
                           setDeleteEventId(null); await reload();
                         } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ ÑÐ¾Ð±ÑÑÐ¸Ðµ"); }
-                          finally { setSaving(false); } })(); }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
-                        <button type="button" onClick={() => setDeleteEventId(null)}>ÐÐ¢ÐÐÐÐ</button></div>}
+                          finally { setSaving(false); } })(); }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
+                        <button type="button" onClick={() => setDeleteEventId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button></div>}
                     </div>
                   )}
                   {canManage &&
@@ -534,7 +535,7 @@ export function EventsPanel({
                             })();
                           }}
                         >
-                          ÐÐÐÐÐ Ð¨ÐÐ¢Ð¬
+                          <BrandLabel text={"ÐÐÐÐÐ Ð¨ÐÐ¢Ð¬"} asset="actions/complete" />
                         </button>
                       </div>
                     )}
@@ -695,8 +696,8 @@ export function StatsPanel({
             }}
           >
             {showForm
-              ? "ÐÐÐÐ Ð«Ð¢Ð¬"
-              : "+ Ð ÐÐÐ£ÐÐ¬Ð¢ÐÐ¢ ÐÐÐ¢Ð§Ð"}
+              ? <BrandLabel text={"ÐÐÐÐ Ð«Ð¢Ð¬"} asset="actions/close" />
+              : <BrandLabel text={"+ Ð ÐÐÐ£ÐÐ¬Ð¢ÐÐ¢ ÐÐÐ¢Ð§Ð"} asset="actions/add_match" />}
           </button>
         </div>
       )}
@@ -709,7 +710,7 @@ export function StatsPanel({
           }
         >
           <label>
-            ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°
+            <BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°"} asset="fields/match_name" />
             <input
               required
               maxLength={100}
@@ -721,7 +722,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ
+            <BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" />
             <input
               type="datetime-local"
               required
@@ -733,7 +734,7 @@ export function StatsPanel({
           </label>
 
           <label>
-            ÐÐµÑÑÐ¾ (1â100)
+            <BrandLabel text={"ÐÐµÑÑÐ¾ (1â100)"} asset="fields/placement_range" />
             <input
               type="number"
               min="1"
@@ -748,7 +749,7 @@ export function StatsPanel({
 
           <div className="k7-panel-wide k7-match-players">
             <strong>
-              Ð£ÑÐ°ÑÑÐ½Ð¸ÐºÐ¸ Ð¼Ð°ÑÑÐ° (1â4)
+              <BrandLabel text={"Ð£ÑÐ°ÑÑÐ½Ð¸ÐºÐ¸ Ð¼Ð°ÑÑÐ° (1â4)"} asset="status/match_players" />
             </strong>
 
             {roster.map((player) => (
@@ -759,10 +760,7 @@ export function StatsPanel({
                 <span>
                   {getName(player)}
                   <small>
-                    {player.slot.replace(
-                      "_",
-                      " "
-                    )}
+                    <BrandLabel text={player.slot.replace("_", " ")} />
                   </small>
                 </span>
 
@@ -802,8 +800,8 @@ export function StatsPanel({
             disabled={saving}
           >
             {saving
-              ? "Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."
-              : "ÐÐÐÐÐ¡ÐÐ¢Ð¬ ÐÐÐ¢Ð§"}
+              ? <BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐÐÐ..."} asset="actions/saving" />
+              : <BrandLabel text={"ÐÐÐÐÐ¡ÐÐ¢Ð¬ ÐÐÐ¢Ð§"} asset="actions/record_match" />}
           </button>
         </form>
       )}
@@ -832,28 +830,28 @@ export function StatsPanel({
             <>
               <div className="k7-stat-metrics">
                 <div>
-                  <span>ÐÐ°ÑÑÐ¸</span>
+                  <span><BrandLabel text={"ÐÐ°ÑÑÐ¸"} asset="sections/matches" /></span>
                   <strong>
                     {data.team.matches}
                   </strong>
                 </div>
 
                 <div>
-                  <span>ÐÐ¾Ð±ÐµÐ´Ñ</span>
+                  <span><BrandLabel text={"ÐÐ¾Ð±ÐµÐ´Ñ"} asset="sections/wins" /></span>
                   <strong>
                     {data.team.wins}
                   </strong>
                 </div>
 
                 <div>
-                  <span>Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°</span>
+                  <span><BrandLabel text={"Ð£Ð±Ð¸Ð¹ÑÑÐ²Ð°"} asset="sections/kills" /></span>
                   <strong>
                     {data.team.kills}
                   </strong>
                 </div>
 
                 <div>
-                  <span>ÐÐ¾Ð»Ñ Ð¿Ð¾Ð±ÐµÐ´</span>
+                  <span><BrandLabel text={"ÐÐ¾Ð»Ñ Ð¿Ð¾Ð±ÐµÐ´"} asset="sections/win_rate" /></span>
                   <strong>
                     {data.team.winRate}%
                   </strong>
@@ -877,7 +875,7 @@ export function StatsPanel({
                       setView("main")
                     }
                   >
-                    ÐÑÐ½Ð¾Ð²Ð°
+                    <BrandLabel text={"ÐÑÐ½Ð¾Ð²Ð°"} asset="sections/main" />
                   </button>
 
                   <button
@@ -891,7 +889,7 @@ export function StatsPanel({
                       setView("sub")
                     }
                   >
-                    ÐÐ°Ð¿Ð°Ñ
+                    <BrandLabel text={"ÐÐ°Ð¿Ð°Ñ"} asset="sections/reserve" />
                   </button>
                 </div>
               </div>
@@ -917,11 +915,11 @@ export function StatsPanel({
                         </strong>
 
                         <span>
-                          {player.wins} WINS
+                          {player.wins} <BrandLabel text={"WINS"} asset="roles/wins_en" />
                         </span>
 
                         <span>
-                          {player.kills} KILLS
+                          {player.kills} <BrandLabel text={"KILLS"} asset="roles/kills_en" />
                         </span>
                       </div>
                     )
@@ -932,7 +930,7 @@ export function StatsPanel({
               )}
 
               <h3 className="k7-panel-subtitle">
-                ÐÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ¸
+                <BrandLabel text={"ÐÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ¸"} asset="sections/recent_matches" />
               </h3>
 
               {data.recentMatches.length ? (
@@ -964,17 +962,17 @@ export function StatsPanel({
                             setEditingMatchId(match.id);
                             setTitle(match.title); setPlayedAt(toLocalDateTime(match.played_at));
                             setPlacement(String(match.placement));
-                          }}>ÐÐÐÐÐÐÐ¢Ð¬</button>
+                          }}><BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/modify" /></button>
                           <button type="button" className="k7-panel-button" onClick={() => {
                             setDeleteMatchId(match.id);
-                          }}>Ð£ÐÐÐÐÐ¢Ð¬</button>
-                          {deleteMatchId === match.id && <div className="k7-inline-confirm">Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ Ð¸ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ?
+                          }}><BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" /></button>
+                          {deleteMatchId === match.id && <div className="k7-inline-confirm"><BrandLabel text={"Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ Ð¸ ÑÑÐ°ÑÐ¸ÑÑÐ¸ÐºÑ?"} asset="status/delete_match" />
                             <button type="button" disabled={saving} onClick={() => { void (async () => {try { setSaving(true);
                               await requestJson("/api/matches", {method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:match.id})});
                               setDeleteMatchId(null); await reload();
                             } catch(err) { setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ´Ð°Ð»Ð¸ÑÑ Ð¼Ð°ÑÑ"); }
-                              finally { setSaving(false); } })(); }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
-                            <button type="button" onClick={() => setDeleteMatchId(null)}>ÐÐ¢ÐÐÐÐ</button></div>}
+                              finally { setSaving(false); } })(); }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
+                            <button type="button" onClick={() => setDeleteMatchId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button></div>}
                         </div>}
                       </div>
                     )
@@ -991,11 +989,11 @@ export function StatsPanel({
                     setEditingMatchId(null); await reload();
                   } catch(err) {setError(err instanceof Error ? err.message : "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¾Ð±Ð½Ð¾Ð²Ð¸ÑÑ Ð¼Ð°ÑÑ");}})();
                 }}>
-                  <label>ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°<input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
-                  <label>ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ<input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
-                  <label>ÐÐµÑÑÐ¾<input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
-                  <button className="k7-panel-button k7-panel-primary" type="submit" disabled={saving}>Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
-                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}>ÐÐ¢ÐÐÐÐ</button>
+                  <label><BrandLabel text={"ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ð¼Ð°ÑÑÐ°"} asset="fields/match_name" /><input required maxLength={100} value={title} onChange={(e)=>setTitle(e.target.value)} /></label>
+                  <label><BrandLabel text={"ÐÐ°ÑÐ° Ð¸ Ð²ÑÐµÐ¼Ñ"} asset="fields/date_time" /><input type="datetime-local" required value={playedAt} onChange={(e)=>setPlayedAt(e.target.value)} /></label>
+                  <label><BrandLabel text={"ÐÐµÑÑÐ¾"} asset="fields/placement" /><input type="number" required min={1} max={100} value={placement} onChange={(e)=>setPlacement(e.target.value)} /></label>
+                  <button className="k7-panel-button k7-panel-primary" type="submit" disabled={saving}><BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬"} asset="actions/save" /></button>
+                  <button className="k7-panel-button" type="button" onClick={()=>setEditingMatchId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
                 </form>
               )}
             </>
@@ -1150,7 +1148,7 @@ export function RosterAdminPanel({
     <details className="k7-admin-panel">
       <summary>
         <Shield size={16} />
-        Ð£ÐÐ ÐÐÐÐÐÐÐ Ð¡ÐÐ¡Ð¢ÐÐÐÐ
+        <BrandLabel text={"Ð£ÐÐ ÐÐÐÐÐÐÐ Ð¡ÐÐ¡Ð¢ÐÐÐÐ"} asset="sections/manage_roster" />
       </summary>
 
       <div className="k7-admin-body">
@@ -1167,7 +1165,7 @@ export function RosterAdminPanel({
           }
         >
           <label>
-            Ð£ÑÐ°ÑÑÐ½Ð¸Ðº
+            <BrandLabel text={"Ð£ÑÐ°ÑÑÐ½Ð¸Ðº"} asset="fields/member" />
 
             <select
               value={memberId}
@@ -1211,7 +1209,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            ÐÐ¾Ð·Ð¸ÑÐ¸Ñ
+            <BrandLabel text={"ÐÐ¾Ð·Ð¸ÑÐ¸Ñ"} asset="fields/position" />
 
             <select
               value={availableSlot}
@@ -1238,7 +1236,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            ÐÐ³ÑÐ¾Ð²Ð°Ñ ÑÐ¾Ð»Ñ
+            <BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð°Ñ ÑÐ¾Ð»Ñ"} asset="fields/game_role" />
 
             <select
               value={role}
@@ -1262,7 +1260,7 @@ export function RosterAdminPanel({
           </label>
 
           <label>
-            ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID (Ð½ÐµÐ¾Ð±ÑÐ·Ð°ÑÐµÐ»ÑÐ½Ð¾)
+            <BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID (Ð½ÐµÐ¾Ð±ÑÐ·Ð°ÑÐµÐ»ÑÐ½Ð¾)"} asset="fields/game_id_optional" />
 
             <input
               maxLength={40}
@@ -1284,7 +1282,7 @@ export function RosterAdminPanel({
               freeSlots.length === 0
             }
           >
-            ÐÐÐÐÐÐÐ¢Ð¬ ÐÐÐ ÐÐÐ
+            <BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬ ÐÐÐ ÐÐÐ"} asset="actions/add_player" />
           </button>
         </form>
 
@@ -1300,12 +1298,9 @@ export function RosterAdminPanel({
                 </strong>
 
                 <small>
-                  {player.slot.replace(
-                    "_",
-                    " "
-                  )}
+                  <BrandLabel text={player.slot.replace("_", " ")} />
                   {" Â· "}
-                  {player.game_role}
+                  <BrandLabel text={player.game_role} />
                 </small>
               </div>
 
@@ -1313,7 +1308,7 @@ export function RosterAdminPanel({
                 <button type="button" disabled={busy} onClick={() => {
                   setEditPlayerId(player.telegram_id); setEditSlot(player.slot);
                   setEditRole(player.game_role); setEditGameId(player.in_game_id ?? "");
-                }}>ÐÐÐÐÐÐÐ¢Ð¬</button>
+                }}><BrandLabel text={"ÐÐÐÐÐÐÐ¢Ð¬"} asset="actions/modify" /></button>
                 {!player.is_captain && (
                   <button
                     type="button"
@@ -1344,7 +1339,7 @@ export function RosterAdminPanel({
                       )
                     }
                   >
-                    ÐÐÐÐÐ¢ÐÐ
+                    <BrandLabel text={"ÐÐÐÐÐ¢ÐÐ"} asset="actions/captain" />
                   </button>
                 )}
 
@@ -1353,7 +1348,7 @@ export function RosterAdminPanel({
                   disabled={busy}
                   onClick={() => setDeletePlayerId(player.telegram_id)}
                 >
-                  Ð£ÐÐÐÐÐ¢Ð¬
+                  <BrandLabel text={"Ð£ÐÐÐÐÐ¢Ð¬"} asset="actions/delete" />
                 </button>
                 {deletePlayerId === player.telegram_id && <div className="k7-inline-confirm">
                   <span>Ð£Ð±ÑÐ°ÑÑ {getName(player)} Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°?</span>
@@ -1363,8 +1358,8 @@ export function RosterAdminPanel({
                         body: JSON.stringify({ telegramId: player.telegram_id }) });
                       setDeletePlayerId(null);
                     }, "ÐÐ³ÑÐ¾Ðº ÑÐ´Ð°Ð»ÑÐ½ Ð¸Ð· ÑÐ¾ÑÑÐ°Ð²Ð°");
-                  }}>ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬</button>
-                  <button type="button" onClick={() => setDeletePlayerId(null)}>ÐÐ¢ÐÐÐÐ</button>
+                  }}><BrandLabel text={"ÐÐÐÐ¢ÐÐÐ ÐÐÐ¢Ð¬"} asset="actions/confirm" /></button>
+                  <button type="button" onClick={() => setDeletePlayerId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
                 </div>}
               </div>
             </div>
@@ -1380,16 +1375,16 @@ export function RosterAdminPanel({
               setEditPlayerId(null);
             }, "ÐÐ°Ð½Ð½ÑÐµ Ð¸Ð³ÑÐ¾ÐºÐ° Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ñ");
           }}>
-            <strong className="k7-panel-wide">Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐÐÐ ÐÐÐ ÐÐÐ</strong>
-            <label>ÐÐ¾Ð·Ð¸ÑÐ¸Ñ<select value={editSlot} onChange={event => setEditSlot(event.target.value)}>
+            <strong className="k7-panel-wide"><BrandLabel text={"Ð ÐÐÐÐÐ¢ÐÐ ÐÐÐÐÐÐ ÐÐÐ ÐÐÐ"} asset="sections/edit_player" /></strong>
+            <label><BrandLabel text={"ÐÐ¾Ð·Ð¸ÑÐ¸Ñ"} asset="fields/position" /><select value={editSlot} onChange={event => setEditSlot(event.target.value)}>
               {slots.map(value => <option key={value} value={value} disabled={roster.some(player => player.slot === value && player.telegram_id !== editPlayerId)}>{value.replace("_", " ")}</option>)}
             </select></label>
-            <label>Ð Ð¾Ð»Ñ<select value={editRole} onChange={event => setEditRole(event.target.value)}>
+            <label><BrandLabel text={"Ð Ð¾Ð»Ñ"} asset="fields/role" /><select value={editRole} onChange={event => setEditRole(event.target.value)}>
               {roles.map(value => <option key={value} value={value}>{value}</option>)}
             </select></label>
-            <label className="k7-panel-wide">ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID<input value={editGameId} maxLength={40} onChange={event => setEditGameId(event.target.value)}/></label>
-            <button className="k7-panel-button k7-panel-primary" disabled={busy}>Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬</button>
-            <button type="button" className="k7-panel-button" onClick={() => setEditPlayerId(null)}>ÐÐ¢ÐÐÐÐ</button>
+            <label className="k7-panel-wide"><BrandLabel text={"ÐÐ³ÑÐ¾Ð²Ð¾Ð¹ ID"} asset="fields/game_id" /><input value={editGameId} maxLength={40} onChange={event => setEditGameId(event.target.value)}/></label>
+            <button className="k7-panel-button k7-panel-primary" disabled={busy}><BrandLabel text={"Ð¡ÐÐ¥Ð ÐÐÐÐ¢Ð¬"} asset="actions/save" /></button>
+            <button type="button" className="k7-panel-button" onClick={() => setEditPlayerId(null)}><BrandLabel text={"ÐÐ¢ÐÐÐÐ"} asset="actions/cancel" /></button>
           </form>
         )}
 
