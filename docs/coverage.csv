@@ -1,0 +1,182 @@
+id,label,integration
+nav/chat,Чат,explicit JSX
+nav/events,События,runtime lookup / chapter
+nav/roster,Состав,explicit JSX
+nav/news,Новости,explicit JSX
+nav/stats,Статистика,runtime lookup / chapter
+nav/messages,Сообщения,runtime lookup / chapter
+actions/retry_login,Повторить вход,explicit JSX
+actions/retry,Повторить,explicit JSX
+actions/chat_settings,Настройки чата,explicit JSX
+actions/clear_chat,Очистить чат,explicit JSX
+actions/delete,Удалить,explicit JSX
+actions/reply,Ответить,explicit JSX
+actions/cancel_reply,Отменить ответ,explicit JSX
+actions/send,Отправить,explicit JSX
+actions/send_message,Отправить сообщение,"retained in library; native text, icon, unused or duplicate"
+actions/refresh_roster,Обновить состав,explicit JSX
+actions/cancel,Отмена,explicit JSX
+actions/close,Закрыть,explicit JSX
+actions/report_bug,Сообщить об ошибке,explicit JSX
+actions/sending,Отправка...,explicit JSX
+actions/refresh_messages,Обновить сообщения,explicit JSX
+actions/in_progress,В работу,explicit JSX
+actions/resolved,Решено,explicit JSX
+actions/save,Сохранить,explicit JSX
+actions/yes_delete,"Да, удалить",explicit JSX
+actions/refresh_data,Обновить данные,explicit JSX
+actions/add_event,+ Событие,explicit JSX
+actions/saving,Сохранение...,explicit JSX
+actions/save_changes,Сохранить изменения,explicit JSX
+actions/publish,Опубликовать,explicit JSX
+actions/edit,Редактировать,explicit JSX
+actions/restore,Восстановить,explicit JSX
+actions/cancel_event,Отменить,explicit JSX
+actions/confirm,Подтвердить,explicit JSX
+actions/complete,Завершить,explicit JSX
+actions/add_match,+ Результат матча,explicit JSX
+actions/record_match,Записать матч,explicit JSX
+actions/modify,Изменить,explicit JSX
+actions/add_player,Добавить игрока,explicit JSX
+actions/captain,Капитан,explicit JSX
+actions/unpin,Открепить,explicit JSX
+actions/pin,Закрепить,explicit JSX
+actions/refresh_news,Обновить новости,explicit JSX
+actions/create_publication,Создать публикацию,explicit JSX
+actions/close_editor,Закрыть редактор,explicit JSX
+actions/bold,Жирный,explicit JSX
+actions/italic,Курсив,explicit JSX
+actions/subtitle,Подзаголовок,explicit JSX
+actions/quote,Цитата,explicit JSX
+actions/list,Список,explicit JSX
+actions/https_link,HTTPS-ссылка,explicit JSX
+actions/hide_preview,Скрыть превью,explicit JSX
+actions/preview,Предпросмотр,explicit JSX
+actions/saving_news,Сохраняем...,explicit JSX
+actions/choose_member,Выбрать участника,"retained in library; native text, icon, unused or duplicate"
+actions/close_x,×,explicit JSX
+sections/brand,K7 CREW,explicit JSX
+sections/telegram_login,Вход через Telegram,explicit JSX
+sections/login_failed,Не удалось войти,explicit JSX
+sections/management,Управление,explicit JSX
+sections/confirmation,Подтверждение,explicit JSX
+sections/reports,Обращения,explicit JSX
+sections/upcoming,Предстоящие,explicit JSX
+sections/completed,Завершённые,explicit JSX
+sections/cancelled,Отменённые,explicit JSX
+sections/main,Основа,explicit JSX
+sections/reserve,Запас,explicit JSX
+sections/recent_matches,Последние матчи,explicit JSX
+sections/manage_roster,Управление составом,explicit JSX
+sections/main_roster,Основной состав,explicit JSX
+sections/sub_roster,Запасные,explicit JSX
+sections/roster_count,Игроков в составе,explicit JSX
+sections/matches,Матчи,explicit JSX
+sections/wins,Победы,explicit JSX
+sections/kills,Убийства,explicit JSX
+sections/win_rate,Доля побед,explicit JSX
+sections/edit_player,Редактирование игрока,explicit JSX
+sections/editing,Редактирование,explicit JSX
+sections/new_publication,Новая публикация,explicit JSX
+sections/new,Новое,explicit JSX
+sections/working,В работе,explicit JSX
+sections/free_slot,Свободное место,explicit JSX
+sections/four_slots,4 места,explicit JSX
+sections/three_slots,3 места,explicit JSX
+sections/player_table,Таблица игроков,"retained in library; native text, icon, unused or duplicate"
+sections/event_status,Статус мероприятий,"retained in library; native text, icon, unused or duplicate"
+fields/report_subject,Тема обращения,explicit JSX
+fields/message,Сообщение,explicit JSX
+fields/report_reply,Ответ или внутренняя заметка (до 500 символов),explicit JSX
+fields/name,Название,explicit JSX
+fields/date_time,Дата и время,explicit JSX
+fields/format,Формат,explicit JSX
+fields/poster,Постер (HTTPS),explicit JSX
+fields/description,Описание,explicit JSX
+fields/match_name,Название матча,explicit JSX
+fields/placement_range,Место (1–100),explicit JSX
+fields/placement,Место,explicit JSX
+fields/member,Участник,explicit JSX
+fields/position,Позиция,explicit JSX
+fields/game_role,Игровая роль,explicit JSX
+fields/game_id_optional,Игровой ID (необязательно),explicit JSX
+fields/role,Роль,explicit JSX
+fields/game_id,Игровой ID,explicit JSX
+fields/category,Рубрика,explicit JSX
+fields/publication_style,Стиль публикации,explicit JSX
+fields/headline,Заголовок,explicit JSX
+fields/poster_image,Постер / изображение (HTTPS),explicit JSX
+fields/publication_text,Текст публикации,explicit JSX
+fields/cta,Кнопка действия,explicit JSX
+fields/cta_url,Ссылка кнопки (HTTPS),explicit JSX
+fields/pin_top,Закрепить публикацию наверху,explicit JSX
+fields/editorial,EDITORIAL · редакционная,"retained in library; native text, icon, unused or duplicate"
+fields/statement,STATEMENT · крупный заголовок,"retained in library; native text, icon, unused or duplicate"
+fields/spotlight,SPOTLIGHT · акцент на постере,"retained in library; native text, icon, unused or duplicate"
+roles/flex,FLEX,runtime lookup / chapter
+roles/igl,IGL,runtime lookup / chapter
+roles/support,SUPPORT,runtime lookup / chapter
+roles/fragger,FRAGGER,runtime lookup / chapter
+roles/sniper,SNIPER,runtime lookup / chapter
+roles/main_1,MAIN 1,runtime lookup / chapter
+roles/main_2,MAIN 2,runtime lookup / chapter
+roles/main_3,MAIN 3,runtime lookup / chapter
+roles/main_4,MAIN 4,runtime lookup / chapter
+roles/sub_1,SUB 1,runtime lookup / chapter
+roles/sub_2,SUB 2,runtime lookup / chapter
+roles/sub_3,SUB 3,runtime lookup / chapter
+roles/wins_en,WINS,explicit JSX
+roles/kills_en,KILLS,explicit JSX
+cinema/chat_label,01 / CHAT,runtime lookup / chapter
+cinema/events_label,02 / EVENTS,runtime lookup / chapter
+cinema/roster_label,03 / TEAM ROSTER,runtime lookup / chapter
+cinema/news_label,04 / NEWS,runtime lookup / chapter
+cinema/stats_label,05 / STATS,runtime lookup / chapter
+cinema/stay,STAY,runtime lookup / chapter
+cinema/connected,CONNECTED,runtime lookup / chapter
+cinema/own_the,OWN THE,runtime lookup / chapter
+cinema/moment,MOMENT,runtime lookup / chapter
+cinema/one_crew,ONE CREW.,runtime lookup / chapter
+cinema/one_mission,ONE MISSION.,runtime lookup / chapter
+cinema/ahead,AHEAD,runtime lookup / chapter
+cinema/numbers,NUMBERS,runtime lookup / chapter
+cinema/dont_lie,DON’T LIE,runtime lookup / chapter
+reaction_alternatives/fire,Огонь,"retained in library; native text, icon, unused or duplicate"
+reaction_alternatives/heart,Сердце,"retained in library; native text, icon, unused or duplicate"
+reaction_alternatives/like,Нравится,"retained in library; native text, icon, unused or duplicate"
+reaction_alternatives/dislike,Не нравится,"retained in library; native text, icon, unused or duplicate"
+status/available,Доступно,runtime lookup / chapter
+status/team_member,TEAM MEMBER,runtime lookup / chapter
+status/community_member,Участник сообщества,"retained in library; native text, icon, unused or duplicate"
+status/owner,OWNER,"retained in library; native text, icon, unused or duplicate"
+status/member,MEMBER,"retained in library; native text, icon, unused or duplicate"
+status/community_count,в сообществе,explicit JSX
+status/chat_timer,Таймер удаления сообщений — 10 мин.,explicit JSX
+status/auto_delete,Автоудаление сообщений — 10 минут,explicit JSX
+status/match_players,Участники матча (1–4),explicit JSX
+status/pinned,Закреплено,"retained in library; native text, icon, unused or duplicate"
+status/telegram_required,Войдите через Telegram,explicit JSX
+status/loading_events,Загрузка событий...,runtime lookup / chapter
+status/loading_stats,Получение статистики...,runtime lookup / chapter
+status/no_upcoming,Пока нет запланированных мероприятий,runtime lookup / chapter
+status/no_cancelled,Пока нет отменённых мероприятий,runtime lookup / chapter
+status/no_completed,Пока нет завершённых мероприятий,runtime lookup / chapter
+status/no_players,В этой группе пока нет игроков,runtime lookup / chapter
+status/no_matches,Матчи пока не добавлены,runtime lookup / chapter
+status/no_messages,Пока нет сообщений,explicit JSX
+status/no_reports,Пока нет обращений.,explicit JSX
+status/delete_event,Удалить событие?,explicit JSX
+status/delete_match,Удалить матч и статистику?,explicit JSX
+status/delete_report,Удалить обращение?,explicit JSX
+status/loading,Загрузка...,explicit JSX
+status/loading_chat,Загружаем чат…,explicit JSX
+status/loading_history,Загружаем историю…,explicit JSX
+status/loading_roster,Загружаем состав…,explicit JSX
+status/connecting,Подключение…,"retained in library; native text, icon, unused or duplicate"
+status/login,Вход…,"retained in library; native text, icon, unused or duplicate"
+status/competition,K7 / COMPETITION,"retained in library; native text, icon, unused or duplicate"
+status/performance,K7 / PERFORMANCE,"retained in library; native text, icon, unused or duplicate"
+status/moderation,K7 / MODERATION,explicit JSX
+status/support,K7 / SUPPORT,explicit JSX
+status/admin_only,K7 / ADMIN ONLY,explicit JSX
+status/editorial_transmission,K7 / EDITORIAL TRANSMISSION,explicit JSX
