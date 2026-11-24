@@ -7,6 +7,7 @@ import "./globals.css";
 import "@/components/k7-panels-fix.css";
 import "./dark-elite.css";
 import "./k7-motion-ui.css";
+import "./k7-community.css";
 
 export const metadata: Metadata = {
   title: "K7 CREW — PUBG MOBILE ESPORTS",

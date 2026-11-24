@@ -1,9 +1,10 @@
 "use client";
 
+import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { AlertTriangle, Send, MessageSquare, Users, X, RefreshCw } from "lucide-react";
+import { AlertTriangle, Send, MessageSquare, Users, X } from "lucide-react";
 
 type ReportRecord = {
   id: string;
@@ -90,14 +91,14 @@ export function ReportsInbox({ authReady }: { authReady: boolean }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [draftReplies, setDraftReplies] = useState<Record<string, string>>({});
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try { const result = await api("/api/reports"); setItems(result.reports ?? []); setError(""); }
     catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
   }, [authReady]);
-  useEffect(() => { void reload(); }, [reload]);
+  useK7Sync(authReady, reload, 15000);
   async function update(item: ReportRecord, status: ReportRecord["status"]) {
     setBusyId(item.id); setError("");
     try {
@@ -116,7 +117,7 @@ export function ReportsInbox({ authReady }: { authReady: boolean }) {
   }
   return <div className="k7-data-panel k7-reports-inbox">
     <div className="k7-panel-head"><div><div className="k7-panel-eyebrow"><BrandLabel text={"K7 / ADMIN ONLY"} asset="status/admin_only" /></div><h2><BrandLabel text={"Обращения"} asset="sections/reports" /></h2></div>
-      <button type="button" className="k7-panel-icon" aria-label="Обновить сообщения" disabled={loading} onClick={() => void reload()}><RefreshCw size={18}/><BrandLabel text="Обновить сообщения" asset="actions/refresh_messages" /></button></div>
+      </div>
     <p className="k7-report-explainer"><MessageSquare size={16}/> Обращения участников видят только владелец и капитан.</p>
     {error && <div role="alert" className="k7-panel-error">{error}</div>}
     {loading && items.length === 0 && <p><BrandLabel text={"Загрузка..."} asset="status/loading" /></p>}
@@ -127,6 +128,7 @@ export function ReportsInbox({ authReady }: { authReady: boolean }) {
         <div className="k7-report-item-top"><span className="k7-report-state">{item.status === "NEW" ? <BrandLabel text={"НОВОЕ"} asset="sections/new" /> : item.status === "IN_PROGRESS" ? <BrandLabel text={"В РАБОТЕ"} asset="sections/working" /> : <BrandLabel text={"РЕШЕНО"} asset="actions/resolved" />}</span><time>{new Date(item.created_at).toLocaleString("ru-RU")}</time></div>
         <h3>{item.subject}</h3><p>{item.message}</p>
         <small>От: {author?.username ? `@${author.username}` : author?.first_name ?? `Telegram ID ${item.author_id}`} · ID {item.author_id}</small>
+        <label>Шаблон ответа<select value="" onChange={event=>{if(event.target.value)setDraftReplies(previous=>({...previous,[item.id]:event.target.value}));}}><option value="">Выбрать шаблон</option><option value="Обращение принято в работу. Благодарим за обратную связь.">ПРИНЯТО В РАБОТУ</option><option value="Пожалуйста, уточните детали обращения.">НУЖНО УТОЧНЕНИЕ</option><option value="Обращение рассмотрено. Благодарим за участие в проекте K7 CREW.">РАССМОТРЕНО</option></select></label>
         <label className="k7-report-reply"><BrandLabel text={"Ответ или внутренняя заметка (до 500 символов)"} asset="fields/report_reply" />
           <textarea rows={2} maxLength={500} value={draftReplies[item.id] ?? item.admin_reply ?? ""} onChange={event => setDraftReplies(previous => ({ ...previous, [item.id]: event.target.value }))}/>
         </label>

@@ -2,10 +2,13 @@
 
 import { CinemaSpace } from "@/components/cinema-space";
 import { BrandChapter } from "@/components/brand-chapter";
+import NewsStudio from "@/components/news-studio";
+import { CommunityProfile } from "@/components/community-profile";
+import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { EventsPanel, NewsPanel, StatsPanel, RosterAdminPanel } from "@/components/k7-panels";
 import { CommunityCounter, ReportButton, ReportsInbox } from "@/components/community-tools";
@@ -15,7 +18,7 @@ import {
   Users,
   Newspaper,
   Trophy,
-  RefreshCw,
+  UserRound,
   Crown,
   Shield,
   MessageSquare,
@@ -157,9 +160,11 @@ function mergeChatMessages(
 function PlayerCard({
   player,
   slot,
+  onProfile,
 }: {
   player?: RosterPlayer;
   slot: string;
+  onProfile: (id:number) => void;
 }) {
   return (
     <div className={`roster-player ${player ? "is-filled" : "is-open"}`}>
@@ -169,7 +174,7 @@ function PlayerCard({
 
       <div className="roster-player-info">
         <div className="roster-player-name">
-          {player ? getPlayerName(player) : <BrandLabel text={"Свободное место"} asset="sections/free_slot" />}
+          {player ? <button type="button" className="k7-profile-link" onClick={()=>onProfile(Number(player.telegram_id))}>{getPlayerName(player)}</button> : <BrandLabel text={"Свободное место"} asset="sections/free_slot" />}
         </div>
 
         <div className="roster-player-role">
@@ -193,6 +198,8 @@ function PlayerCard({
 }
 
 export default function Home() {
+  const [profileId, setProfileId] = useState<number | null>(null);
+  const closeProfile = useCallback(()=>setProfileId(null), []);
   const [activeTab, setActiveTab] = useState<TabId>("chat");
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -244,10 +251,12 @@ export default function Home() {
     top: number;
   } | null>(null);
 
-  async function loadRoster() {
+  const rosterBusy = useRef(false);
+  async function loadRoster(silent = false) {
+    if (rosterBusy.current) return;
+    rosterBusy.current = true;
     try {
-      setLoading(true);
-      setError("");
+      if (!silent) setLoading(true);
 
       const response = await fetch("/api/roster", {
         credentials: "include",
@@ -261,14 +270,18 @@ export default function Home() {
       }
 
       setRoster(result.roster ?? []);
+      setError("");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong"
       );
     } finally {
+      rosterBusy.current = false;
       setLoading(false);
     }
   }
+
+  useK7Sync(authReady, loadRoster, 15000);
 
   async function loadChat(silent = false) {
     if (chatRefreshBusy.current || chatOlderLoadingRef.current) return;
@@ -579,7 +592,7 @@ export default function Home() {
           console.error("Current user display unavailable:", profileError);
         }
 
-        if (!cancelled) await loadRoster();
+        // Roster polling starts after authentication.
       } catch (err) {
         if (cancelled) return;
 
@@ -625,7 +638,7 @@ export default function Home() {
 
   // Chat requests only run after successful authentication.
   useEffect(() => {
-    if (!authReady || activeTab !== "chat") return;
+    if (!authReady) return;
 
     void loadChat();
 
@@ -636,7 +649,7 @@ export default function Home() {
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, [activeTab, authReady]);
+  }, [authReady]);
 
   // Expiry also works offline or when another tab is selected.
   useEffect(() => {
@@ -790,6 +803,7 @@ export default function Home() {
       <header className="k7-app-header">
         <h1 className="k7-header-brand"><BrandLabel text={"K7 CREW"} asset="sections/brand" /></h1>
         <CommunityCounter authReady={authReady} />
+        {viewer && <button type="button" className="k7-profile-trigger" aria-label="Личный кабинет" onClick={()=>setProfileId(viewer.telegramId)}>{viewer.photoUrl?<img src={viewer.photoUrl} alt=""/>:<UserRound size={23}/>}</button>}
         {(accessRole === "OWNER" || accessRole === "IGL") && (
           <span className="k7-header-access" title="Owner / captain"><Crown size={13} /> <BrandLabel text={"Управление"} asset="sections/management" /></span>
         )}
@@ -803,6 +817,7 @@ export default function Home() {
         <BrandChapter id="chat" />
         <div className="elite-section-inner reveal-content">
 
+          <NewsStudio authReady={authReady} canManage={canManage} section="chat"/>
           <div className="k7-chat">
             <div className="k7-chat-heading">
               <div>
@@ -883,7 +898,7 @@ export default function Home() {
                         isOwn ? "is-own" : ""
                       }`}
                     >
-                      <div className="k7-chat-avatar">
+                      <button type="button" className="k7-chat-avatar" aria-label={`Профиль: ${getChatName(message)}`} onClick={()=>setProfileId(Number(message.telegram_id))}>
                         {profile?.photo_url ? (
                           <img
                             src={profile.photo_url}
@@ -892,7 +907,7 @@ export default function Home() {
                         ) : (
                           <span>{getChatInitial(message)}</span>
                         )}
-                      </div>
+                      </button>
 
                       <div className="k7-chat-message-body">
                         <div className="k7-chat-message-meta">
@@ -1062,6 +1077,7 @@ export default function Home() {
         <BrandChapter id="events" />
         <div className="elite-section-inner reveal-content">
 
+          <NewsStudio authReady={authReady} canManage={canManage} section="events"/>
           <EventsPanel
             authReady={authReady}
             canManage={accessRole === "OWNER" || accessRole === "IGL"}
@@ -1078,30 +1094,23 @@ export default function Home() {
         <BrandChapter id="roster" />
         <div className="elite-section-inner reveal-content">
 
+          <NewsStudio authReady={authReady} canManage={canManage} section="roster"/>
           <div className="elite-section-heading">
             <div>
               <h2><BrandLabel text={"Состав"} asset="nav/roster" /></h2>
             </div>
 
-            <button
-              className="elite-refresh"
-              onClick={() => void loadRoster()}
-              disabled={loading || !authReady}
-              aria-label="Обновить состав"
-            >
-              <RefreshCw size={17} /><BrandLabel text="Обновить состав" asset="actions/refresh_roster" />
-            </button>
           </div>
 
           {!authReady ? (
             <div className="elite-loading">
               {authError || "Вход…"}
             </div>
-          ) : loading ? (
+          ) : loading && !roster.length ? (
             <div className="elite-loading">
               <BrandLabel text={"Загружаем состав…"} asset="status/loading_roster" />
             </div>
-          ) : error ? (
+          ) : error && !roster.length ? (
             <div className="elite-error">
               <p>{error}</p>
               <button onClick={() => void loadRoster()}>
@@ -1121,6 +1130,7 @@ export default function Home() {
                       key={slot}
                       slot={slot}
                       player={getPlayerForSlot(slot)}
+                      onProfile={setProfileId}
                     />
                   ))}
                 </div>
@@ -1137,6 +1147,7 @@ export default function Home() {
                       key={slot}
                       slot={slot}
                       player={getPlayerForSlot(slot)}
+                      onProfile={setProfileId}
                     />
                   ))}
                 </div>
@@ -1150,7 +1161,7 @@ export default function Home() {
               </div>
 
               {(accessRole === "OWNER" || accessRole === "IGL") && (
-                <RosterAdminPanel roster={roster} onUpdated={loadRoster} />
+                <RosterAdminPanel roster={roster} onUpdated={()=>loadRoster(true)} />
               )}
             </>
           )}
@@ -1166,10 +1177,12 @@ export default function Home() {
         <BrandChapter id="stats" />
         <div className="elite-section-inner reveal-content">
 
+          <NewsStudio authReady={authReady} canManage={canManage} section="stats"/>
           <StatsPanel
             authReady={authReady}
             canSubmit={accessRole === "OWNER" || accessRole === "IGL"}
             roster={roster}
+            onProfile={setProfileId}
           />
         </div>
       </section>
@@ -1193,6 +1206,7 @@ export default function Home() {
       </div>}
 
       <ReportButton authReady={authReady}/>
+      {profileId !== null && <CommunityProfile key={profileId} id={profileId} onClose={closeProfile}/>}
 
       <nav
         className={`elite-bottom-nav${canManage ? " k7-nav-admin" : ""}`}

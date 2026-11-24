@@ -1,9 +1,11 @@
 "use client";
 
+import { K7PhotoUpload } from "@/components/k7-photo-upload";
+import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { CalendarDays, RefreshCw, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Shield, Trophy } from "lucide-react";
 import NewsStudio from "@/components/news-studio";
 
 export interface K7RosterPlayer {
@@ -132,13 +134,9 @@ function SectionState({
 function SectionHeader({
   eyebrow,
   title,
-  onRefresh,
-  busy,
 }: {
   eyebrow: string;
   title: string;
-  onRefresh: () => void;
-  busy: boolean;
 }) {
   return (
     <div className="k7-panel-head">
@@ -149,15 +147,6 @@ function SectionHeader({
         </h2>
       </div>
 
-      <button
-        type="button"
-        className="k7-panel-icon"
-        onClick={onRefresh}
-        disabled={busy}
-        aria-label="Обновить данные"
-      >
-        <RefreshCw size={17} /><BrandLabel text="Обновить данные" asset="actions/refresh_data" />
-      </button>
     </div>
   );
 }
@@ -203,11 +192,12 @@ export function EventsPanel({
   const [description, setDescription] = useState("");
   const [eventFormat, setEventFormat] = useState("");
   const [posterUrl, setPosterUrl] = useState("");
+  const [photoBusy,setPhotoBusy]=useState(false);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     try {
       const response = await requestJson("/api/events");
@@ -224,14 +214,12 @@ export function EventsPanel({
     }
   }, [authReady]);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  useK7Sync(authReady, reload, 15000);
 
   async function createEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!title.trim() || !date) return;
+    if (!title.trim() || !date || photoBusy) return;
 
     setSaving(true);
 
@@ -286,8 +274,6 @@ export function EventsPanel({
       <SectionHeader
         eyebrow="K7 / COMPETITION"
         title="События"
-        onRefresh={() => void reload()}
-        busy={!authReady || loading}
       />
 
       <div className="k7-panel-toolbar">
@@ -322,6 +308,7 @@ export function EventsPanel({
           <button
             type="button"
             className="k7-panel-button"
+            disabled={photoBusy || saving}
             onClick={() => { setEditingId(null); setTitle(""); setDate(""); setDescription(""); setEventFormat(""); setPosterUrl(""); setShowForm((value) => !value); }}
           >
             {showForm ? <BrandLabel text={"ЗАКРЫТЬ"} asset="actions/close" /> : <BrandLabel text={"+ СОБЫТИЕ"} asset="actions/add_event" />}
@@ -369,17 +356,7 @@ export function EventsPanel({
             />
           </label>
 
-          <label>
-            <BrandLabel text={"Постер (HTTPS)"} asset="fields/poster" />
-            <input
-              type="url"
-              placeholder="https://..."
-              value={posterUrl}
-              onChange={(event) =>
-                setPosterUrl(event.target.value)
-              }
-            />
-          </label>
+          <div className="k7-panel-wide"><BrandLabel text="Постер" asset="fields/poster"/><K7PhotoUpload disabled={saving} onBusy={setPhotoBusy} onUpload={urls=>setPosterUrl(urls[0])}/>{posterUrl&&<><img className="k7-panel-cover" src={posterUrl} alt="Постер"/><button type="button" onClick={()=>setPosterUrl("")}>Удалить фото</button></>}</div>
 
           <label className="k7-panel-wide">
             <BrandLabel text={"Описание"} asset="fields/description" />
@@ -395,7 +372,7 @@ export function EventsPanel({
 
           <button
             className="k7-panel-button k7-panel-primary"
-            disabled={saving}
+            disabled={saving || photoBusy}
           >
             {saving
               ? <BrandLabel text={"СОХРАНЕНИЕ..."} asset="actions/saving" />
@@ -557,10 +534,12 @@ export function StatsPanel({
   authReady,
   canSubmit,
   roster,
+  onProfile,
 }: {
   authReady: boolean;
   canSubmit: boolean;
   roster: K7RosterPlayer[];
+  onProfile: (id:number)=>void;
 }) {
   const [data, setData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -579,10 +558,10 @@ export function StatsPanel({
     Record<number, string>
   >({});
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     try {
       const result = await requestJson("/api/stats");
@@ -605,9 +584,7 @@ export function StatsPanel({
     }
   }, [authReady]);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  useK7Sync(authReady, reload, 15000);
 
   async function createMatch(
     event: FormEvent<HTMLFormElement>
@@ -677,8 +654,6 @@ export function StatsPanel({
       <SectionHeader
         eyebrow="K7 / PERFORMANCE"
         title="Статистика"
-        onRefresh={() => void reload()}
-        busy={!authReady || loading}
       />
 
       {canSubmit && (
@@ -911,7 +886,7 @@ export function StatsPanel({
                         </span>
 
                         <strong>
-                          {player.name}
+                          <button type="button" className="k7-profile-link" onClick={()=>onProfile(player.telegramId)}>{player.name}</button>
                         </strong>
 
                         <span>

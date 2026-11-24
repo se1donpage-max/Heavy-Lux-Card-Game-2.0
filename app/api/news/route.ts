@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isK7Media, isPublicationSection, sectionTemplates } from "@/lib/publication-templates";
 import { canManageContent } from "@/lib/permissions";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ function httpsUrl(value: string): boolean {
   catch { return false; }
 }
 
-function parseNews(value: unknown): { value?: Record<string, string | boolean | null>; error?: string } {
+function parseNews(value: unknown): { value?: Record<string, string | boolean | string[] | null>; error?: string } {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { error: "Invalid payload" };
   const input = value as Record<string, unknown>;
   const title = typeof input.title === "string" ? input.title.trim() : "";
@@ -28,24 +29,31 @@ function parseNews(value: unknown): { value?: Record<string, string | boolean | 
   const ctaUrl = typeof input.ctaUrl === "string" ? input.ctaUrl.trim() : "";
   const layoutStyle = typeof input.layoutStyle === "string" ? input.layoutStyle : "editorial";
   const pinned = input.pinned === true;
+  const section = input.section ?? "news";
+  const media = input.mediaUrls ?? [];
+  if (!isPublicationSection(section) || !Array.isArray(media) || media.length > 6 || !media.every(v=>typeof v==="string"&&isK7Media(v))) return {error:"Некорректный шаблон или фотографии"};
+  if (section !== "news" && !sectionTemplates[section].some(t=>t.label===category&&t.style===layoutStyle)) return {error:"Выберите фирменный шаблон раздела"};
   if (!title || title.length > 150 || !content || content.length > 20000 ||
       subtitle.length > 220 || category.length > 35 || !category ||
       ctaLabel.length > 48 || !allowedStyles.includes(layoutStyle) ||
-      !httpsUrl(coverUrl) || !httpsUrl(ctaUrl) || (!!ctaLabel !== !!ctaUrl)) {
+      (!httpsUrl(coverUrl) && !isK7Media(coverUrl)) || !httpsUrl(ctaUrl) || (!!ctaLabel !== !!ctaUrl)) {
     return { error: "Проверьте заголовок, описание, оформление и HTTPS-ссылки" };
   }
   return { value: {
     title, content, subtitle: subtitle || null, category, cover_url: coverUrl || null,
-    layout_style: layoutStyle, is_pinned: pinned, cta_label: ctaLabel || null, cta_url: ctaUrl || null,
+    layout_style: layoutStyle, section, media_urls: media as string[], is_pinned: pinned, cta_label: ctaLabel || null, cta_url: ctaUrl || null,
   } };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return fail("Unauthorized", 401);
+  const section = request.nextUrl.searchParams.get("section") ?? "news";
+  if (!isPublicationSection(section)) return fail("Некорректный раздел",400);
   try {
     const { data, error } = await getSupabaseAdmin().from("news")
-      .select("id,title,subtitle,category,content,cover_url,layout_style,is_pinned,cta_label,cta_url,published_at,created_at")
+      .select("id,title,subtitle,category,content,cover_url,layout_style,is_pinned,cta_label,cta_url,published_at,created_at,section,media_urls")
+      .eq("section", section)
       .order("is_pinned", { ascending: false })
       .order("published_at", { ascending: false }).limit(100);
     if (error) { console.error("News GET", error); return fail("Не удалось загрузить новости. Проверьте миграцию 004.", 503); }
@@ -62,6 +70,8 @@ export async function POST(request: NextRequest) {
     if (raw.length > 30000) return fail("Request too large", 413);
     const parsed = parseNews(JSON.parse(raw));
     if (!parsed.value) return fail(parsed.error ?? "Invalid payload", 400);
+    const section = parsed.value.section;
+    if (!isPublicationSection(section) || !sectionTemplates[section].some(t=>t.label===parsed.value?.category&&t.style===parsed.value?.layout_style)) return fail("Выберите фирменный шаблон",400);
     const { data, error } = await getSupabaseAdmin().from("news")
       .insert({ ...parsed.value, author_id: user.telegramId })
       .select("id").single();
@@ -81,7 +91,13 @@ export async function PATCH(request: NextRequest) {
     if (!body || typeof body !== "object" || !('id' in body) || typeof body.id !== "string" || !uuid.test(body.id)) return fail("Invalid news ID", 400);
     const parsed = parseNews(body);
     if (!parsed.value) return fail(parsed.error ?? "Invalid payload", 400);
-    const { data, error } = await getSupabaseAdmin().from("news")
+    const section = parsed.value.section;
+    const db = getSupabaseAdmin();
+    const old = await db.from("news").select("category,layout_style,section").eq("id",body.id).maybeSingle();
+    if(old.error) return fail("Не удалось проверить публикацию",503);
+    if(!old.data) return fail("Новость не найдена",404);
+    if(!isPublicationSection(section)||section!==old.data.section||(!sectionTemplates[section].some(t=>t.label===parsed.value?.category&&t.style===parsed.value?.layout_style)&&(parsed.value.category!==old.data.category||parsed.value.layout_style!==old.data.layout_style))) return fail("Выберите фирменный шаблон",400);
+    const { data, error } = await db.from("news")
       .update(parsed.value).eq("id", body.id).select("id").maybeSingle();
     if (error) { console.error("News PATCH", error); return fail("Не удалось сохранить публикацию", 503); }
     if (!data) return fail("Новость не найдена", 404);

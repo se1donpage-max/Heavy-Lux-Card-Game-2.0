@@ -1,16 +1,19 @@
 "use client";
 
+import { K7PhotoUpload } from "@/components/k7-photo-upload";
+import { sectionTemplates, type PublicationSection } from "@/lib/publication-templates";
+import { useK7Sync } from "@/components/use-k7-sync";
 import { BrandLabel } from "@/components/brand-label";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { RefreshCw, Edit3, Plus, Pin, Trash2, Eye, X, Bold, Italic, List, Heading2, Quote, ExternalLink } from "lucide-react";
+import { useCallback, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Edit3, Plus, Pin, Trash2, Eye, X, Bold, Italic, List, Heading2, Quote, ExternalLink } from "lucide-react";
 
 type News = {
   id: string; title: string; subtitle: string | null; category: string; content: string;
   cover_url: string | null; published_at: string; layout_style: "editorial" | "statement" | "spotlight";
-  is_pinned: boolean; cta_label: string | null; cta_url: string | null;
+  section?: PublicationSection; media_urls?: string[]; is_pinned: boolean; cta_label: string | null; cta_url: string | null;
 };
-const blank = { title: "", subtitle: "", category: "НОВОСТИ", content: "", coverUrl: "", layoutStyle: "editorial" as News["layout_style"], pinned: false, ctaLabel: "", ctaUrl: "" };
+const blank = { mediaUrls: [] as string[], title: "", subtitle: "", category: "НОВОСТИ", content: "", coverUrl: "", layoutStyle: "editorial" as News["layout_style"], pinned: false, ctaLabel: "", ctaUrl: "" };
 type Draft = typeof blank;
 
 async function json(path: string, init?: RequestInit) {
@@ -52,6 +55,7 @@ function NewsCard({ item, canManage, onEdit, onDelete, onPin, busy }: {
   return <article className={`k7-news-story k7-news-${item.layout_style}`}>
     <div className="k7-story-kicker"><span>{item.category || "НОВОСТИ"}</span><span>{item.is_pinned && <><Pin size={12}/> ЗАКРЕПЛЕНО · </>}{new Date(item.published_at).toLocaleDateString("ru-RU")}</span></div>
     {item.cover_url && <div className="k7-story-cover"><img src={item.cover_url} alt="Обложка новости" loading="lazy"/></div>}
+    {!!item.media_urls?.length && <div className="k7-publication-gallery">{item.media_urls.map((url,index)=><img key={`${url}-${index}`} src={url} alt={`Фото ${index+1}`} loading="lazy"/>)}</div>}
     <div className="k7-story-copy"><h3>{item.title}</h3>{item.subtitle && <p className="k7-story-subtitle">{item.subtitle}</p>}
       <EditorialBody value={item.content}/>
       {item.cta_label && item.cta_url && <a className="k7-story-cta" href={item.cta_url} target="_blank" rel="noopener noreferrer">{item.cta_label} <ExternalLink size={15}/></a>}
@@ -65,7 +69,9 @@ function NewsCard({ item, canManage, onEdit, onDelete, onPin, busy }: {
   </article>;
 }
 
-export default function NewsStudio({ authReady, canManage }: { authReady: boolean; canManage: boolean }) {
+export default function NewsStudio({ authReady, canManage, section="news" }: { authReady: boolean; canManage: boolean; section?: PublicationSection }) {
+  const templates=sectionTemplates[section];
+  const initial=()=>({...blank,category:templates[0].label,layoutStyle:templates[0].style});
   const [posts, setPosts] = useState<News[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -74,21 +80,22 @@ export default function NewsStudio({ authReady, canManage }: { authReady: boolea
   const [editorOpen, setEditorOpen] = useState(false);
   const [preview, setPreview] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Draft>({ ...blank });
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [uploading,setUploading]=useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const patch = (partial: Partial<Draft>) => setDraft(old => ({ ...old, ...partial }));
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (silent = false) => {
     if (!authReady) return;
-    setLoading(true);
-    try { const data = await json("/api/news"); setPosts(data.news ?? []); setError(""); }
+    if (!silent) setLoading(true);
+    try { const data = await json(`/api/news?section=${section}`); setPosts(data.news ?? []); setError(""); }
     catch (err) { setError(err instanceof Error ? err.message : "Не удалось загрузить новости"); }
     finally { setLoading(false); }
-  }, [authReady]);
-  useEffect(() => { void reload(); }, [reload]);
-  function startNew() { setDraft({ ...blank }); setEditingId(null); setEditorOpen(true); setPreview(false); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  }, [authReady,section]);
+  useK7Sync(authReady, reload, 15000);
+  function startNew() { setDraft(initial()); setEditingId(null); setEditorOpen(true); setPreview(false); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
   function startEdit(post: News) {
-    setDraft({ title: post.title, subtitle: post.subtitle ?? "", category: post.category, content: post.content, coverUrl: post.cover_url ?? "", layoutStyle: post.layout_style, pinned: post.is_pinned, ctaLabel: post.cta_label ?? "", ctaUrl: post.cta_url ?? "" });
+    setDraft({ mediaUrls:post.media_urls??[], title: post.title, subtitle: post.subtitle ?? "", category: post.category, content: post.content, coverUrl: post.cover_url ?? "", layoutStyle: post.layout_style, pinned: post.is_pinned, ctaLabel: post.cta_label ?? "", ctaUrl: post.cta_url ?? "" });
     setEditingId(post.id); setEditorOpen(true); setPreview(false);
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
@@ -103,11 +110,11 @@ export default function NewsStudio({ authReady, canManage }: { authReady: boolea
     requestAnimationFrame(() => { textarea.focus(); textarea.setSelectionRange(a + token.length, a + token.length); });
   }
   async function save(event: FormEvent) {
-    event.preventDefault(); if (saving) return;
+    event.preventDefault(); if (saving || uploading) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      await json("/api/news", { method: editingId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...draft, ...(editingId ? { id: editingId } : {}) }) });
-      setEditorOpen(false); setEditingId(null); setDraft({ ...blank }); setNotice("Публикация сохранена"); await reload();
+      await json("/api/news", { method: editingId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...draft, section, ...(editingId ? { id: editingId } : {}) }) });
+      setEditorOpen(false); setEditingId(null); setDraft(initial()); setNotice("Публикация сохранена"); await reload();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
     finally { setSaving(false); }
   }
@@ -121,32 +128,32 @@ export default function NewsStudio({ authReady, canManage }: { authReady: boolea
   async function togglePin(post: News) {
     setSaving(true); setError("");
     try { await json("/api/news", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-      id: post.id, title: post.title, content: post.content, subtitle: post.subtitle ?? "", category: post.category,
+      id: post.id, section, mediaUrls:post.media_urls??[], title: post.title, content: post.content, subtitle: post.subtitle ?? "", category: post.category,
       coverUrl: post.cover_url ?? "", layoutStyle: post.layout_style, pinned: !post.is_pinned, ctaLabel: post.cta_label ?? "", ctaUrl: post.cta_url ?? "",
     }) }); await reload(); }
     catch (err) { setError(err instanceof Error ? err.message : "Ошибка закрепления"); }
     finally { setSaving(false); }
   }
-  const demo: News = { id: "preview", title: draft.title || "Заголовок публикации", subtitle: draft.subtitle, category: draft.category, content: draft.content || "Текст появится здесь.", cover_url: draft.coverUrl || null, published_at: new Date().toISOString(), layout_style: draft.layoutStyle, is_pinned: draft.pinned, cta_label: draft.ctaLabel, cta_url: draft.ctaUrl };
-  return <div className="k7-data-panel k7-news-studio">
-    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow"><BrandLabel text={"K7 / EDITORIAL TRANSMISSION"} asset="status/editorial_transmission" /></div><h2><BrandLabel text={"Новости"} asset="nav/news" /></h2></div>
-      <button className="k7-panel-icon" type="button" disabled={loading} aria-label="Обновить новости" onClick={() => void reload()}><RefreshCw size={17}/><BrandLabel text="Обновить новости" asset="actions/refresh_news" /></button></div>
-    {canManage && <div className="k7-panel-toolbar"><button type="button" className="k7-panel-button k7-panel-primary" onClick={startNew}><Plus size={15}/> <BrandLabel text={"СОЗДАТЬ ПУБЛИКАЦИЮ"} asset="actions/create_publication" /></button></div>}
+  const demo: News = { id: "preview", section, media_urls:draft.mediaUrls, title: draft.title || "Заголовок публикации", subtitle: draft.subtitle, category: draft.category, content: draft.content || "Текст появится здесь.", cover_url: draft.coverUrl || null, published_at: new Date().toISOString(), layout_style: draft.layoutStyle, is_pinned: draft.pinned, cta_label: draft.ctaLabel, cta_url: draft.ctaUrl };
+  if(section!=="news"&&!canManage&&!posts.length)return null;
+  return <div className="k7-data-panel k7-news-studio k7-section-publications">
+    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow"><BrandLabel text={"K7 / EDITORIAL TRANSMISSION"} asset="status/editorial_transmission" /></div><h2><BrandLabel text={section==="news"?"Новости":"Публикации"} asset={section==="news"?"nav/news":undefined} /></h2></div>
+      </div>
+    {canManage && <div className="k7-panel-toolbar"><button type="button" className="k7-panel-button k7-panel-primary" disabled={uploading||saving} onClick={startNew}><Plus size={15}/> <BrandLabel text={"СОЗДАТЬ ПУБЛИКАЦИЮ"} asset="actions/create_publication" /></button></div>}
     <div ref={editorRef}/>
     {canManage && editorOpen && <div className="k7-editor-studio">
-      <div className="k7-editor-head"><span>{editingId ? <BrandLabel text={"РЕДАКТИРОВАНИЕ"} asset="sections/editing" /> : <BrandLabel text={"НОВАЯ ПУБЛИКАЦИЯ"} asset="sections/new_publication" />}</span><button type="button" onClick={() => setEditorOpen(false)} aria-label="Закрыть редактор"><X size={19}/><BrandLabel text="Закрыть редактор" asset="actions/close_editor" /></button></div>
+      <div className="k7-editor-head"><span>{editingId ? <BrandLabel text={"РЕДАКТИРОВАНИЕ"} asset="sections/editing" /> : <BrandLabel text={"НОВАЯ ПУБЛИКАЦИЯ"} asset="sections/new_publication" />}</span><button type="button" disabled={uploading||saving} onClick={() => setEditorOpen(false)} aria-label="Закрыть редактор"><X size={19}/><BrandLabel text="Закрыть редактор" asset="actions/close_editor" /></button></div>
       <form onSubmit={(event) => void save(event)} className="k7-panel-form k7-editor-form">
-        <label><BrandLabel text={"Рубрика"} asset="fields/category" /><input maxLength={35} required value={draft.category} onChange={event => patch({ category: event.target.value })} placeholder="НОВОСТИ / ТУРНИР / КОМАНДА" /></label>
-        <label><BrandLabel text={"Стиль публикации"} asset="fields/publication_style" /><select value={draft.layoutStyle} onChange={event => patch({ layoutStyle: event.target.value as News["layout_style"] })}><option value="editorial">EDITORIAL · редакционная</option><option value="statement">STATEMENT · крупный заголовок</option><option value="spotlight">SPOTLIGHT · акцент на постере</option></select></label>
+        <label className="k7-panel-wide">Фирменный шаблон<select value={draft.category} onChange={event=>{const template=templates.find(t=>t.label===event.target.value);if(template)patch({category:template.label,layoutStyle:template.style});}}>{!templates.some(t=>t.label===draft.category)&&<option value={draft.category}>{draft.category} (ранее опубликовано)</option>}{templates.map(t=><option key={t.label} value={t.label}>{t.label}</option>)}</select></label>
         <label className="k7-panel-wide"><BrandLabel text={"Заголовок"} asset="fields/headline" /><input maxLength={150} required value={draft.title} onChange={event => patch({ title: event.target.value })} placeholder="Главная мысль публикации" /></label>
         <label className="k7-panel-wide"><BrandLabel text={"Подзаголовок"} asset="actions/subtitle" /><input maxLength={220} value={draft.subtitle} onChange={event => patch({ subtitle: event.target.value })} placeholder="Короткое выразительное вступление" /></label>
-        <label className="k7-panel-wide"><BrandLabel text={"Постер / изображение (HTTPS)"} asset="fields/poster_image" /><input type="url" value={draft.coverUrl} onChange={event => patch({ coverUrl: event.target.value })} placeholder="https://..." /></label>
+        <div className="k7-panel-wide"><BrandLabel text="Фотографии"/><K7PhotoUpload max={6-draft.mediaUrls.length} disabled={saving} onBusy={setUploading} onUpload={urls=>setDraft(old=>({...old,mediaUrls:[...old.mediaUrls,...urls].slice(0,6)}))}/><div className="k7-publication-gallery">{draft.mediaUrls.map((url,index)=><div key={`${url}-${index}`}><img src={url} alt={`Фото ${index+1}`}/><button type="button" onClick={()=>patch({mediaUrls:draft.mediaUrls.filter((_,i)=>i!==index)})}>Удалить фото</button></div>)}</div>{draft.coverUrl&&<div><img className="k7-panel-cover" src={draft.coverUrl} alt="Текущая обложка"/><button type="button" onClick={()=>patch({coverUrl:""})}>Удалить обложку</button></div>}</div>
         <div className="k7-panel-wide k7-editor-composer"><div className="k7-editor-toolbar"><button type="button" title="Жирный" onClick={() => insert("strong")}><Bold size={16}/><BrandLabel text="Жирный" asset="actions/bold" /></button><button type="button" title="Курсив" onClick={() => insert("italic")}><Italic size={16}/><BrandLabel text="Курсив" asset="actions/italic" /></button><button type="button" title="Подзаголовок" onClick={() => insert("title")}><Heading2 size={16}/><BrandLabel text="Подзаголовок" asset="actions/subtitle" /></button><button type="button" title="Цитата" onClick={() => insert("quote")}><Quote size={16}/><BrandLabel text="Цитата" asset="actions/quote" /></button><button type="button" title="Список" onClick={() => insert("list")}><List size={16}/><BrandLabel text="Список" asset="actions/list" /></button><button type="button" title="HTTPS-ссылка" onClick={() => insert("link")}><ExternalLink size={16}/><BrandLabel text="HTTPS-ссылка" asset="actions/https_link" /></button></div>
           <label><BrandLabel text={"Текст публикации"} asset="fields/publication_text" /><textarea ref={textareaRef} rows={8} required maxLength={20000} value={draft.content} onChange={event => patch({ content: event.target.value })} placeholder="Расскажи историю команды, выдели ключевые детали..."/><small>{draft.content.length} / 20000</small></label></div>
         <label><BrandLabel text={"Кнопка действия"} asset="fields/cta" /><input maxLength={48} value={draft.ctaLabel} onChange={event => patch({ ctaLabel: event.target.value })} placeholder="Например: Подробнее" /></label>
         <label><BrandLabel text={"Ссылка кнопки (HTTPS)"} asset="fields/cta_url" /><input type="url" value={draft.ctaUrl} onChange={event => patch({ ctaUrl: event.target.value })} placeholder="https://..." /></label>
         <label className="k7-editor-pin"><input type="checkbox" checked={draft.pinned} onChange={event => patch({ pinned: event.target.checked })}/> <BrandLabel text={"Закрепить публикацию наверху"} asset="fields/pin_top" /></label>
-        <div className="k7-panel-wide k7-editor-actions"><button type="button" className="k7-panel-button" onClick={() => setPreview(old => !old)}><Eye size={16}/> {preview ? <BrandLabel text={"СКРЫТЬ ПРЕВЬЮ"} asset="actions/hide_preview" /> : <BrandLabel text={"ПРЕДПРОСМОТР"} asset="actions/preview" />}</button><button type="submit" className="k7-panel-button k7-panel-primary" disabled={saving || !draft.title.trim() || !draft.content.trim()}>{saving ? <BrandLabel text={"СОХРАНЯЕМ..."} asset="actions/saving_news" /> : editingId ? <BrandLabel text={"СОХРАНИТЬ ИЗМЕНЕНИЯ"} asset="actions/save_changes" /> : <BrandLabel text={"ОПУБЛИКОВАТЬ"} asset="actions/publish" />}</button></div>
+        <div className="k7-panel-wide k7-editor-actions"><button type="button" className="k7-panel-button" onClick={() => setPreview(old => !old)}><Eye size={16}/> {preview ? <BrandLabel text={"СКРЫТЬ ПРЕВЬЮ"} asset="actions/hide_preview" /> : <BrandLabel text={"ПРЕДПРОСМОТР"} asset="actions/preview" />}</button><button type="submit" className="k7-panel-button k7-panel-primary" disabled={saving || uploading || !draft.title.trim() || !draft.content.trim()}>{saving ? <BrandLabel text={"СОХРАНЯЕМ..."} asset="actions/saving_news" /> : editingId ? <BrandLabel text={"СОХРАНИТЬ ИЗМЕНЕНИЯ"} asset="actions/save_changes" /> : <BrandLabel text={"ОПУБЛИКОВАТЬ"} asset="actions/publish" />}</button></div>
       </form>
       {preview && <div className="k7-editor-preview"><span><BrandLabel text={"ПРЕДПРОСМОТР"} asset="actions/preview" /></span><NewsCard item={demo} canManage={false} onDelete={() => {}} onEdit={() => {}} onPin={() => {}} busy={false}/></div>}
     </div>}

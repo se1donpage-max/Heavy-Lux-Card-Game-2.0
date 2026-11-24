@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isK7Media } from "@/lib/publication-templates";
 import { canManageContent } from "@/lib/permissions";
 
 export const runtime = "nodejs";
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
       input.posterUrl !== undefined &&
       (typeof input.posterUrl !== "string" ||
         input.posterUrl.length > 2000 ||
-        !/^https:\/\/\S+$/i.test(input.posterUrl))
+        (!/^https:\/\/\S+$/i.test(input.posterUrl) && !isK7Media(input.posterUrl)))
     ) {
       return NextResponse.json(
         { error: "Poster must be a valid HTTPS URL" },
@@ -241,7 +242,7 @@ export async function PUT(request: NextRequest) {
         typeof input.description !== "string" || input.description.length > 5000 ||
         typeof input.eventFormat !== "string" || input.eventFormat.length > 100 ||
         typeof input.posterUrl !== "string" || input.posterUrl.length > 2000 ||
-        (input.posterUrl.length > 0 && !/^https:\/\/\S+$/i.test(input.posterUrl))) {
+        (input.posterUrl.length > 0 && (!/^https:\/\/\S+$/i.test(input.posterUrl) && !isK7Media(input.posterUrl)))) {
       return NextResponse.json({error:"Invalid event data"}, {status:400});
     }
     const {data,error}=await getSupabaseAdmin().from("events").update({
