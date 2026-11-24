@@ -81,3 +81,32 @@ button:active:not(:disabled) { transform:scale(.98); }
 .k7-panel-tabs button.selected:hover:not(:disabled) { background:#303030; color:#fff; }
 .k7-keyboard-open #chat .k7-chapter { display:none; }
 .k7-panel-error,.elite-error,.k7-chat-inline-error { color:#fff; border-left:2px solid #aaa; padding-left:8px; }
+
+/* V6.1 — continuous monochrome cinema, independent of the interaction layer. */
+.k7-immersive-shell { position:relative; isolation:isolate; }
+.k7-cinema-space { --cam-x:0px; --cam-y:0px; --cam-roll:0deg; --cam-scale:1.05; --cam-travel:0px; --cam-glow:.65; position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background:#030303; perspective:900px; }
+.k7-cinema-halo { position:absolute; inset:-25%; background:radial-gradient(ellipse at 50% 42%,#343434 0%,#101010 32%,#030303 66%); opacity:var(--cam-glow); transform:translate3d(var(--cam-x),var(--cam-y),0); }
+.k7-cinema-world { position:absolute; inset:-12%; transform-style:preserve-3d; transform:translate3d(var(--cam-x),var(--cam-y),0) rotateZ(var(--cam-roll)) scale(var(--cam-scale)); }
+.k7-cinema-plane { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.k7-cinema-far { transform:translate3d(0,calc(var(--cam-travel) * -.18),-190px) scale(1.18); opacity:.75; }
+.k7-cinema-mid { transform:translate3d(calc(var(--cam-x) * -.35),calc(var(--cam-travel) * -.48),0); filter:blur(.65px); }
+.k7-cinema-near { transform:translate3d(calc(var(--cam-x) * -.8),calc(var(--cam-travel) * -.9),100px); filter:blur(2px); opacity:.65; }
+.k7-cinema-monument { position:absolute; width:min(60vw,360px); aspect-ratio:1; left:50%; top:42%; background:url('/k7-ui/brand-mark.png') center / contain no-repeat; opacity:.16; transform:translate3d(-50%,calc(-50% - var(--cam-travel) * .3),-90px) rotateY(-16deg); filter:grayscale(1); }
+.k7-cinema-vignette { position:absolute; inset:0; background:linear-gradient(180deg,#000b,transparent 22%,transparent 68%,#000c),radial-gradient(ellipse at center,transparent 24%,#0009 100%); }
+.k7-immersive-shell .k7-chapter { min-height:clamp(148px,24vh,220px); padding:20px 10px; margin:0 0 12px; background:transparent; border:0; overflow:visible; justify-content:center; gap:12px; }
+.k7-immersive-shell .k7-chapter-index { font:500 10px/1.4 system-ui,sans-serif; letter-spacing:.24em; color:#ddd; text-shadow:0 1px 8px #000; }
+.k7-immersive-shell .k7-chapter-slogan { transform:none; filter:drop-shadow(0 2px 5px #000); }
+.k7-immersive-shell .k7-chapter-news .k7-chapter-index,.k7-immersive-shell .k7-chapter-events .k7-chapter-index { text-align:right; }
+.k7-immersive-shell .k7-data-panel { background:rgba(9,9,9,.88); }
+.k7-immersive-shell .elite-roster-list { background:rgba(15,15,15,.94); }
+.k7-immersive-shell .k7-chat-feed,.k7-immersive-shell .k7-chat-composer { background:rgba(12,12,12,.94); }
+.k7-immersive-shell .elite-section-heading,.k7-immersive-shell .elite-roster-label,.k7-immersive-shell .elite-roster-total { text-shadow:0 1px 5px #000; }
+.roster-player.is-filled { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:clamp(5px,2vw,12px); }
+.roster-player.is-filled .roster-player-info { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:clamp(5px,2vw,12px); }
+.roster-player.is-filled .roster-player-name { font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif; font-size:clamp(13px,3.6vw,17px); font-weight:400; line-height:1.35; color:#fff; overflow-wrap:anywhere; }
+.roster-player.is-filled .roster-player-role { font-size:clamp(10px,2.7vw,13px); white-space:nowrap; text-align:right; max-width:24vw; }
+.roster-player.is-filled .roster-player-status { margin:0; }
+.roster-player.is-filled .roster-player-number { white-space:nowrap; }
+@media(max-width:360px) { .roster-player.is-filled { gap:5px; } .roster-player.is-filled .roster-player-info { gap:5px; } .roster-player.is-filled .roster-player-number { font-size:10px; } .roster-player.is-filled .roster-player-status svg { width:12px; } }
+@media(prefers-reduced-motion:reduce),(update:slow) { .k7-cinema-world,.k7-cinema-plane,.k7-cinema-halo { transform:none; } .k7-cinema-monument { transform:translate(-50%,-50%); } }
+@media(forced-colors:active) { .k7-cinema-space { display:none; } }

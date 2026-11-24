@@ -1,5 +1,6 @@
 "use client";
 
+import { CinemaSpace } from "@/components/cinema-space";
 import { BrandChapter } from "@/components/brand-chapter";
 import { BrandLabel } from "@/components/brand-label";
 
@@ -64,9 +65,9 @@ interface ChatMessage {
 
 const tabs = [
   { id: "chat", label: "\u{427}\u{430}\u{442}", icon: MessageCircle },
+  { id: "news", label: "\u{41D}\u{43E}\u{432}\u{43E}\u{441}\u{442}\u{438}", icon: Newspaper },
   { id: "events", label: "\u{421}\u{43E}\u{431}\u{44B}\u{442}\u{438}\u{44F}", icon: CalendarDays },
   { id: "roster", label: "\u{421}\u{43E}\u{441}\u{442}\u{430}\u{432}", icon: Users },
-  { id: "news", label: "\u{41D}\u{43E}\u{432}\u{43E}\u{441}\u{442}\u{438}", icon: Newspaper },
   { id: "stats", label: "\u{421}\u{442}\u{430}\u{442}\u{438}\u{441}\u{442}\u{438}\u{43A}\u{430}", icon: Trophy },
 ] as const;
 
@@ -784,7 +785,8 @@ export default function Home() {
   }
 
   return (
-    <main className="elite-shell" data-scene={activeTab}>
+    <main className="elite-shell k7-immersive-shell" data-scene={activeTab}>
+      <CinemaSpace />
       <header className="k7-app-header">
         <h1 className="k7-header-brand"><BrandLabel text={"K7 CREW"} asset="sections/brand" /></h1>
         <CommunityCounter authReady={authReady} />
@@ -1037,6 +1039,22 @@ export default function Home() {
 
 
       <section
+        id="news"
+        data-nav-section
+        className="elite-content-section k7-cinema-section"
+      >
+        <BrandChapter id="news" />
+        <div className="elite-section-inner reveal-content">
+
+          <NewsPanel
+            authReady={authReady}
+            canManage={accessRole === "OWNER" || accessRole === "IGL"}
+          />
+        </div>
+      </section>
+
+
+      <section
         id="events"
         data-nav-section
         className="elite-content-section k7-cinema-section"
@@ -1136,22 +1154,6 @@ export default function Home() {
               )}
             </>
           )}
-        </div>
-      </section>
-
-
-      <section
-        id="news"
-        data-nav-section
-        className="elite-content-section k7-cinema-section"
-      >
-        <BrandChapter id="news" />
-        <div className="elite-section-inner reveal-content">
-
-          <NewsPanel
-            authReady={authReady}
-            canManage={accessRole === "OWNER" || accessRole === "IGL"}
-          />
         </div>
       </section>
 

@@ -39,7 +39,13 @@ export async function POST(request: NextRequest) {
     const after = new Date(Date.now() - 600000).toISOString();
     const { count, error: countError } = await db.from("community_reports")
       .select("id", { count: "exact", head: true }).eq("author_id", user.telegramId).gte("created_at", after);
-    if (countError) return fail("Попробуйте повторить позднее", 503);
+    if (countError) {
+      console.error("Report rate-limit lookup", { code: countError.code, message: countError.message });
+      if (["42P01", "PGRST205", "42501"].includes(countError.code)) {
+        return fail("Сервис обращений временно недоступен. Требуется настройка базы данных.", 503);
+      }
+      return fail("Не удалось проверить отправку. Попробуйте повторить позднее.", 503);
+    }
     if ((count ?? 0) >= 3) return fail("Не более трёх обращений за 10 минут", 429);
     const { error } = await db.from("community_reports").insert({ author_id: user.telegramId, subject, message });
     if (error) { console.error("Report insert failed", error); return fail("Не удалось отправить обращение", 503); }
