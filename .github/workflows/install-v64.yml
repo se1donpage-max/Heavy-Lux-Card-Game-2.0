@@ -1,0 +1,74 @@
+
+name: Install K7 CREW V6.4 CONTINUOUS CINEMA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify V6.3 baseline
+        run: |
+          test "$(git hash-object app/layout.tsx)" = "a5bf8819b65251ba91829b43771e1f8a27cc85ff"
+          test "$(git hash-object app/page.tsx)" = "b6ac4d7e0578ff091d3f4da03105ff8b36357218"
+          test "$(git hash-object app/k7-motion-ui.css)" = "37b855d075c2b23573a0b23d4d2992d6ac9d2728"
+          test "$(git hash-object components/brand-chapter.tsx)" = "5967585494e23b00e7c9fb43116795275255ae70"
+
+      - name: Install CONTINUOUS CINEMA
+        run: |
+          echo "66e353c4ee861ad84029e7e1e0873bd4ea7c36770160b89fcf4d8e47d037ade7  K7_V64_CONTINUOUS_CINEMA.zip" | sha256sum -c -
+          unzip -t K7_V64_CONTINUOUS_CINEMA.zip
+          unzip -o K7_V64_CONTINUOUS_CINEMA.zip
+
+      - name: Verify cinema resources
+        run: |
+          test -s public/k7-intro/intro.mp4
+          test -s components/k7-intro.tsx
+          test -s components/k7-intro.module.css
+          test -s public/k7-cinema/background.mp4
+          for tab in chat news events roster stats messages; do
+            test -s "public/k7-motion/$tab.mp4"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate encoding
+        run: npm run check:encoding
+
+      - name: Validate assets
+        run: npm run check:assets
+
+      - name: Local tests
+        run: npm run test:local
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit V6.4 update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/layout.tsx
+          git add app/k7-motion-ui.css
+          git add components/brand-chapter.tsx
+          git add components/k7-intro.tsx
+          git add components/k7-intro.module.css
+          git add public/k7-intro
+          git rm K7_V64_CONTINUOUS_CINEMA.zip
+          git commit -m "K7 CREW V6.4 CONTINUOUS CINEMA"
+          git push origin main
