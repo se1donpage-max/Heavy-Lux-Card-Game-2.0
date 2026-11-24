@@ -79,4 +79,3 @@ export async function DELETE(request: NextRequest) {
     if (!data) return fail("ÐÐ±ÑÐ°ÑÐµÐ½Ð¸Ðµ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾", 404);
     return NextResponse.json({ success: true });
   } catch { return fail("Invalid request", 400); }
-}
