@@ -1,0 +1,71 @@
+
+name: Install K7 CREW V6.2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v62:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify V6.1 baseline
+        run: |
+          test "$(git hash-object components/cinema-space.tsx)" = "f18f86704aca7ab0c8a6828db1bf1cae02921d8a"
+          test "$(git hash-object components/brand-chapter.tsx)" = "1aa3f178acdd532222d101698205bf3aa25cbb56"
+          test "$(git hash-object app/dark-elite.css)" = "d278be9644ed7d646c3593a189c6ad905eeaa188"
+
+      - name: Install V6.2 update
+        run: |
+          echo "8e580a8355eafe5519f44f7faa9a87ccbf6eab6a3ee3ce204a98521cea4d7c55  K7_V62_CINEMA_VIDEO_UPDATE.zip" | sha256sum -c -
+          unzip -t K7_V62_CINEMA_VIDEO_UPDATE.zip
+          unzip -o K7_V62_CINEMA_VIDEO_UPDATE.zip
+
+      - name: Validate cinema resources
+        run: |
+          test -s public/k7-cinema/background.mp4
+          test -s public/k7-cinema/background.jpg
+          for tab in chat news events roster stats messages; do
+            test -s "public/k7-motion/$tab.mp4"
+            test -s "public/k7-motion/$tab.jpg"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate encoding
+        run: npm run check:encoding
+
+      - name: Validate assets
+        run: npm run check:assets
+
+      - name: Local tests
+        run: npm run test:local
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit V6.2 update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/dark-elite.css
+          git add components/brand-chapter.tsx
+          git add components/cinema-space.tsx
+          git add public/k7-cinema
+          git add public/k7-motion
+          git rm K7_V62_CINEMA_VIDEO_UPDATE.zip
+          git commit -m "K7 CREW V6.2 Video Cinema Update"
+          git push origin main
