@@ -1,24 +1,23 @@
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { canSubmitMatchResults } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type PlayerStats = {
-  telegramId: number;
-  name: string;
-  photoUrl: string | null;
-  slot: string | null;
-  matches: number;
-  wins: number;
-  kills: number;
-  winRate: number;
-  killsPerMatch: number;
-};
+interface MatchInput {
+  title: string;
+  playedAt: string;
+  placement: number;
+  players: {
+    telegramId: number;
+    kills: number;
+  }[];
+}
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
 
@@ -29,165 +28,165 @@ export async function GET() {
       );
     }
 
+    if (!canSubmitMatchResults(user.accessRole)) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
+    const body: unknown = await request.json();
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("title" in body) ||
+      !("playedAt" in body) ||
+      !("placement" in body) ||
+      !("players" in body)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    const input = body as MatchInput;
+
+    if (
+      typeof input.title !== "string" ||
+      input.title.trim().length < 1 ||
+      input.title.length > 100 ||
+      typeof input.playedAt !== "string" ||
+      !Number.isFinite(Date.parse(input.playedAt)) ||
+      !Number.isInteger(input.placement) ||
+      input.placement < 1 ||
+      input.placement > 100 ||
+      !Array.isArray(input.players) ||
+      input.players.length < 1 ||
+      input.players.length > 4
+    ) {
+      return NextResponse.json(
+        { error: "Invalid match data" },
+        { status: 400 }
+      );
+    }
+
+    const seen = new Set<number>();
+
+    for (const player of input.players) {
+      if (
+        !player || typeof player !== "object" ||
+        !Number.isSafeInteger(player.telegramId) ||
+        player.telegramId <= 0 ||
+        !Number.isInteger(player.kills) ||
+        player.kills < 0 ||
+        player.kills > 100 ||
+        seen.has(player.telegramId)
+      ) {
+        return NextResponse.json(
+          { error: "Invalid player statistics" },
+          { status: 400 }
+        );
+      }
+
+      seen.add(player.telegramId);
+    }
+
     const supabase = getSupabaseAdmin();
 
-    const [
-      { data: matches, error: matchesError },
-      { data: playerRows, error: playerError },
-      { data: roster, error: rosterError }
-    ] = await Promise.all([
-      supabase
-        .from("matches")
-        .select("id, title, played_at, placement")
-        .order("played_at", { ascending: false }),
-
-      supabase
-        .from("player_match_stats")
-        .select("match_id, telegram_id, kills"),
-
-      supabase
+    const { data: rosterPlayers, error: rosterError } =
+      await supabase
         .from("roster")
-        .select(`
-          telegram_id,
-          slot,
-          profiles (
-            first_name,
-            last_name,
-            username,
-            photo_url
-          )
-        `)
-    ]);
+        .select("telegram_id")
+        .in("telegram_id", input.players.map((p) => p.telegramId));
 
-    if (matchesError || playerError || rosterError) {
-      console.error("Stats loading failed:", {
-        matchesError,
-        playerError,
-        rosterError
-      });
-
+    if (rosterError) {
       return NextResponse.json(
-        { error: "Could not load statistics" },
+        { error: "Could not verify players" },
         { status: 503 }
       );
     }
 
-    const matchList = matches ?? [];
-    const rows = playerRows ?? [];
-    const rosterList = roster ?? [];
-
-    const matchMap = new Map(
-      matchList.map((match) => [match.id, match])
-    );
-
-    const statsMap = new Map<number, PlayerStats>();
-
-    for (const player of rosterList) {
-      const telegramId = Number(player.telegram_id);
-      const profile = Array.isArray(player.profiles)
-        ? player.profiles[0]
-        : player.profiles;
-
-      const name =
-        profile?.username
-          ? `@${profile.username}`
-          : [profile?.first_name, profile?.last_name]
-              .filter(Boolean)
-              .join(" ") || "Участник";
-
-      statsMap.set(telegramId, {
-        telegramId,
-        name,
-        photoUrl: profile?.photo_url ?? null,
-        slot: player.slot,
-        matches: 0,
-        wins: 0,
-        kills: 0,
-        winRate: 0,
-        killsPerMatch: 0
-      });
-    }
-
-    for (const row of rows) {
-      const telegramId = Number(row.telegram_id);
-      const stats = statsMap.get(telegramId);
-      const match = matchMap.get(row.match_id);
-
-      if (!stats || !match) continue;
-
-      stats.matches += 1;
-      stats.kills += row.kills;
-
-      if (match.placement === 1) {
-        stats.wins += 1;
-      }
-    }
-
-    for (const stats of statsMap.values()) {
-      stats.winRate = stats.matches > 0
-        ? Number(((stats.wins / stats.matches) * 100).toFixed(2))
-        : 0;
-
-      stats.killsPerMatch = stats.matches > 0
-        ? Number((stats.kills / stats.matches).toFixed(2))
-        : 0;
-    }
-
-    const ranking = (players: PlayerStats[]) =>
-      [...players].sort(
-        (a, b) =>
-          b.wins - a.wins ||
-          b.kills - a.kills ||
-          b.matches - a.matches
+    if (
+      !rosterPlayers ||
+      rosterPlayers.length !== input.players.length
+    ) {
+      return NextResponse.json(
+        { error: "One or more players are not in the roster" },
+        { status: 400 }
       );
+    }
 
-    const allPlayers = [...statsMap.values()];
-
-    const mainPlayers = allPlayers.filter(
-      (player) => player.slot?.startsWith("MAIN_")
-    );
-
-    const subPlayers = allPlayers.filter(
-      (player) => player.slot?.startsWith("SUB_")
-    );
-
-    const totalKills = rows.reduce(
-      (sum, row) => sum + row.kills,
-      0
-    );
-
-    const totalWins = matchList.filter(
-      (match) => match.placement === 1
-    ).length;
+    // Single database transaction: no match can survive without its player statistics.
+    const { data: match, error: matchError } = await supabase.rpc("create_k7_match", {
+      p_title: input.title.trim(),
+      p_played_at: new Date(input.playedAt).toISOString(),
+      p_placement: input.placement,
+      p_created_by: user.telegramId,
+      p_players: input.players.map((player) => ({ telegram_id: player.telegramId, kills: player.kills }))
+    });
+    if (matchError || !match) {
+      console.error("Match creation failed:", matchError?.message);
+      return NextResponse.json({ error: "ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ ÑÐ¾ÑÑÐ°Ð½Ð¸ÑÑ Ð¼Ð°ÑÑ. ÐÑÐ¾Ð²ÐµÑÑÑÐµ Ð¼Ð¸Ð³ÑÐ°ÑÐ¸Ñ 005." }, { status: 503 });
+    }
 
     return NextResponse.json(
       {
         success: true,
-        team: {
-          matches: matchList.length,
-          wins: totalWins,
-          kills: totalKills,
-          winRate: matchList.length > 0
-            ? Number(((totalWins / matchList.length) * 100).toFixed(2))
-            : 0
-        },
-        rankings: {
-          overall: ranking(allPlayers),
-          main: ranking(mainPlayers),
-          sub: ranking(subPlayers)
-        },
-        recentMatches: matchList.slice(0, 10)
+        match
       },
       {
+        status: 201,
         headers: { "Cache-Control": "no-store" }
       }
     );
   } catch (error) {
-    console.error("Stats API error:", error);
+    console.error("Match API error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: "Invalid request or internal server error" },
+      { status: 400 }
     );
   }
+}
+
+
+const matchEditIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!canSubmitMatchResults(user.accessRole)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    const input = body as Record<string, unknown>;
+    if (typeof input.id !== "string" || !matchEditIdPattern.test(input.id) ||
+        typeof input.title !== "string" || !input.title.trim() || input.title.length > 100 ||
+        typeof input.playedAt !== "string" || !Number.isFinite(Date.parse(input.playedAt)) ||
+        typeof input.placement !== "number" || !Number.isInteger(input.placement) || input.placement < 1 || input.placement > 100) {
+      return NextResponse.json({ error: "Invalid match details" }, { status: 400 });
+    }
+    const { data, error } = await getSupabaseAdmin().from("matches").update({
+      title: input.title.trim(), played_at: new Date(input.playedAt).toISOString(), placement: input.placement
+    }).eq("id", input.id).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not update match" }, { status: 503 });
+    if (!data) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!canSubmitMatchResults(user.accessRole)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" || !("id" in body) || typeof body.id !== "string" || !matchEditIdPattern.test(body.id))
+      return NextResponse.json({ error: "Invalid match ID" }, { status: 400 });
+    const { data, error } = await getSupabaseAdmin().from("matches").delete().eq("id", body.id).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not delete match" }, { status: 503 });
+    if (!data) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 }
