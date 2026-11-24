@@ -132,3 +132,13 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .intro-logo { animation: none; }
 }
+
+/* Mobile WebView compatibility and shared panel tokens. */
+:root { --k7-muted: var(--secondary); --k7-line: var(--line); }
+.elite-nav-item { min-height: 48px; }
+.elite-nav-item span { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.k7-chat-message-body, .roster-player-info { min-width: 0; overflow-wrap: anywhere; }
+.k7-panel-form input, .k7-panel-form textarea, .k7-panel-form select { font-size: 16px; }
+.intro-screen { background: #000; }
+@media (prefers-reduced-motion: no-preference) { .intro-logo { animation: k7-logo-in .55s ease-out both; } }
+@keyframes k7-logo-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
