@@ -1,5 +1,7 @@
 "use client";
 
+import { BrandLabel } from "@/components/brand-label";
+
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { RefreshCw, Edit3, Plus, Pin, Trash2, Eye, X, Bold, Italic, List, Heading2, Quote, ExternalLink } from "lucide-react";
 
@@ -55,11 +57,11 @@ function NewsCard({ item, canManage, onEdit, onDelete, onPin, busy }: {
       {item.cta_label && item.cta_url && <a className="k7-story-cta" href={item.cta_url} target="_blank" rel="noopener noreferrer">{item.cta_label} <ExternalLink size={15}/></a>}
     </div>
     {canManage && <div className="k7-panel-card-actions k7-story-controls">
-      <button type="button" className="k7-panel-button" onClick={() => onEdit(item)}><Edit3 size={13}/> РЕДАКТИРОВАТЬ</button>
-      <button type="button" className="k7-panel-button" disabled={busy} onClick={() => onPin(item)}><Pin size={13}/> {item.is_pinned ? "ОТКРЕПИТЬ" : "ЗАКРЕПИТЬ"}</button>
-      <button type="button" className="k7-panel-button" onClick={() => setConfirming(true)}><Trash2 size={13}/> УДАЛИТЬ</button>
+      <button type="button" className="k7-panel-button" onClick={() => onEdit(item)}><Edit3 size={13}/> <BrandLabel text={"РЕДАКТИРОВАТЬ"} asset="actions/edit" /></button>
+      <button type="button" className="k7-panel-button" disabled={busy} onClick={() => onPin(item)}><Pin size={13}/> {item.is_pinned ? <BrandLabel text={"ОТКРЕПИТЬ"} asset="actions/unpin" /> : <BrandLabel text={"ЗАКРЕПИТЬ"} asset="actions/pin" />}</button>
+      <button type="button" className="k7-panel-button" onClick={() => setConfirming(true)}><Trash2 size={13}/> <BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button>
     </div>}
-    {confirming && <div className="k7-inline-confirm" role="group" aria-label="Подтверждение удаления"><span>Удалить «{item.title}» без возможности восстановления?</span><button type="button" disabled={busy} onClick={() => onDelete(item.id)}>УДАЛИТЬ</button><button type="button" onClick={() => setConfirming(false)}>ОТМЕНА</button></div>}
+    {confirming && <div className="k7-inline-confirm" role="group" aria-label="Подтверждение удаления"><span>Удалить «{item.title}» без возможности восстановления?</span><button type="button" disabled={busy} onClick={() => onDelete(item.id)}><BrandLabel text={"УДАЛИТЬ"} asset="actions/delete" /></button><button type="button" onClick={() => setConfirming(false)}><BrandLabel text={"ОТМЕНА"} asset="actions/cancel" /></button></div>}
   </article>;
 }
 
@@ -127,30 +129,30 @@ export default function NewsStudio({ authReady, canManage }: { authReady: boolea
   }
   const demo: News = { id: "preview", title: draft.title || "Заголовок публикации", subtitle: draft.subtitle, category: draft.category, content: draft.content || "Текст появится здесь.", cover_url: draft.coverUrl || null, published_at: new Date().toISOString(), layout_style: draft.layoutStyle, is_pinned: draft.pinned, cta_label: draft.ctaLabel, cta_url: draft.ctaUrl };
   return <div className="k7-data-panel k7-news-studio">
-    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow">K7 / EDITORIAL TRANSMISSION</div><h2>Новости</h2></div>
-      <button className="k7-panel-icon" type="button" disabled={loading} aria-label="Обновить новости" onClick={() => void reload()}><RefreshCw size={17}/></button></div>
-    {canManage && <div className="k7-panel-toolbar"><button type="button" className="k7-panel-button k7-panel-primary" onClick={startNew}><Plus size={15}/> СОЗДАТЬ ПУБЛИКАЦИЮ</button></div>}
+    <div className="k7-panel-head"><div><div className="k7-panel-eyebrow"><BrandLabel text={"K7 / EDITORIAL TRANSMISSION"} asset="status/editorial_transmission" /></div><h2><BrandLabel text={"Новости"} asset="nav/news" /></h2></div>
+      <button className="k7-panel-icon" type="button" disabled={loading} aria-label="Обновить новости" onClick={() => void reload()}><RefreshCw size={17}/><BrandLabel text="Обновить новости" asset="actions/refresh_news" /></button></div>
+    {canManage && <div className="k7-panel-toolbar"><button type="button" className="k7-panel-button k7-panel-primary" onClick={startNew}><Plus size={15}/> <BrandLabel text={"СОЗДАТЬ ПУБЛИКАЦИЮ"} asset="actions/create_publication" /></button></div>}
     <div ref={editorRef}/>
     {canManage && editorOpen && <div className="k7-editor-studio">
-      <div className="k7-editor-head"><span>{editingId ? "РЕДАКТИРОВАНИЕ" : "НОВАЯ ПУБЛИКАЦИЯ"}</span><button type="button" onClick={() => setEditorOpen(false)} aria-label="Закрыть редактор"><X size={19}/></button></div>
+      <div className="k7-editor-head"><span>{editingId ? <BrandLabel text={"РЕДАКТИРОВАНИЕ"} asset="sections/editing" /> : <BrandLabel text={"НОВАЯ ПУБЛИКАЦИЯ"} asset="sections/new_publication" />}</span><button type="button" onClick={() => setEditorOpen(false)} aria-label="Закрыть редактор"><X size={19}/><BrandLabel text="Закрыть редактор" asset="actions/close_editor" /></button></div>
       <form onSubmit={(event) => void save(event)} className="k7-panel-form k7-editor-form">
-        <label>Рубрика<input maxLength={35} required value={draft.category} onChange={event => patch({ category: event.target.value })} placeholder="НОВОСТИ / ТУРНИР / КОМАНДА" /></label>
-        <label>Стиль публикации<select value={draft.layoutStyle} onChange={event => patch({ layoutStyle: event.target.value as News["layout_style"] })}><option value="editorial">EDITORIAL · редакционная</option><option value="statement">STATEMENT · крупный заголовок</option><option value="spotlight">SPOTLIGHT · акцент на постере</option></select></label>
-        <label className="k7-panel-wide">Заголовок<input maxLength={150} required value={draft.title} onChange={event => patch({ title: event.target.value })} placeholder="Главная мысль публикации" /></label>
-        <label className="k7-panel-wide">Подзаголовок<input maxLength={220} value={draft.subtitle} onChange={event => patch({ subtitle: event.target.value })} placeholder="Короткое выразительное вступление" /></label>
-        <label className="k7-panel-wide">Постер / изображение (HTTPS)<input type="url" value={draft.coverUrl} onChange={event => patch({ coverUrl: event.target.value })} placeholder="https://..." /></label>
-        <div className="k7-panel-wide k7-editor-composer"><div className="k7-editor-toolbar"><button type="button" title="Жирный" onClick={() => insert("strong")}><Bold size={16}/></button><button type="button" title="Курсив" onClick={() => insert("italic")}><Italic size={16}/></button><button type="button" title="Подзаголовок" onClick={() => insert("title")}><Heading2 size={16}/></button><button type="button" title="Цитата" onClick={() => insert("quote")}><Quote size={16}/></button><button type="button" title="Список" onClick={() => insert("list")}><List size={16}/></button><button type="button" title="HTTPS-ссылка" onClick={() => insert("link")}><ExternalLink size={16}/></button></div>
-          <label>Текст публикации<textarea ref={textareaRef} rows={8} required maxLength={20000} value={draft.content} onChange={event => patch({ content: event.target.value })} placeholder="Расскажи историю команды, выдели ключевые детали..."/><small>{draft.content.length} / 20000</small></label></div>
-        <label>Кнопка действия<input maxLength={48} value={draft.ctaLabel} onChange={event => patch({ ctaLabel: event.target.value })} placeholder="Например: Подробнее" /></label>
-        <label>Ссылка кнопки (HTTPS)<input type="url" value={draft.ctaUrl} onChange={event => patch({ ctaUrl: event.target.value })} placeholder="https://..." /></label>
-        <label className="k7-editor-pin"><input type="checkbox" checked={draft.pinned} onChange={event => patch({ pinned: event.target.checked })}/> Закрепить публикацию наверху</label>
-        <div className="k7-panel-wide k7-editor-actions"><button type="button" className="k7-panel-button" onClick={() => setPreview(old => !old)}><Eye size={16}/> {preview ? "СКРЫТЬ ПРЕВЬЮ" : "ПРЕДПРОСМОТР"}</button><button type="submit" className="k7-panel-button k7-panel-primary" disabled={saving || !draft.title.trim() || !draft.content.trim()}>{saving ? "СОХРАНЯЕМ..." : editingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "ОПУБЛИКОВАТЬ"}</button></div>
+        <label><BrandLabel text={"Рубрика"} asset="fields/category" /><input maxLength={35} required value={draft.category} onChange={event => patch({ category: event.target.value })} placeholder="НОВОСТИ / ТУРНИР / КОМАНДА" /></label>
+        <label><BrandLabel text={"Стиль публикации"} asset="fields/publication_style" /><select value={draft.layoutStyle} onChange={event => patch({ layoutStyle: event.target.value as News["layout_style"] })}><option value="editorial">EDITORIAL · редакционная</option><option value="statement">STATEMENT · крупный заголовок</option><option value="spotlight">SPOTLIGHT · акцент на постере</option></select></label>
+        <label className="k7-panel-wide"><BrandLabel text={"Заголовок"} asset="fields/headline" /><input maxLength={150} required value={draft.title} onChange={event => patch({ title: event.target.value })} placeholder="Главная мысль публикации" /></label>
+        <label className="k7-panel-wide"><BrandLabel text={"Подзаголовок"} asset="actions/subtitle" /><input maxLength={220} value={draft.subtitle} onChange={event => patch({ subtitle: event.target.value })} placeholder="Короткое выразительное вступление" /></label>
+        <label className="k7-panel-wide"><BrandLabel text={"Постер / изображение (HTTPS)"} asset="fields/poster_image" /><input type="url" value={draft.coverUrl} onChange={event => patch({ coverUrl: event.target.value })} placeholder="https://..." /></label>
+        <div className="k7-panel-wide k7-editor-composer"><div className="k7-editor-toolbar"><button type="button" title="Жирный" onClick={() => insert("strong")}><Bold size={16}/><BrandLabel text="Жирный" asset="actions/bold" /></button><button type="button" title="Курсив" onClick={() => insert("italic")}><Italic size={16}/><BrandLabel text="Курсив" asset="actions/italic" /></button><button type="button" title="Подзаголовок" onClick={() => insert("title")}><Heading2 size={16}/><BrandLabel text="Подзаголовок" asset="actions/subtitle" /></button><button type="button" title="Цитата" onClick={() => insert("quote")}><Quote size={16}/><BrandLabel text="Цитата" asset="actions/quote" /></button><button type="button" title="Список" onClick={() => insert("list")}><List size={16}/><BrandLabel text="Список" asset="actions/list" /></button><button type="button" title="HTTPS-ссылка" onClick={() => insert("link")}><ExternalLink size={16}/><BrandLabel text="HTTPS-ссылка" asset="actions/https_link" /></button></div>
+          <label><BrandLabel text={"Текст публикации"} asset="fields/publication_text" /><textarea ref={textareaRef} rows={8} required maxLength={20000} value={draft.content} onChange={event => patch({ content: event.target.value })} placeholder="Расскажи историю команды, выдели ключевые детали..."/><small>{draft.content.length} / 20000</small></label></div>
+        <label><BrandLabel text={"Кнопка действия"} asset="fields/cta" /><input maxLength={48} value={draft.ctaLabel} onChange={event => patch({ ctaLabel: event.target.value })} placeholder="Например: Подробнее" /></label>
+        <label><BrandLabel text={"Ссылка кнопки (HTTPS)"} asset="fields/cta_url" /><input type="url" value={draft.ctaUrl} onChange={event => patch({ ctaUrl: event.target.value })} placeholder="https://..." /></label>
+        <label className="k7-editor-pin"><input type="checkbox" checked={draft.pinned} onChange={event => patch({ pinned: event.target.checked })}/> <BrandLabel text={"Закрепить публикацию наверху"} asset="fields/pin_top" /></label>
+        <div className="k7-panel-wide k7-editor-actions"><button type="button" className="k7-panel-button" onClick={() => setPreview(old => !old)}><Eye size={16}/> {preview ? <BrandLabel text={"СКРЫТЬ ПРЕВЬЮ"} asset="actions/hide_preview" /> : <BrandLabel text={"ПРЕДПРОСМОТР"} asset="actions/preview" />}</button><button type="submit" className="k7-panel-button k7-panel-primary" disabled={saving || !draft.title.trim() || !draft.content.trim()}>{saving ? <BrandLabel text={"СОХРАНЯЕМ..."} asset="actions/saving_news" /> : editingId ? <BrandLabel text={"СОХРАНИТЬ ИЗМЕНЕНИЯ"} asset="actions/save_changes" /> : <BrandLabel text={"ОПУБЛИКОВАТЬ"} asset="actions/publish" />}</button></div>
       </form>
-      {preview && <div className="k7-editor-preview"><span>ПРЕДПРОСМОТР</span><NewsCard item={demo} canManage={false} onDelete={() => {}} onEdit={() => {}} onPin={() => {}} busy={false}/></div>}
+      {preview && <div className="k7-editor-preview"><span><BrandLabel text={"ПРЕДПРОСМОТР"} asset="actions/preview" /></span><NewsCard item={demo} canManage={false} onDelete={() => {}} onEdit={() => {}} onPin={() => {}} busy={false}/></div>}
     </div>}
     {error && <div className="k7-panel-error" role="alert">{error}</div>}
     {notice && <div className="k7-panel-notice" role="status">{notice}</div>}
-    {!authReady && <div className="k7-panel-empty">Войдите через Telegram</div>}
+    {!authReady && <div className="k7-panel-empty"><BrandLabel text={"Войдите через Telegram"} asset="status/telegram_required" /></div>}
     {loading && !posts.length && <div className="k7-panel-empty">Загрузка публикаций...</div>}
     {authReady && !loading && posts.length === 0 && !error && <div className="k7-panel-empty">Публикаций пока нет</div>}
     <div className="k7-news-feed">{posts.map(post => <NewsCard key={post.id} item={post} canManage={canManage} onEdit={startEdit} onDelete={(id) => void remove(id)} onPin={(item) => void togglePin(item)} busy={saving}/>)}</div>
