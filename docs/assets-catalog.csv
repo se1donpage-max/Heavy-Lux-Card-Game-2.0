@@ -1,0 +1,182 @@
+id,source_label,display,retina_4x,web_2x
+nav/chat,Чат,ЧАТ,retina_4x/nav/chat.png,web_2x/nav/chat.png
+nav/events,События,СОБЫТИЯ,retina_4x/nav/events.png,web_2x/nav/events.png
+nav/roster,Состав,СОСТАВ,retina_4x/nav/roster.png,web_2x/nav/roster.png
+nav/news,Новости,НОВОСТИ,retina_4x/nav/news.png,web_2x/nav/news.png
+nav/stats,Статистика,СТАТИСТИКА,retina_4x/nav/stats.png,web_2x/nav/stats.png
+nav/messages,Сообщения,СООБЩЕНИЯ,retina_4x/nav/messages.png,web_2x/nav/messages.png
+actions/retry_login,Повторить вход,ПОВТОРИТЬ ВХОД,retina_4x/actions/retry_login.png,web_2x/actions/retry_login.png
+actions/retry,Повторить,ПОВТОРИТЬ,retina_4x/actions/retry.png,web_2x/actions/retry.png
+actions/chat_settings,Настройки чата,НАСТРОЙКИ ЧАТА,retina_4x/actions/chat_settings.png,web_2x/actions/chat_settings.png
+actions/clear_chat,Очистить чат,ОЧИСТИТЬ ЧАТ,retina_4x/actions/clear_chat.png,web_2x/actions/clear_chat.png
+actions/delete,Удалить,УДАЛИТЬ,retina_4x/actions/delete.png,web_2x/actions/delete.png
+actions/reply,Ответить,ОТВЕТИТЬ,retina_4x/actions/reply.png,web_2x/actions/reply.png
+actions/cancel_reply,Отменить ответ,ОТМЕНИТЬ ОТВЕТ,retina_4x/actions/cancel_reply.png,web_2x/actions/cancel_reply.png
+actions/send,Отправить,ОТПРАВИТЬ,retina_4x/actions/send.png,web_2x/actions/send.png
+actions/send_message,Отправить сообщение,ОТПРАВИТЬ СООБЩЕНИЕ,retina_4x/actions/send_message.png,web_2x/actions/send_message.png
+actions/refresh_roster,Обновить состав,ОБНОВИТЬ СОСТАВ,retina_4x/actions/refresh_roster.png,web_2x/actions/refresh_roster.png
+actions/cancel,Отмена,ОТМЕНА,retina_4x/actions/cancel.png,web_2x/actions/cancel.png
+actions/close,Закрыть,ЗАКРЫТЬ,retina_4x/actions/close.png,web_2x/actions/close.png
+actions/report_bug,Сообщить об ошибке,СООБЩИТЬ ОБ ОШИБКЕ,retina_4x/actions/report_bug.png,web_2x/actions/report_bug.png
+actions/sending,Отправка...,ОТПРАВКА...,retina_4x/actions/sending.png,web_2x/actions/sending.png
+actions/refresh_messages,Обновить сообщения,ОБНОВИТЬ СООБЩЕНИЯ,retina_4x/actions/refresh_messages.png,web_2x/actions/refresh_messages.png
+actions/in_progress,В работу,В РАБОТУ,retina_4x/actions/in_progress.png,web_2x/actions/in_progress.png
+actions/resolved,Решено,РЕШЕНО,retina_4x/actions/resolved.png,web_2x/actions/resolved.png
+actions/save,Сохранить,СОХРАНИТЬ,retina_4x/actions/save.png,web_2x/actions/save.png
+actions/yes_delete,"Да, удалить","ДА, УДАЛИТЬ",retina_4x/actions/yes_delete.png,web_2x/actions/yes_delete.png
+actions/refresh_data,Обновить данные,ОБНОВИТЬ ДАННЫЕ,retina_4x/actions/refresh_data.png,web_2x/actions/refresh_data.png
+actions/add_event,+ Событие,+ СОБЫТИЕ,retina_4x/actions/add_event.png,web_2x/actions/add_event.png
+actions/saving,Сохранение...,СОХРАНЕНИЕ...,retina_4x/actions/saving.png,web_2x/actions/saving.png
+actions/save_changes,Сохранить изменения,СОХРАНИТЬ ИЗМЕНЕНИЯ,retina_4x/actions/save_changes.png,web_2x/actions/save_changes.png
+actions/publish,Опубликовать,ОПУБЛИКОВАТЬ,retina_4x/actions/publish.png,web_2x/actions/publish.png
+actions/edit,Редактировать,РЕДАКТИРОВАТЬ,retina_4x/actions/edit.png,web_2x/actions/edit.png
+actions/restore,Восстановить,ВОССТАНОВИТЬ,retina_4x/actions/restore.png,web_2x/actions/restore.png
+actions/cancel_event,Отменить,ОТМЕНИТЬ,retina_4x/actions/cancel_event.png,web_2x/actions/cancel_event.png
+actions/confirm,Подтвердить,ПОДТВЕРДИТЬ,retina_4x/actions/confirm.png,web_2x/actions/confirm.png
+actions/complete,Завершить,ЗАВЕРШИТЬ,retina_4x/actions/complete.png,web_2x/actions/complete.png
+actions/add_match,+ Результат матча,+ РЕЗУЛЬТАТ МАТЧА,retina_4x/actions/add_match.png,web_2x/actions/add_match.png
+actions/record_match,Записать матч,ЗАПИСАТЬ МАТЧ,retina_4x/actions/record_match.png,web_2x/actions/record_match.png
+actions/modify,Изменить,ИЗМЕНИТЬ,retina_4x/actions/modify.png,web_2x/actions/modify.png
+actions/add_player,Добавить игрока,ДОБАВИТЬ ИГРОКА,retina_4x/actions/add_player.png,web_2x/actions/add_player.png
+actions/captain,Капитан,КАПИТАН,retina_4x/actions/captain.png,web_2x/actions/captain.png
+actions/unpin,Открепить,ОТКРЕПИТЬ,retina_4x/actions/unpin.png,web_2x/actions/unpin.png
+actions/pin,Закрепить,ЗАКРЕПИТЬ,retina_4x/actions/pin.png,web_2x/actions/pin.png
+actions/refresh_news,Обновить новости,ОБНОВИТЬ НОВОСТИ,retina_4x/actions/refresh_news.png,web_2x/actions/refresh_news.png
+actions/create_publication,Создать публикацию,СОЗДАТЬ ПУБЛИКАЦИЮ,retina_4x/actions/create_publication.png,web_2x/actions/create_publication.png
+actions/close_editor,Закрыть редактор,ЗАКРЫТЬ РЕДАКТОР,retina_4x/actions/close_editor.png,web_2x/actions/close_editor.png
+actions/bold,Жирный,ЖИРНЫЙ,retina_4x/actions/bold.png,web_2x/actions/bold.png
+actions/italic,Курсив,КУРСИВ,retina_4x/actions/italic.png,web_2x/actions/italic.png
+actions/subtitle,Подзаголовок,ПОДЗАГОЛОВОК,retina_4x/actions/subtitle.png,web_2x/actions/subtitle.png
+actions/quote,Цитата,ЦИТАТА,retina_4x/actions/quote.png,web_2x/actions/quote.png
+actions/list,Список,СПИСОК,retina_4x/actions/list.png,web_2x/actions/list.png
+actions/https_link,HTTPS-ссылка,HTTPS-ССЫЛКА,retina_4x/actions/https_link.png,web_2x/actions/https_link.png
+actions/hide_preview,Скрыть превью,СКРЫТЬ ПРЕВЬЮ,retina_4x/actions/hide_preview.png,web_2x/actions/hide_preview.png
+actions/preview,Предпросмотр,ПРЕДПРОСМОТР,retina_4x/actions/preview.png,web_2x/actions/preview.png
+actions/saving_news,Сохраняем...,СОХРАНЯЕМ...,retina_4x/actions/saving_news.png,web_2x/actions/saving_news.png
+actions/choose_member,Выбрать участника,ВЫБРАТЬ УЧАСТНИКА,retina_4x/actions/choose_member.png,web_2x/actions/choose_member.png
+actions/close_x,×,×,retina_4x/actions/close_x.png,web_2x/actions/close_x.png
+sections/brand,K7 CREW,K7 CREW,retina_4x/sections/brand.png,web_2x/sections/brand.png
+sections/telegram_login,Вход через Telegram,ВХОД ЧЕРЕЗ TELEGRAM,retina_4x/sections/telegram_login.png,web_2x/sections/telegram_login.png
+sections/login_failed,Не удалось войти,НЕ УДАЛОСЬ ВОЙТИ,retina_4x/sections/login_failed.png,web_2x/sections/login_failed.png
+sections/management,Управление,УПРАВЛЕНИЕ,retina_4x/sections/management.png,web_2x/sections/management.png
+sections/confirmation,Подтверждение,ПОДТВЕРЖДЕНИЕ,retina_4x/sections/confirmation.png,web_2x/sections/confirmation.png
+sections/reports,Обращения,ОБРАЩЕНИЯ,retina_4x/sections/reports.png,web_2x/sections/reports.png
+sections/upcoming,Предстоящие,ПРЕДСТОЯЩИЕ,retina_4x/sections/upcoming.png,web_2x/sections/upcoming.png
+sections/completed,Завершённые,ЗАВЕРШЁННЫЕ,retina_4x/sections/completed.png,web_2x/sections/completed.png
+sections/cancelled,Отменённые,ОТМЕНЁННЫЕ,retina_4x/sections/cancelled.png,web_2x/sections/cancelled.png
+sections/main,Основа,ОСНОВА,retina_4x/sections/main.png,web_2x/sections/main.png
+sections/reserve,Запас,ЗАПАС,retina_4x/sections/reserve.png,web_2x/sections/reserve.png
+sections/recent_matches,Последние матчи,ПОСЛЕДНИЕ МАТЧИ,retina_4x/sections/recent_matches.png,web_2x/sections/recent_matches.png
+sections/manage_roster,Управление составом,УПРАВЛЕНИЕ СОСТАВОМ,retina_4x/sections/manage_roster.png,web_2x/sections/manage_roster.png
+sections/main_roster,Основной состав,ОСНОВНОЙ СОСТАВ,retina_4x/sections/main_roster.png,web_2x/sections/main_roster.png
+sections/sub_roster,Запасные,ЗАПАСНЫЕ,retina_4x/sections/sub_roster.png,web_2x/sections/sub_roster.png
+sections/roster_count,Игроков в составе,ИГРОКОВ В СОСТАВЕ,retina_4x/sections/roster_count.png,web_2x/sections/roster_count.png
+sections/matches,Матчи,МАТЧИ,retina_4x/sections/matches.png,web_2x/sections/matches.png
+sections/wins,Победы,ПОБЕДЫ,retina_4x/sections/wins.png,web_2x/sections/wins.png
+sections/kills,Убийства,УБИЙСТВА,retina_4x/sections/kills.png,web_2x/sections/kills.png
+sections/win_rate,Доля побед,ДОЛЯ ПОБЕД,retina_4x/sections/win_rate.png,web_2x/sections/win_rate.png
+sections/edit_player,Редактирование игрока,РЕДАКТИРОВАНИЕ ИГРОКА,retina_4x/sections/edit_player.png,web_2x/sections/edit_player.png
+sections/editing,Редактирование,РЕДАКТИРОВАНИЕ,retina_4x/sections/editing.png,web_2x/sections/editing.png
+sections/new_publication,Новая публикация,НОВАЯ ПУБЛИКАЦИЯ,retina_4x/sections/new_publication.png,web_2x/sections/new_publication.png
+sections/new,Новое,НОВОЕ,retina_4x/sections/new.png,web_2x/sections/new.png
+sections/working,В работе,В РАБОТЕ,retina_4x/sections/working.png,web_2x/sections/working.png
+sections/free_slot,Свободное место,СВОБОДНОЕ МЕСТО,retina_4x/sections/free_slot.png,web_2x/sections/free_slot.png
+sections/four_slots,4 места,4 МЕСТА,retina_4x/sections/four_slots.png,web_2x/sections/four_slots.png
+sections/three_slots,3 места,3 МЕСТА,retina_4x/sections/three_slots.png,web_2x/sections/three_slots.png
+sections/player_table,Таблица игроков,ТАБЛИЦА ИГРОКОВ,retina_4x/sections/player_table.png,web_2x/sections/player_table.png
+sections/event_status,Статус мероприятий,СТАТУС МЕРОПРИЯТИЙ,retina_4x/sections/event_status.png,web_2x/sections/event_status.png
+fields/report_subject,Тема обращения,ТЕМА ОБРАЩЕНИЯ,retina_4x/fields/report_subject.png,web_2x/fields/report_subject.png
+fields/message,Сообщение,СООБЩЕНИЕ,retina_4x/fields/message.png,web_2x/fields/message.png
+fields/report_reply,Ответ или внутренняя заметка (до 500 символов),ОТВЕТ ИЛИ ВНУТРЕННЯЯ ЗАМЕТКА (ДО 500 СИМВОЛОВ),retina_4x/fields/report_reply.png,web_2x/fields/report_reply.png
+fields/name,Название,НАЗВАНИЕ,retina_4x/fields/name.png,web_2x/fields/name.png
+fields/date_time,Дата и время,ДАТА И ВРЕМЯ,retina_4x/fields/date_time.png,web_2x/fields/date_time.png
+fields/format,Формат,ФОРМАТ,retina_4x/fields/format.png,web_2x/fields/format.png
+fields/poster,Постер (HTTPS),ПОСТЕР (HTTPS),retina_4x/fields/poster.png,web_2x/fields/poster.png
+fields/description,Описание,ОПИСАНИЕ,retina_4x/fields/description.png,web_2x/fields/description.png
+fields/match_name,Название матча,НАЗВАНИЕ МАТЧА,retina_4x/fields/match_name.png,web_2x/fields/match_name.png
+fields/placement_range,Место (1–100),МЕСТО (1–100),retina_4x/fields/placement_range.png,web_2x/fields/placement_range.png
+fields/placement,Место,МЕСТО,retina_4x/fields/placement.png,web_2x/fields/placement.png
+fields/member,Участник,УЧАСТНИК,retina_4x/fields/member.png,web_2x/fields/member.png
+fields/position,Позиция,ПОЗИЦИЯ,retina_4x/fields/position.png,web_2x/fields/position.png
+fields/game_role,Игровая роль,ИГРОВАЯ РОЛЬ,retina_4x/fields/game_role.png,web_2x/fields/game_role.png
+fields/game_id_optional,Игровой ID (необязательно),ИГРОВОЙ ID (НЕОБЯЗАТЕЛЬНО),retina_4x/fields/game_id_optional.png,web_2x/fields/game_id_optional.png
+fields/role,Роль,РОЛЬ,retina_4x/fields/role.png,web_2x/fields/role.png
+fields/game_id,Игровой ID,ИГРОВОЙ ID,retina_4x/fields/game_id.png,web_2x/fields/game_id.png
+fields/category,Рубрика,РУБРИКА,retina_4x/fields/category.png,web_2x/fields/category.png
+fields/publication_style,Стиль публикации,СТИЛЬ ПУБЛИКАЦИИ,retina_4x/fields/publication_style.png,web_2x/fields/publication_style.png
+fields/headline,Заголовок,ЗАГОЛОВОК,retina_4x/fields/headline.png,web_2x/fields/headline.png
+fields/poster_image,Постер / изображение (HTTPS),ПОСТЕР / ИЗОБРАЖЕНИЕ (HTTPS),retina_4x/fields/poster_image.png,web_2x/fields/poster_image.png
+fields/publication_text,Текст публикации,ТЕКСТ ПУБЛИКАЦИИ,retina_4x/fields/publication_text.png,web_2x/fields/publication_text.png
+fields/cta,Кнопка действия,КНОПКА ДЕЙСТВИЯ,retina_4x/fields/cta.png,web_2x/fields/cta.png
+fields/cta_url,Ссылка кнопки (HTTPS),ССЫЛКА КНОПКИ (HTTPS),retina_4x/fields/cta_url.png,web_2x/fields/cta_url.png
+fields/pin_top,Закрепить публикацию наверху,ЗАКРЕПИТЬ ПУБЛИКАЦИЮ НАВЕРХУ,retina_4x/fields/pin_top.png,web_2x/fields/pin_top.png
+fields/editorial,EDITORIAL · редакционная,EDITORIAL · РЕДАКЦИОННАЯ,retina_4x/fields/editorial.png,web_2x/fields/editorial.png
+fields/statement,STATEMENT · крупный заголовок,STATEMENT · КРУПНЫЙ ЗАГОЛОВОК,retina_4x/fields/statement.png,web_2x/fields/statement.png
+fields/spotlight,SPOTLIGHT · акцент на постере,SPOTLIGHT · АКЦЕНТ НА ПОСТЕРЕ,retina_4x/fields/spotlight.png,web_2x/fields/spotlight.png
+roles/flex,FLEX,FLEX,retina_4x/roles/flex.png,web_2x/roles/flex.png
+roles/igl,IGL,IGL,retina_4x/roles/igl.png,web_2x/roles/igl.png
+roles/support,SUPPORT,SUPPORT,retina_4x/roles/support.png,web_2x/roles/support.png
+roles/fragger,FRAGGER,FRAGGER,retina_4x/roles/fragger.png,web_2x/roles/fragger.png
+roles/sniper,SNIPER,SNIPER,retina_4x/roles/sniper.png,web_2x/roles/sniper.png
+roles/main_1,MAIN 1,MAIN 1,retina_4x/roles/main_1.png,web_2x/roles/main_1.png
+roles/main_2,MAIN 2,MAIN 2,retina_4x/roles/main_2.png,web_2x/roles/main_2.png
+roles/main_3,MAIN 3,MAIN 3,retina_4x/roles/main_3.png,web_2x/roles/main_3.png
+roles/main_4,MAIN 4,MAIN 4,retina_4x/roles/main_4.png,web_2x/roles/main_4.png
+roles/sub_1,SUB 1,SUB 1,retina_4x/roles/sub_1.png,web_2x/roles/sub_1.png
+roles/sub_2,SUB 2,SUB 2,retina_4x/roles/sub_2.png,web_2x/roles/sub_2.png
+roles/sub_3,SUB 3,SUB 3,retina_4x/roles/sub_3.png,web_2x/roles/sub_3.png
+roles/wins_en,WINS,WINS,retina_4x/roles/wins_en.png,web_2x/roles/wins_en.png
+roles/kills_en,KILLS,KILLS,retina_4x/roles/kills_en.png,web_2x/roles/kills_en.png
+cinema/chat_label,01 / CHAT,01 / CHAT,retina_4x/cinema/chat_label.png,web_2x/cinema/chat_label.png
+cinema/events_label,02 / EVENTS,02 / EVENTS,retina_4x/cinema/events_label.png,web_2x/cinema/events_label.png
+cinema/roster_label,03 / TEAM ROSTER,03 / TEAM ROSTER,retina_4x/cinema/roster_label.png,web_2x/cinema/roster_label.png
+cinema/news_label,04 / NEWS,04 / NEWS,retina_4x/cinema/news_label.png,web_2x/cinema/news_label.png
+cinema/stats_label,05 / STATS,05 / STATS,retina_4x/cinema/stats_label.png,web_2x/cinema/stats_label.png
+cinema/stay,STAY,STAY,retina_4x/cinema/stay.png,web_2x/cinema/stay.png
+cinema/connected,CONNECTED,CONNECTED,retina_4x/cinema/connected.png,web_2x/cinema/connected.png
+cinema/own_the,OWN THE,OWN THE,retina_4x/cinema/own_the.png,web_2x/cinema/own_the.png
+cinema/moment,MOMENT,MOMENT,retina_4x/cinema/moment.png,web_2x/cinema/moment.png
+cinema/one_crew,ONE CREW.,ONE CREW.,retina_4x/cinema/one_crew.png,web_2x/cinema/one_crew.png
+cinema/one_mission,ONE MISSION.,ONE MISSION.,retina_4x/cinema/one_mission.png,web_2x/cinema/one_mission.png
+cinema/ahead,AHEAD,AHEAD,retina_4x/cinema/ahead.png,web_2x/cinema/ahead.png
+cinema/numbers,NUMBERS,NUMBERS,retina_4x/cinema/numbers.png,web_2x/cinema/numbers.png
+cinema/dont_lie,DON’T LIE,DON’T LIE,retina_4x/cinema/dont_lie.png,web_2x/cinema/dont_lie.png
+reaction_alternatives/fire,Огонь,ОГОНЬ,retina_4x/reaction_alternatives/fire.png,web_2x/reaction_alternatives/fire.png
+reaction_alternatives/heart,Сердце,СЕРДЦЕ,retina_4x/reaction_alternatives/heart.png,web_2x/reaction_alternatives/heart.png
+reaction_alternatives/like,Нравится,НРАВИТСЯ,retina_4x/reaction_alternatives/like.png,web_2x/reaction_alternatives/like.png
+reaction_alternatives/dislike,Не нравится,НЕ НРАВИТСЯ,retina_4x/reaction_alternatives/dislike.png,web_2x/reaction_alternatives/dislike.png
+status/available,Доступно,ДОСТУПНО,retina_4x/status/available.png,web_2x/status/available.png
+status/team_member,TEAM MEMBER,TEAM MEMBER,retina_4x/status/team_member.png,web_2x/status/team_member.png
+status/community_member,Участник сообщества,УЧАСТНИК СООБЩЕСТВА,retina_4x/status/community_member.png,web_2x/status/community_member.png
+status/owner,OWNER,OWNER,retina_4x/status/owner.png,web_2x/status/owner.png
+status/member,MEMBER,MEMBER,retina_4x/status/member.png,web_2x/status/member.png
+status/community_count,в сообществе,В СООБЩЕСТВЕ,retina_4x/status/community_count.png,web_2x/status/community_count.png
+status/chat_timer,Таймер удаления сообщений — 10 мин.,ТАЙМЕР УДАЛЕНИЯ СООБЩЕНИЙ — 10 МИН.,retina_4x/status/chat_timer.png,web_2x/status/chat_timer.png
+status/auto_delete,Автоудаление сообщений — 10 минут,АВТОУДАЛЕНИЕ СООБЩЕНИЙ — 10 МИНУТ,retina_4x/status/auto_delete.png,web_2x/status/auto_delete.png
+status/match_players,Участники матча (1–4),УЧАСТНИКИ МАТЧА (1–4),retina_4x/status/match_players.png,web_2x/status/match_players.png
+status/pinned,Закреплено,ЗАКРЕПЛЕНО,retina_4x/status/pinned.png,web_2x/status/pinned.png
+status/telegram_required,Войдите через Telegram,ВОЙДИТЕ ЧЕРЕЗ TELEGRAM,retina_4x/status/telegram_required.png,web_2x/status/telegram_required.png
+status/loading_events,Загрузка событий...,ЗАГРУЗКА СОБЫТИЙ...,retina_4x/status/loading_events.png,web_2x/status/loading_events.png
+status/loading_stats,Получение статистики...,ПОЛУЧЕНИЕ СТАТИСТИКИ...,retina_4x/status/loading_stats.png,web_2x/status/loading_stats.png
+status/no_upcoming,Пока нет запланированных мероприятий,ПОКА НЕТ ЗАПЛАНИРОВАННЫХ МЕРОПРИЯТИЙ,retina_4x/status/no_upcoming.png,web_2x/status/no_upcoming.png
+status/no_cancelled,Пока нет отменённых мероприятий,ПОКА НЕТ ОТМЕНЁННЫХ МЕРОПРИЯТИЙ,retina_4x/status/no_cancelled.png,web_2x/status/no_cancelled.png
+status/no_completed,Пока нет завершённых мероприятий,ПОКА НЕТ ЗАВЕРШЁННЫХ МЕРОПРИЯТИЙ,retina_4x/status/no_completed.png,web_2x/status/no_completed.png
+status/no_players,В этой группе пока нет игроков,В ЭТОЙ ГРУППЕ ПОКА НЕТ ИГРОКОВ,retina_4x/status/no_players.png,web_2x/status/no_players.png
+status/no_matches,Матчи пока не добавлены,МАТЧИ ПОКА НЕ ДОБАВЛЕНЫ,retina_4x/status/no_matches.png,web_2x/status/no_matches.png
+status/no_messages,Пока нет сообщений,ПОКА НЕТ СООБЩЕНИЙ,retina_4x/status/no_messages.png,web_2x/status/no_messages.png
+status/no_reports,Пока нет обращений.,ПОКА НЕТ ОБРАЩЕНИЙ.,retina_4x/status/no_reports.png,web_2x/status/no_reports.png
+status/delete_event,Удалить событие?,УДАЛИТЬ СОБЫТИЕ?,retina_4x/status/delete_event.png,web_2x/status/delete_event.png
+status/delete_match,Удалить матч и статистику?,УДАЛИТЬ МАТЧ И СТАТИСТИКУ?,retina_4x/status/delete_match.png,web_2x/status/delete_match.png
+status/delete_report,Удалить обращение?,УДАЛИТЬ ОБРАЩЕНИЕ?,retina_4x/status/delete_report.png,web_2x/status/delete_report.png
+status/loading,Загрузка...,ЗАГРУЗКА...,retina_4x/status/loading.png,web_2x/status/loading.png
+status/loading_chat,Загружаем чат…,ЗАГРУЖАЕМ ЧАТ…,retina_4x/status/loading_chat.png,web_2x/status/loading_chat.png
+status/loading_history,Загружаем историю…,ЗАГРУЖАЕМ ИСТОРИЮ…,retina_4x/status/loading_history.png,web_2x/status/loading_history.png
+status/loading_roster,Загружаем состав…,ЗАГРУЖАЕМ СОСТАВ…,retina_4x/status/loading_roster.png,web_2x/status/loading_roster.png
+status/connecting,Подключение…,ПОДКЛЮЧЕНИЕ…,retina_4x/status/connecting.png,web_2x/status/connecting.png
+status/login,Вход…,ВХОД…,retina_4x/status/login.png,web_2x/status/login.png
+status/competition,K7 / COMPETITION,K7 / COMPETITION,retina_4x/status/competition.png,web_2x/status/competition.png
+status/performance,K7 / PERFORMANCE,K7 / PERFORMANCE,retina_4x/status/performance.png,web_2x/status/performance.png
+status/moderation,K7 / MODERATION,K7 / MODERATION,retina_4x/status/moderation.png,web_2x/status/moderation.png
+status/support,K7 / SUPPORT,K7 / SUPPORT,retina_4x/status/support.png,web_2x/status/support.png
+status/admin_only,K7 / ADMIN ONLY,K7 / ADMIN ONLY,retina_4x/status/admin_only.png,web_2x/status/admin_only.png
+status/editorial_transmission,K7 / EDITORIAL TRANSMISSION,K7 / EDITORIAL TRANSMISSION,retina_4x/status/editorial_transmission.png,web_2x/status/editorial_transmission.png
