@@ -1,21 +1,24 @@
-
 {
   "name": "k7-crew",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "next build",
+    "build": "npm run check:encoding && npm run check:assets && next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "test:local": "node scripts/test-local.cjs",
+    "check:assets": "node scripts/check-assets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.468.0",
     "next": "^15.5.6",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
