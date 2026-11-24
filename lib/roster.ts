@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import type { AccessRole } from "@/lib/auth";
@@ -85,5 +84,5 @@ export function validateRosterInput(
 }
 
 export function canEditRoster(role: AccessRole): boolean {
-  return role === "OWNER" || role === "ADMIN" || role === "IGL";
+  return role === "OWNER" || role === "IGL";
 }
